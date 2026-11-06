@@ -91,3 +91,12 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--oiii); outl
 .runs { display: flex; flex-wrap: wrap; gap: 4px; }
 .run-chip { min-width: 34px; padding: 4px 6px; background: none; border: 1px solid var(--line); font: 12px var(--data); }
 .run-chip[aria-pressed="true"] { border-color: var(--oiii); color: var(--oiii); }
+.countdown { flex-direction: row !important; align-items: baseline; flex-wrap: wrap; gap: 4px 12px !important; }
+.countdown b { font: 600 34px var(--data); color: var(--oiii); font-variant-numeric: tabular-nums; line-height: 1; }
+.countdown span { flex: 1 1 160px; font-size: 13px; color: var(--quiet); }
+.reading { display: flex; flex-direction: column; gap: 10px; }
+.reading article { display: flex; flex-direction: column; gap: 2px; border-left: 2px solid var(--line); padding-left: 10px; }
+.reading article b { font-weight: 600; font-size: 14px; }
+.reading article p { font-size: 13.5px; }
+.reading article.new { border-left-color: var(--oiii); }
+.reading article.new p { color: var(--ink); }

@@ -20,4 +20,5 @@ for (const z of [[0, 0, 0], [0.8, -0.5, 0], [-1, 1, -1]]) {
   rows.push([meta.regions, meta.heavy, meta.cosmicMyr, meta.heavyCooling]);
   rows.push([...meta.unlocks]);
 }
+rows.push([E.stromgrenRadius(E.ionizingRate(22), 1e4), E.hiiRadius(E.ionizingRate(60), 300, 250, 1e13), E.hiiRadius(E.ionizingRate(60), 300, 250, 1e15)]);
 console.log(JSON.stringify(rows));

@@ -8,6 +8,7 @@ Values come from the research report "Accretion prototype stellar data". Most pa
 | Infall rate c_s^3/G | Established | Shu scaling. Primordial simulations run 2 to 10 times higher early on, so this is knowingly low |
 | Viscous disk, alpha viscosity | Established | Lynden-Bell & Pringle, Shakura-Sunyaev. Alpha 0.1 to 1 suits gravitationally unstable embedded disks; a planet phase needs its own, far lower value |
 | HII taper | Simplified | Mechanism from Hosokawa 2011 and McKee & Tan 2008. Infall runs at the full Shu rate up to the break mass, then falls linearly to zero at twice that mass. The break-mass formula and the linear shape are calibrations, not published |
+| HII region (Shine view and field notes only) | Simplified | Stromgren radius with case-B recombination 2.6×10^-13 cm3/s, Spitzer (1978) expansion at c_i = 10 km/s, capped at the stagnation radius R_s (c_i/c_0)^(4/3) (Raga et al. 2012). Uses zero-age Q held constant, uniform gas at the run's density and temperature, and hydrogen density taken as the total number density. Drawn only above 5 M☉, the bottom of the ionizing-photon table. Does not affect any game rule |
 | Disk photoevaporation | Simplified | Tanaka 2013 rate with Schaerer 2002 Q(H). The factor of 5 is a calibration |
 | Fragmentation cap | Simplified | Disk mass above the star's goes to companions, from Kratter & Lodato 2016 |
 | Landing radius | Simplified | 400 (M/10)^0.6 AU, fit to two points from Hosokawa 2011 |

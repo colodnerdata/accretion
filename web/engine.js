@@ -1,7 +1,7 @@
 // Browser port of src/accretion. tests/test_parity.py keeps the two in step.
 const Engine = (() => {
   const G = 6.674e-8, K_B = 1.381e-16, M_H = 1.673e-24, MSUN = 1.989e33, AU = 1.496e13;
-  const YR = 3.156e7, MU = 1.22, ZSUN = 0.0134, PRIMORDIAL_METAL_LOG10 = -4;
+  const YR = 3.156e7, MU = 1.22, ZSUN = 0.0134, PRIMORDIAL_METAL_LOG10 = -4, ALPHA_B = 2.6e-13, HII_SOUND_SPEED = 1.0e6;
   const G_AU = 4 * Math.PI ** 2, CELLS = 16, R_IN = 1.0, R_OUT = 3000.0, CS2_1AU = 0.5;
   const SIM_STEP_YEARS = 50.0, ACCRETE_YEARS_PER_SECOND = 1000.0, COLLAPSE_SECONDS = 20.0;
   const MS_REFERENCE_SECONDS = 240.0, MS_REFERENCE_MYR = 5.0, MS_EXPONENT = 1.12;
@@ -67,6 +67,11 @@ const Engine = (() => {
   const lifetimeMyr = (m, z) => 10 ** logTable(LIFE_MASS, LIFE_LOG10, LIFE_METAL, m, z);
   const rotationBonus = (m, z) => Math.min(z >= -0.5 ? 0.25 : z >= -2 ? 0.18 : 0.10, interpolate([120, 200, 300], [0.25, 0.14, 0.10], m));
   const ionizingRate = (m) => 10 ** interpolate(ION_MASS.map(Math.log10), ION_RATE.map(Math.log10), Math.log10(m));
+  const stromgrenRadius = (q, n) => (3 * q / (4 * Math.PI * n ** 2 * ALPHA_B)) ** (1 / 3);
+  const hiiRadius = (q, n, temp, s) => {
+    const r0 = stromgrenRadius(q, n);
+    return Math.min(r0 * (1 + 7 * HII_SOUND_SPEED * s / (4 * r0)) ** (4 / 7), r0 * (HII_SOUND_SPEED / soundSpeed(temp)) ** (4 / 3));
+  };
   const diskLossRate = (m, r) => 5 * 5.4e-5 * Math.sqrt(ionizingRate(m) / 1e49) * Math.sqrt(r / 1000);
   const coolingTemperature = (z) => Math.max(10, 200 * 10 ** (-0.47 * Math.max(0, z - Math.log10(1.3e-4))));
   function redshift(age) {
@@ -332,7 +337,7 @@ const Engine = (() => {
     newMeta, newRun, step, tap, buy, canBuy, upgradeCost, budget, regionCost, backgroundMetal, heavyCost, buyHeavy,
     temperature, alpha, feedRadius, reachRate, tapPower, patchMass, jeansLogReach, jeansMass, infallRate,
     diskLossRate, infallNow, diskGas, luminosity, lifetimeMyr, canSkip, runGain, prestige, heavyYield, gas, BASE_DENSITY, BASE_TEMPERATURE,
-    freeFallTime, updateUnlocks, COLLAPSE_SECONDS,
+    freeFallTime, updateUnlocks, COLLAPSE_SECONDS, ionizingRate, stromgrenRadius, hiiRadius, soundSpeed, YR, PRIMORDIAL_METAL_LOG10, HII_SOUND_SPEED,
   };
 })();
 if (typeof module !== "undefined") module.exports = Engine;

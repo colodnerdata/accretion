@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from accretion import game
+from accretion import game, physics
 
 ROOT = Path(__file__).parents[1]
 
@@ -48,6 +48,13 @@ def test_python_and_browser_engines_agree():
         game.buy_heavy(meta, "cooling")
         rows.append([meta.regions, meta.heavy, meta.cosmic_myr, meta.heavy_cooling])
         rows.append(list(meta.unlocks))
+    rows.append(
+        [
+            physics.stromgren_radius(physics.ionizing_rate(22), 1e4),
+            physics.hii_radius(physics.ionizing_rate(60), 300, 250, 1e13),
+            physics.hii_radius(physics.ionizing_rate(60), 300, 250, 1e15),
+        ]
+    )
     assert len(rows) == len(browser)
     for ours, theirs in zip(rows, browser, strict=True):
         if isinstance(ours[0], str):

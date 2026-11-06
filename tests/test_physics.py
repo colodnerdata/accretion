@@ -40,6 +40,23 @@ def test_luminosity_table():
     assert math.log10(physics.luminosity(120, 0)) == pytest.approx(6.24)
 
 
+def test_stromgren_radius_matches_textbook_scale():
+    # About 3 pc for 10^49 photons/s in gas of 100 /cm3 (Osterbrock & Ferland).
+    pc = 3.086e18
+    assert physics.stromgren_radius(1e49, 100) / pc == pytest.approx(3.1, rel=0.03)
+
+
+def test_hii_region_expands_like_spitzer_then_stalls():
+    start = physics.stromgren_radius(1e49, 100)
+    assert physics.hii_radius(1e49, 100, 250, 0) == pytest.approx(start)
+    early = 1e12
+    spitzer = start * (1 + 7 * physics.HII_SOUND_SPEED * early / (4 * start)) ** (4 / 7)
+    assert physics.hii_radius(1e49, 100, 250, early) == pytest.approx(spitzer)
+    ratio = physics.HII_SOUND_SPEED / physics.sound_speed(250)
+    stall = start * ratio ** (4 / 3)
+    assert physics.hii_radius(1e49, 100, 250, 1e17) == pytest.approx(stall)
+
+
 def test_photoevaporation_matches_tanaka_at_forty_solar_masses():
     rate = physics.disk_loss_rate(40, 1000)
     assert rate == pytest.approx(5 * 5.4e-5 * 1.9**0.5)

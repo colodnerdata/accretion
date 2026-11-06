@@ -14,6 +14,8 @@ YR = 3.156e7
 MU = 1.22
 ZSUN = 0.0134
 PRIMORDIAL_METAL_LOG10 = -4.0
+ALPHA_B = 2.6e-13  # case-B recombination coefficient at 10^4 K, cm3/s
+HII_SOUND_SPEED = 1.0e6  # ionized gas near 10^4 K, cm/s
 
 LIFE_MASS = [
     0.1, 0.3, 0.5, 0.8, 1, 2, 3, 5, 8, 10, 15, 20, 25, 40, 60, 85, 120, 150, 200, 300,
@@ -130,6 +132,56 @@ def ionizing_rate(mass: float) -> float:
     logs = [math.log10(m) for m in ION_MASS]
     rates = [math.log10(q) for q in ION_RATE]
     return 10 ** interpolate(logs, rates, math.log10(mass))
+
+
+def stromgren_radius(rate: float, number_density: float) -> float:
+    """Return the Stromgren radius in cm.
+
+    Parameters
+    ----------
+    rate : float
+        Hydrogen-ionizing photons per second.
+    number_density : float
+        Hydrogen number density in 1/cm3.
+
+    Returns
+    -------
+    float
+        Radius where recombinations use up every ionizing photon.
+
+    """
+    return (3 * rate / (4 * math.pi * number_density**2 * ALPHA_B)) ** (1 / 3)
+
+
+def hii_radius(
+    rate: float, number_density: float, temperature: float, seconds: float
+) -> float:
+    """Return the radius of an expanding HII region in cm.
+
+    The front follows Spitzer (1978) until the ionized gas's pressure matches
+    the surrounding gas, at the stagnation radius (Raga et al. 2012).
+
+    Parameters
+    ----------
+    rate : float
+        Hydrogen-ionizing photons per second, held constant.
+    number_density : float
+        Ambient hydrogen number density in 1/cm3.
+    temperature : float
+        Ambient gas temperature in K.
+    seconds : float
+        Time since the star switched on.
+
+    Returns
+    -------
+    float
+        min(R_s (1 + 7 c_i t / 4 R_s)^(4/7), R_s (c_i / c_0)^(4/3)).
+
+    """
+    start = stromgren_radius(rate, number_density)
+    spitzer = start * (1 + 7 * HII_SOUND_SPEED * seconds / (4 * start)) ** (4 / 7)
+    stagnation = start * (HII_SOUND_SPEED / sound_speed(temperature)) ** (4 / 3)
+    return min(spitzer, stagnation)
 
 
 def disk_loss_rate(mass: float, radius_au: float) -> float:

@@ -33,6 +33,47 @@ function duration(seconds) {
   return `${(seconds / 86400).toFixed(0)} days`;
 }
 function myr(value) { return value >= 1000 ? `${sci(value / 1000)} Gyr` : `${sci(value)} Myr`; }
+function clock(seconds) {
+  const s = Math.max(0, Math.ceil(seconds)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, pad = (x) => String(x).padStart(2, "0");
+  return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
+}
+
+// Shine phase. The HII region is display only: Stromgren sphere, Spitzer expansion, then stall.
+const IONIZING_MIN_MASS = 5;
+function bubble(run, meta) {
+  if (run.phase !== "main_sequence" || run.starMass < IONIZING_MIN_MASS) return null;
+  const q = E.ionizingRate(run.starMass), n = run.density, T = E.temperature(run, meta);
+  const lifeSeconds = run.lifetimeMyr * 1e6 * E.YR, age = run.msElapsed / run.msDuration * lifeSeconds;
+  const start = E.stromgrenRadius(q, n), end = E.hiiRadius(q, n, T, Infinity), now = E.hiiRadius(q, n, T, age);
+  const ratio = E.HII_SOUND_SPEED / E.soundSpeed(T);
+  const stallAt = 4 * start / (7 * E.HII_SOUND_SPEED) * (ratio ** (7 / 3) - 1);
+  const grow = end > start * 1.001 ? Math.log(now / start) / Math.log(end / start) : 1;
+  return { start, now, end, grow, stalled: age >= stallAt, stallShare: Math.min(1, stallAt / lifeSeconds) };
+}
+function burned(run) { return run.msDuration ? Math.min(1, run.msElapsed / run.msDuration) : 0; }
+function shineNotes(run, meta) {
+  const m = run.starMass, b = bubble(run, meta), years = run.lifetimeMyr * 1e6 / run.msDuration;
+  const L = E.luminosity(m, run.metalLog10), heavy = m >= 1;
+  const notes = [
+    [0, "The main sequence", "The core is fusing hydrogen into helium. The heat from fusion pushes outward exactly as hard as gravity pulls inward, so the star holds steady. Stars spend about 90% of their lives in this balance."],
+    [0.08, "Fast time", `Each second you watch is about ${sci(years)} years for this star. All of recorded human history would pass in about ${sci(5000 / years)} seconds.`],
+    [0.2, "Brightness", heavy
+      ? `This star shines about ${sci(L)} times as bright as the Sun. Brightness climbs much faster than mass, so a heavier star spends its fuel far faster. It is expected to last about ${myr(run.forecastMyr)}, against about 10 billion years for the Sun.`
+      : `This star shines at about ${sci(L)} of the Sun's brightness. Small stars sip their fuel, so it is expected to last about ${myr(run.forecastMyr)}, longer than the Sun's 10 billion years.`],
+    [0.35, "How it fuses", m < 1.3
+      ? "This star fuses hydrogen proton by proton, as the Sun does. It is a slow route, one reason small stars last so long."
+      : run.metalLog10 < E.PRIMORDIAL_METAL_LOG10
+        ? "Heavier stars usually fuse hydrogen with carbon, nitrogen, and oxygen as catalysts. This gas formed before any star had made those elements, so the core squeezed itself hotter until it made a trace of carbon of its own, then burned on."
+        : "This star's core uses the carbon, nitrogen, and oxygen it was born with as catalysts, cycling hydrogen through them into helium. Earlier stars made those elements."],
+    [0.5, "Starlight on the gas", b
+      ? `Ultraviolet light from the star strips electrons from the hydrogen around it. That ionized gas, near 10,000 K, glows and pushes into the cold gas beyond. The bubble's edge is now ${length(b.now)} from the star.`
+      : "This star is too cool to ionize much of the gas around it. Its light mostly warms the nearby dust and gas."],
+    [0.7, "Helium ash", "Helium is piling up in the core. It needs far higher temperatures to fuse, so for now it just sits there. The core slowly shrinks and heats to keep the hydrogen around it burning, and the star swells and brightens a little."],
+    [0.9, "Running low", "The core's hydrogen is nearly gone. What happens next depends mostly on the mass this star was born with."],
+  ];
+  if (b) notes.push([Math.max(0.12, b.stallShare), "The bubble stops", `The ionized bubble has stopped growing, with its edge about ${length(b.end)} from the star. Its pressure now matches the cold gas around it.`]);
+  return notes.sort((x, y) => x[0] - y[0]);
+}
 
 const PHASES = [["gather", "Gather"], ["collapse", "Collapse"], ["accrete", "Accrete"], ["main_sequence", "Shine"], ["ended", "Death"]];
 const ENDINGS = {
@@ -117,7 +158,7 @@ function headline() {
   if (run.phase === "gather") return ["Gather the gas", `Tap the sky to pull in gas. At ${mass(E.jeansMass(E.temperature(run, meta), run.density))}, gravity beats gas pressure and the patch collapses.`];
   if (run.phase === "collapse") return ["Free fall", `Nothing is holding the cloud up now. In reality this fall takes about ${myr(E.freeFallTime(run.density) / 3.156e13)}.`];
   if (run.phase === "accrete") return [run.ignited ? "Feed the star" : "Build a protostar", "Gas spirals through the disk into the star. As the star brightens, its ionizing light cuts off the gas falling in and boils away the disk."];
-  return ["The star shines", "Its final mass is set, and it will decide how this star ends."];
+  return ["The star shines", "Its final mass is set, and it will decide how this star ends. Until then, it burns hydrogen in its core."];
 }
 function progress() {
   const { run, meta } = state;
@@ -127,7 +168,7 @@ function progress() {
   }
   if (run.phase === "collapse") return [1 - run.collapseLeft / E.COLLAPSE_SECONDS, "Collapse", duration(run.collapseLeft / state.speed)];
   if (run.phase === "accrete") { const gas = E.gas(run); return [1 - gas / run.collapseMass, "Gas used or blown away", `${sci(gas)} M☉ left`]; }
-  return [run.msElapsed / run.msDuration, "Fuel burned", `${duration((run.msDuration - run.msElapsed) / state.speed)} left`];
+  return [burned(run), "Core hydrogen burned", `${Math.floor(burned(run) * 100)}%`];
 }
 function statsFor() {
   const { run, meta } = state;
@@ -137,7 +178,8 @@ function statsFor() {
     const disk = run.diskMasses.reduce((a, b) => a + b, 0);
     return [["Star", `${sci(run.starMass)} M☉`], ["In the disk", `${sci(disk)} M☉`], ["Still falling in", `${sci(run.envelope)} M☉`], ["Falling in", `${sci(E.infallNow(run, meta))} M☉/yr`], ["Boiled off", `${sci(E.diskLossRate(run.starMass, E.feedRadius(run)))} M☉/yr`], ["Companion stars", `${sci(run.companions)} M☉`], ["Energy", `${sci(run.energy)} erg`]];
   }
-  return [["Star", `${sci(run.starMass)} M☉`], ["Brightness", `${sci(E.luminosity(run.starMass, run.metalLog10))} Suns`], ["Forecast life", myr(run.forecastMyr)], ["Age", myr(run.msElapsed / run.msDuration * run.lifetimeMyr)]];
+  const b = bubble(run, meta);
+  return [["Star", `${sci(run.starMass)} M☉`], ["Brightness", `${sci(E.luminosity(run.starMass, run.metalLog10))} Suns`], ["Forecast life", myr(run.forecastMyr)], ["Age", myr(run.msElapsed / run.msDuration * run.lifetimeMyr)], ...(b ? [["Ionized bubble", `${length(b.now)} radius`]] : [])];
 }
 
 // Hints use what has actually happened in this save, and go one step deeper each time.
@@ -204,9 +246,12 @@ function renderShell() {
   paintHints();
 }
 function renderPlay(panel) {
+  const shine = state.run.phase === "main_sequence";
   panel.insertAdjacentHTML("beforeend", `<section><p class="goal" id="goal"></p><h2 id="head"></h2><p id="sub"></p></section>
+    ${shine ? `<section class="countdown"><b id="count"></b><span id="count-note"></span></section>` : ""}
     <section><div class="meter"><i id="meter"></i></div><div class="meter-note"><span id="meter-a"></span><span id="meter-b"></span></div><div id="stats"></div></section>
     <section id="upgrade-box"><h3>Controls</h3><p class="fine">Energy comes from falling gas. Spend it here.</p><div class="upgrades" id="upgrades"></div></section>
+    ${shine ? `<section><h3>Field notes</h3><div id="reading" class="reading"></div></section>` : ""}
     <section id="skip-box" hidden></section><section><h3>Observations</h3><div id="log"></div></section>`);
   const list = $("upgrades");
   const names = Object.keys(E.UPGRADES).filter((n) => E.UPGRADES[n].phase === state.run.phase && state.meta.unlocks.includes(n));
@@ -401,6 +446,17 @@ function update() {
     el.querySelector(".cost").textContent = maxed ? "Maxed" : `${sci(E.upgradeCost(run, name))} erg`;
     el.disabled = !ok; el.classList.toggle("ready", ok);
   }
+  if ($("count")) {
+    const left = (run.msDuration - run.msElapsed) / state.speed, years = run.lifetimeMyr * 1e6 / run.msDuration * state.speed;
+    $("count").textContent = clock(left);
+    $("count-note").textContent = `until the core's hydrogen runs out. Each second here is about ${sci(years)} years.`;
+  }
+  if ($("reading")) {
+    // Newest first, so a fresh note is visible without scrolling.
+    const shown = shineNotes(run, meta).filter(([at]) => burned(run) >= at).reverse();
+    const html = shown.map(([, title, text], i) => `<article${i === 0 ? ' class="new"' : ""}><b>${title}</b><p>${text}</p></article>`).join("");
+    if ($("reading").innerHTML !== html) $("reading").innerHTML = html;
+  }
   const skippable = E.canSkip(run);
   $("skip-box").hidden = !skippable;
   if (skippable) $("skip-note").textContent = `Nothing you do can change this star for another ${duration(run.msDuration - run.msElapsed)}. Moving on ages the universe only by the time you stayed.`;
@@ -422,7 +478,64 @@ addEventListener("resize", resize);
 function viewRadius() {
   const r = state.run;
   if (r.phase === "gather" || r.phase === "collapse") return Math.exp(r.logReach) * 1.15 * (r.phase === "collapse" ? Math.max(0.03, r.collapseLeft / E.COLLAPSE_SECONDS) : 1);
+  const b = bubble(r, state.meta);
+  if (b) return b.now / bubbleShare(b);
   return 3000 * 1.496e13;
+}
+// Share of the view radius the ionized bubble fills: it grows on a log scale from switch-on to stall.
+function bubbleShare(b) { return 0.2 + 0.6 * b.grow; }
+function shineScene(run, meta, cx, cy, R, t) {
+  const f = burned(run), b = bubble(run, meta), time = calm ? 0 : t;
+  const rb = b ? R * bubbleShare(b) : 0;
+  // Cold neutral gas, cleared wherever the star has ionized it.
+  for (const [a, u, s] of HAZE) {
+    const rad = R * 1.75 * Math.sqrt(u), x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad * 0.9;
+    if (rad < rb * 1.02) continue;
+    ctx.globalAlpha = 0.18 + 0.22 * hash(a, 3); ctx.fillStyle = "#7d74c4";
+    ctx.beginPath(); ctx.arc(x, y, s * 1.1, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  const size = R * 0.018 * (1.5 + Math.log10(run.starMass + 1) * 1.5) * (1 + 0.3 * f);
+  if (b) {
+    // Narrowband look: [O III] teal near the hot star, H-alpha red further out, [S II] amber at the front.
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rb);
+    g.addColorStop(0, "rgba(95,230,207,0.34)"); g.addColorStop(0.5, "rgba(95,230,207,0.14)");
+    g.addColorStop(0.82, "rgba(255,95,126,0.22)"); g.addColorStop(1, "rgba(255,95,126,0.04)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, rb, 0, 6.283); ctx.fill();
+    const edge = (ang) => rb * (1 + 0.035 * Math.sin(5 * ang + 1.3 + time * 0.2) + 0.022 * Math.sin(9 * ang + 4.1 - time * 0.13) + 0.012 * Math.sin(17 * ang + time * 0.3));
+    for (const [width, color, alpha] of [[7, "#ff5f7e", 0.22], [1.6, "#ffb86b", 0.85]]) {
+      ctx.beginPath();
+      for (let k = 0; k <= 120; k++) { const ang = k / 120 * 6.283, r = edge(ang); k ? ctx.lineTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r) : ctx.moveTo(cx + r, cy); }
+      ctx.lineWidth = width; ctx.strokeStyle = color; ctx.globalAlpha = alpha; ctx.stroke();
+    }
+    // Ultraviolet photons streaming out to the front.
+    for (let i = 0; i < 44; i++) {
+      const a = hash(i, 15) * 6.283, p = ((hash(i, 16) + time * 0.3) % 1 + 1) % 1, r = size + (edge(a) - size) * p;
+      ctx.globalAlpha = 0.75 * (1 - p) * Math.min(1, p * 8); ctx.fillStyle = "#e9eeff";
+      ctx.beginPath(); ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 1.3, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1; ctx.fillStyle = "#ffb86b"; ctx.font = "12px 'IBM Plex Mono', monospace"; ctx.textAlign = "center";
+    const label = b.stalled ? "Ionization front (stalled)" : "Ionization front";
+    ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.strokeText(label, cx, cy + edge(1.571) + 18); ctx.fillText(label, cx, cy + edge(1.571) + 18);
+  } else {
+    glow(cx, cy, R * 0.3, "#ffb86b", 0.12);
+  }
+  star(cx, cy, size, run.starMass, t);
+  coreGauge(run, f);
+}
+// The core in cross-section: helium ash grows from the centre as hydrogen burns.
+function coreGauge(run, f) {
+  // Top right, clear of the brand (top left), scale bar (bottom left), and front label (bottom centre).
+  const cr = Math.max(20, Math.min(32, Math.min(W, H) * 0.065)), x = W - 16 - cr, y = 16 + cr, tx = W - 16;
+  ctx.globalAlpha = 0.92; ctx.fillStyle = "#ffb86b"; ctx.beginPath(); ctx.arc(x, y, cr, 0, 6.283); ctx.fill();
+  ctx.fillStyle = "#cfc8ff"; ctx.beginPath(); ctx.arc(x, y, cr * Math.sqrt(f), 0, 6.283); ctx.fill();
+  ctx.globalAlpha = 1; ctx.lineWidth = 1.5; ctx.strokeStyle = "#0c0a1c"; ctx.beginPath(); ctx.arc(x, y, cr, 0, 6.283); ctx.stroke();
+  const text = (s, yy, font, color) => { ctx.font = font; ctx.fillStyle = color; ctx.strokeText(s, tx, yy); ctx.fillText(s, tx, yy); };
+  ctx.textAlign = "right"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
+  text(clock((run.msDuration - run.msElapsed) / state.speed), y + cr + 24, "600 20px 'IBM Plex Mono', monospace", "#5fe6cf");
+  text("● core hydrogen", y + cr + 40, "11px 'IBM Plex Mono', monospace", "#ffb86b");
+  text("● helium ash", y + cr + 54, "11px 'IBM Plex Mono', monospace", "#cfc8ff");
+  ctx.textAlign = "center";
 }
 function glow(x, y, radius, color, alpha) {
   const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
@@ -564,10 +677,8 @@ function draw(t) {
     drawGrid(cx, cy, R * 1.4, 0.18, 0.5);
     diskScene(run, cx, cy, R, t, meta);
   } else if (run.phase === "main_sequence") {
-    drawGrid(cx, cy, R * 1.4, 0.16, 0.5);
-    const size = R * 0.04 * (1.5 + Math.log10(run.starMass + 1) * 2);
-    star(cx, cy, size, run.starMass, t);
-    ctx.strokeStyle = "#5fe6cf"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R * 0.82, -1.571, -1.571 + 6.283 * (1 - run.msElapsed / run.msDuration)); ctx.stroke();
+    drawGrid(cx, cy, R * 1.4, 0.1, 0.3);
+    shineScene(run, meta, cx, cy, R, t);
   } else {
     drawGrid(cx, cy, R * 1.4, 0.16, run.kind === "black_hole" ? 0.72 : 0.3);
     deathScene(run, cx, cy, R, t);
