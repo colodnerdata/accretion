@@ -15,15 +15,18 @@ a diary. Link to an issue when it owns the detail.
   and the fragment simulation replaces the old mass cap: Toomre Q per ring,
   fragment formation, accretion, migration, phase, merging, coalescing at 4,
   and end-of-run companions. Unit tests cover each rule; parity compares the
-  three scripted regions, which form fragments that all merge before the end.
-  Not yet exercised by parity: coalescing and end-of-run companions.
+  three scripted regions, which form fragments that all merge before the end,
+  plus a stress scenario that loads an unstable disk and four seeded fragments
+  at the start of accretion. It forces about 120 formations, coalescing at the
+  four-fragment limit, merges, and three end-of-run companions. A guard test
+  fails if the scenario stops reaching coalescing or companions.
 - **Known regression:** the first run now ends at about 12.4 minutes, below
   the 13-minute floor (it was 13.2). Accretion finishes about a minute sooner
   because the disk keeps its gas instead of shedding it to companions.
   `test_first_run_is_short_and_reaches_supernova` is marked `xfail(strict)`
   until the retune; fixing it is a pacing decision, not a bug.
-- **Next action:** a parity scenario that reaches coalescing and companions,
-  then the retune (pacing, 16 or 32 rings, migration and accretion constants).
+- **Next action:** the retune (pacing, 16 or 32 rings, migration and accretion
+  constants), which also clears the `xfail`.
 - **Stages after that:** angular-momentum ledger; DATA_REPORT.md note that its
   cap tables are superseded; visuals last.
 - **Human check for stage 2:** play a first run at ×10. It should still reach

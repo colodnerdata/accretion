@@ -24,6 +24,69 @@ def play(meta):
     return run
 
 
+STRESS_MASSES = [0] * 6 + [0.5, 1, 2, 4, 8, 8] + [0] * 4
+STRESS_RADII = [300, 500, 800, 1200]
+
+
+def stress(meta):
+    """Play a run, then at the start of accretion load an unstable disk.
+
+    The injected rings and four seeded fragments force fragment formation,
+    coalescing at the four-fragment limit, merges, and end-of-run companions.
+    """
+    run = game.new_run(meta)
+    tick = 0
+    injected = False
+    while run.phase != "ended" and tick < 20000:
+        game.step(run, meta, 7.3)
+        if tick % 2 == 0:
+            game.tap(run, meta)
+        for name in ("reach", "tap", "cooling", "turbulence", "braking"):
+            while game.buy(run, name, meta):
+                pass
+        if run.phase == "accrete" and not injected:
+            injected = True
+            run.disk_masses = [
+                a + b for a, b in zip(run.disk_masses, STRESS_MASSES, strict=True)
+            ]
+            run.fragments = [
+                {"mass": 0.05, "radius": float(r), "phase": 0.1 * k}
+                for k, r in enumerate(STRESS_RADII)
+            ]
+            run.fragments_formed = len(STRESS_RADII)
+        tick += 1
+    return run
+
+
+def stress_row(run):
+    records = run.companion_records
+    return [
+        run.star_mass,
+        run.ejected + run.companions,
+        run.energy,
+        run.fragments_formed,
+        len(records),
+        *[c["mass"] for c in records],
+        *[c["separation"] for c in records],
+    ]
+
+
+def test_stress_scenario_reaches_coalescing_and_companions(monkeypatch):
+    coalesced = []
+    original = game._add_fragment
+
+    def spy(run, mass, radius):
+        if len(run.fragments) >= game.FRAGMENT_LIMIT:
+            coalesced.append(radius)
+        original(run, mass, radius)
+
+    monkeypatch.setattr(game, "_add_fragment", spy)
+    run = stress(game.Meta())
+    assert coalesced
+    assert run.companion_records
+    assert len(run.companion_records) <= game.FRAGMENT_LIMIT
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="needs node")
 def test_python_and_browser_engines_agree():
     raw = subprocess.check_output(["node", "tools/parity_runner.js"], cwd=ROOT)
@@ -58,6 +121,7 @@ def test_python_and_browser_engines_agree():
             physics.hii_radius(physics.ionizing_rate(60), 300, 250, 1e15),
         ]
     )
+    rows.append(stress_row(stress(game.Meta())))
     assert len(rows) == len(browser)
     for ours, theirs in zip(rows, browser, strict=True):
         if isinstance(ours[0], str):
