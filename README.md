@@ -16,3 +16,7 @@ python tools/build.py
 Any rule change must be made in both `src/accretion/game.py` and `web/engine.js`. The parity test fails if they drift.
 
 See `FIDELITY.md` for each model's status and `DATA_REPORT.md` for sources.
+
+## License
+
+Copyright (c) 2026 Stephen Colodner. All rights reserved. See [LICENSE](LICENSE).
