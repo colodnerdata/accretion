@@ -1,35 +1,18 @@
-# Project name
+# Accretion prototype
 
-TODO: Explain who this project helps, what it does, and its current limits.
+Layer 1 of the Accretion idle game: gather, collapse, accrete, shine, die, and search a new region. Controls unlock one at a time, and a journal and bubble plot record each run.
 
-This starter is tailored for solo Python development with AI assistance.
-For its first use, follow [TEMPLATE_SETUP.md](TEMPLATE_SETUP.md).
+- `src/accretion/`: reference physics and game rules in Python
+- `web/`: browser engine and interface
+- `tests/`: physics, game rule, and Python/JavaScript parity tests
+- `tools/bot.py`: simulated first-run player
+- `tools/build.py`: builds `web/accretion.html`
 
-## Start working
-
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then:
-
-```sh
-uv sync --locked
-uv run --locked poe check
+```bash
+uv run poe check
+python tools/build.py
 ```
 
-The same `check` command runs locally and in GitHub Actions. It checks lint,
-formatting, and tests. The starter's only test checks that the installed
-package imports from outside the source directory; it does not validate
-application behavior. Add behavior tests with your first feature.
+Any rule change must be made in both `src/accretion/game.py` and `web/engine.js`. The parity test fails if they drift.
 
-## Use the project
-
-TODO: Add one real example with expected output before the first release.
-
-## Find your place
-
-- [Development](docs/DEVELOPMENT.md): commands, tests, review, and releases.
-- [Decisions](docs/DECISIONS.md): why important choices were made.
-- [Next steps](docs/NEXT.md): the current goal and the next useful action.
-- [Agent instructions](AGENTS.md): shared rules for coding assistants.
-
-## License
-
-Choose and add the project's license before inviting public reuse.
+See `FIDELITY.md` for each model's status and `DATA_REPORT.md` for sources.
