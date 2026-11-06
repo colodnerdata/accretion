@@ -48,6 +48,20 @@ simulation lands, a run's journal entry carries an empty companion list and the
 play screen's "Companion stars" row still shows the old mass-cap total. Check
 the stage notes in `docs/NEXT.md` for what to look for in each stage.
 
+## Pre-commit hook
+
+A tracked git hook in `.githooks/pre-commit` runs before every commit. It checks that
+`web/accretion.html` matches the web sources (`python tools/build.py --check`), then runs
+`uv run poe check` (lint, format check, tests). Turn it on once per clone:
+
+```bash
+uv run poe hooks
+```
+
+If it blocks a commit for a stale build, run `python tools/build.py` and stage
+`web/accretion.html`. For lint or format failures, fix them or run `uv run poe format`.
+`git commit --no-verify` skips the hook; CI still runs the same checks.
+
 ## License
 
 Copyright (c) 2026 Stephen Colodner. All rights reserved. See [LICENSE](LICENSE).
