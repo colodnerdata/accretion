@@ -42,7 +42,7 @@ def chrome_command(url: str) -> list[str] | None:
 
 def main() -> None:
     """Build the page, then launch it."""
-    build.main()
+    build.main([])
     url = PAGE.resolve().as_uri()
     command = chrome_command(url)
     if command is None:
