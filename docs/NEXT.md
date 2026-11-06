@@ -11,7 +11,8 @@ a diary. Link to an issue when it owns the detail.
   is at least one fragment mass; a full companion list coalesces new fragments
   into the nearest; merging fragments add mass and energy to the star;
   companions are recorded in the journal.
-- **Working state:** stages 1 and 2 done. The data model is in both engines,
+- **Working state:** stages 1 and 2 are merged (PRs 5 and 6). The data model is in
+  both engines,
   and the fragment simulation replaces the old mass cap: Toomre Q per ring,
   fragment formation, accretion, migration, phase, merging, coalescing at 4,
   and end-of-run companions. Unit tests cover each rule; parity compares the
@@ -20,17 +21,18 @@ a diary. Link to an issue when it owns the detail.
   at the start of accretion. It forces about 120 formations, coalescing at the
   four-fragment limit, merges, and three end-of-run companions. A guard test
   fails if the scenario stops reaching coalescing or companions.
-- **Known regression:** the first run now ends at about 12.4 minutes, below
-  the 13-minute floor (it was 13.2). Accretion finishes about a minute sooner
-  because the disk keeps its gas instead of shedding it to companions.
-  `test_first_run_is_short_and_reaches_supernova` is marked `xfail(strict)`
-  until the retune; fixing it is a pacing decision, not a bug.
-- **Next action:** the retune (pacing, 16 or 32 rings, migration and accretion
-  constants), which also clears the `xfail`.
+- **Pacing:** accretion playback slowed from 1000 to 700 years per second, which
+  restores the first run to about 13.4 minutes (it was 13.2 before fragments,
+  12.4 after). That is still under the "about 15 to 20 minutes" design target,
+  as before; 500 years per second would give about 14.6. The main sequence is
+  unchanged. The first-run test passes again.
+- **Next action:** decide whether to lengthen early runs toward 15 minutes, and
+  whether 16 rings is enough (32 would cost about 2x). Then the angular-momentum
+  ledger.
 - **Stages after that:** angular-momentum ledger; DATA_REPORT.md note that its
   cap tables are superseded; visuals last.
-- **Human check for stage 2:** play a first run at ×10. It should still reach
-  a supernova, a bit faster than before. The "Companion stars" row will
+- **Human check:** play a first run at ×10. It should still reach
+  a supernova in roughly the same time as before fragments. The "Companion stars" row will
   mostly read 0, since fragments usually merge. The Journal entry's companion
   list is empty unless a fragment survives to the end of accretion.
 - **Blocked by:** none recorded.

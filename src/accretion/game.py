@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from accretion import disk, physics
 
 SIM_STEP_YEARS = 50.0
-ACCRETE_YEARS_PER_SECOND = 1000.0
+ACCRETE_YEARS_PER_SECOND = 700.0
 COLLAPSE_SECONDS = 20.0
 MS_REFERENCE_SECONDS = 240.0
 MS_REFERENCE_MYR = 5.0
