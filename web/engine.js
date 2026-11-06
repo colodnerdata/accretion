@@ -3,6 +3,8 @@ const Engine = (() => {
   const G = 6.674e-8, K_B = 1.381e-16, M_H = 1.673e-24, MSUN = 1.989e33, AU = 1.496e13;
   const YR = 3.156e7, MU = 1.22, ZSUN = 0.0134, PRIMORDIAL_METAL_LOG10 = -4, ALPHA_B = 2.6e-13, HII_SOUND_SPEED = 1.0e6;
   const G_AU = 4 * Math.PI ** 2, CELLS = 16, R_IN = 1.0, R_OUT = 3000.0, CS2_1AU = 0.5;
+  const FRAGMENT_LIMIT = 4, FRAGMENT_ACCRETION_PER_ORBIT = 0.3, FRAGMENT_ACCRETION_MAX_SHARE = 0.5, FRAGMENT_MIGRATION_FACTOR = 1.0;
+  const TWO_PI = 2 * Math.PI, GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
   const SIM_STEP_YEARS = 50.0, ACCRETE_YEARS_PER_SECOND = 1000.0, COLLAPSE_SECONDS = 20.0;
   const MS_REFERENCE_SECONDS = 240.0, MS_REFERENCE_MYR = 5.0, MS_EXPONENT = 1.12;
   const SKIP_THRESHOLD_SECONDS = 3600.0, SEED_MASS = 0.01, BASE_TEMPERATURE = 250.0, ENRICHED_TEMPERATURE_MARGIN = 1.3, ENRICHED_ENVIRONMENT = 15.0;
@@ -105,6 +107,10 @@ const Engine = (() => {
   }
 
   const KELVIN_TO_CS2 = CS2_1AU / 1660;
+  const soundSpeedSquared = (r, floor) => Math.max(CS2_1AU * r ** -0.5, KELVIN_TO_CS2 * floor);
+  const orbitalFrequency = (r, m) => Math.sqrt(G_AU * m / r ** 3);
+  const criticalSurfaceDensity = (r, m, floor) => Math.sqrt(soundSpeedSquared(r, floor)) * orbitalFrequency(r, m) / (Math.PI * G_AU);
+  const stability = (masses, star, floor) => masses.map((mass, i) => (mass <= 0 ? Infinity : criticalSurfaceDensity(RADII[i], star, floor) * AREAS[i] / mass));
   const viscosity = (r, m, a, floor) => a * Math.max(CS2_1AU * r ** -0.5, KELVIN_TO_CS2 * floor) / Math.sqrt(G_AU * m / r ** 3);
   const feedCell = (r) => {
     for (let i = 0; i < CELLS; i++) if (r < EDGES[i + 1]) return i;
@@ -180,7 +186,7 @@ const Engine = (() => {
       phase: "gather", logReach: Math.log(1.5 / density ** (1 / 3)), energy: 0,
       levels: { reach: 0, tap: 0, cooling: 0, turbulence: 0, braking: 0 },
       collapseLeft: COLLAPSE_SECONDS, envelope: 0, diskMasses: new Array(CELLS).fill(0),
-      starMass: 0, ejected: 0, companions: 0, fragments: [], companionRecords: [], accreteYears: 0, collapseMass: 0, ignited: false, yearDebt: 0, msElapsed: 0,
+      starMass: 0, ejected: 0, companions: 0, fragments: [], fragmentsFormed: 0, companionRecords: [], accreteYears: 0, collapseMass: 0, ignited: false, yearDebt: 0, msElapsed: 0,
       msDuration: 0, lifetimeMyr: 0, forecastMyr: 0, kind: "", seconds: 0,
     };
   }
@@ -245,6 +251,66 @@ const Engine = (() => {
   const diskGas = (run) => run.diskMasses.reduce((a, b) => a + b, 0);
   const fragmentMass = (run) => run.fragments.reduce((a, f) => a + f.mass, 0);
   const companionMass = (run) => run.companionRecords.reduce((a, c) => a + c.mass, 0);
+  function addFragment(run, mass, radius) {
+    run.fragmentsFormed = (run.fragmentsFormed ?? 0) + 1;
+    if (run.fragments.length < FRAGMENT_LIMIT) {
+      run.fragments.push({ mass, radius, phase: (run.fragmentsFormed * GOLDEN_ANGLE) % TWO_PI });
+      return;
+    }
+    let nearest = run.fragments[0];
+    for (const other of run.fragments) if (Math.abs(other.radius - radius) < Math.abs(nearest.radius - radius)) nearest = other;
+    let momentum = nearest.mass * Math.sqrt(nearest.radius);
+    momentum += mass * Math.sqrt(radius);
+    nearest.mass += mass;
+    nearest.radius = (momentum / nearest.mass) ** 2;
+  }
+  function formFragments(run, meta) {
+    const star = Math.max(run.starMass, SEED_MASS), floor = temperature(run, meta);
+    for (let i = 0; i < CELLS; i++) {
+      const mass = run.diskMasses[i];
+      if (mass <= 0) continue;
+      const radius = RADII[i], area = AREAS[i], omega = orbitalFrequency(radius, star);
+      const scaleSq = soundSpeedSquared(radius, floor) / omega ** 2;
+      const fragment = Math.min(mass, mass / area * scaleSq);
+      const critical = criticalSurfaceDensity(radius, star, floor);
+      if (mass - critical * area >= fragment) {
+        run.diskMasses[i] -= fragment;
+        addFragment(run, fragment, radius);
+      }
+    }
+  }
+  function evolveFragments(run, meta) {
+    const dt = SIM_STEP_YEARS, star = Math.max(run.starMass, SEED_MASS), floor = temperature(run, meta), turbulence = alpha(run, meta);
+    const specific = G * MSUN / (R_IN * AU), survivors = [];
+    for (const body of run.fragments) {
+      const cell = feedCell(body.radius);
+      let omega = orbitalFrequency(body.radius, star);
+      const share = Math.min(FRAGMENT_ACCRETION_MAX_SHARE, FRAGMENT_ACCRETION_PER_ORBIT * dt * omega / TWO_PI);
+      const take = share * run.diskMasses[cell];
+      run.diskMasses[cell] -= take;
+      let momentum = body.mass * Math.sqrt(body.radius);
+      momentum += take * Math.sqrt(RADII[cell]);
+      body.mass += take;
+      body.radius = (momentum / body.mass) ** 2;
+      const viscous = viscosity(body.radius, star, turbulence, floor);
+      const drift = FRAGMENT_MIGRATION_FACTOR * 1.5 * viscous / body.radius * dt;
+      body.radius -= drift;
+      if (body.radius <= R_IN) {
+        run.starMass += body.mass;
+        run.energy += 0.5 * specific * run.starMass * body.mass * MSUN;
+        continue;
+      }
+      omega = orbitalFrequency(body.radius, star);
+      body.phase = (body.phase + omega * dt) % TWO_PI;
+      survivors.push(body);
+    }
+    run.fragments = survivors;
+  }
+  function settleFragments(run) {
+    for (const body of run.fragments) run.companionRecords.push({ mass: body.mass, separation: body.radius });
+    run.fragments = [];
+    run.companions = companionMass(run);
+  }
   function accreteStep(run, meta) {
     const dt = SIM_STEP_YEARS, rate = infallNow(run, meta), infall = Math.min(run.envelope, rate * dt);
     run.envelope -= infall;
@@ -257,17 +323,19 @@ const Engine = (() => {
     const total = diskGas(run);
     if (total > 0) {
       const lost = Math.min(total, diskLossRate(run.starMass, feedRadius(run)) * dt);
-      const excess = run.starMass > 1 ? Math.max(0, total - lost - run.starMass) : 0;
-      const keep = 1 - (lost + excess) / total;
+      const keep = 1 - lost / total;
       run.diskMasses = run.diskMasses.map((m) => m * keep);
       run.ejected += lost;
-      run.companions += excess;
     }
+    formFragments(run, meta);
+    evolveFragments(run, meta);
+    if (run.starMass >= hydrogenLimit(run.metalLog10)) run.ignited = true;
     const feedOver = rate <= 0 || run.envelope <= 0;
     if ((feedOver && diskGas(run) < 1e-3) || run.accreteYears >= ACCRETION_LIMIT_YEARS) {
       run.ejected += gas(run);
       run.envelope = 0;
       run.diskMasses = new Array(CELLS).fill(0);
+      settleFragments(run);
       startMainSequence(run);
     }
   }
@@ -338,7 +406,7 @@ const Engine = (() => {
     UPGRADES, RADII, CELLS, SIGMA_LN_DENSITY, SIGMA_LOG10_METAL, BLACK_HOLE_START_COST,
     newMeta, newRun, step, tap, buy, canBuy, upgradeCost, budget, regionCost, backgroundMetal, heavyCost, buyHeavy,
     temperature, alpha, feedRadius, reachRate, tapPower, patchMass, jeansLogReach, jeansMass, infallRate,
-    diskLossRate, infallNow, diskGas, fragmentMass, companionMass, luminosity, lifetimeMyr, canSkip, runGain, prestige, heavyYield, gas, BASE_DENSITY, BASE_TEMPERATURE,
+    diskLossRate, infallNow, diskGas, stability, criticalSurfaceDensity, fragmentMass, companionMass, luminosity, lifetimeMyr, canSkip, runGain, prestige, heavyYield, gas, BASE_DENSITY, BASE_TEMPERATURE,
     freeFallTime, updateUnlocks, COLLAPSE_SECONDS, ionizingRate, stromgrenRadius, hiiRadius, soundSpeed, YR, PRIMORDIAL_METAL_LOG10, HII_SOUND_SPEED,
   };
 })();

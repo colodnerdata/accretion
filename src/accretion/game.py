@@ -35,6 +35,12 @@ BLACK_HOLE_START_COST = 1.0
 BLACK_HOLE_INFALL_FACTOR = 1.5
 LOCAL_GAS_MASS = 1.0e6
 ROTATION_MIN_MASS = 15.0
+FRAGMENT_LIMIT = 4
+FRAGMENT_ACCRETION_PER_ORBIT = 0.3
+FRAGMENT_ACCRETION_MAX_SHARE = 0.5
+FRAGMENT_MIGRATION_FACTOR = 1.0
+TWO_PI = 2 * math.pi
+GOLDEN_ANGLE = math.pi * (3 - math.sqrt(5))
 
 UPGRADES = {
     "reach": {"phase": "gather", "base": 1.0e-50, "ratio": 1.0e10, "max": 30},
@@ -87,6 +93,7 @@ class Run:
     ejected: float = 0.0
     companions: float = 0.0
     fragments: list = field(default_factory=list)
+    fragments_formed: int = 0
     companion_records: list = field(default_factory=list)
     accrete_years: float = 0.0
     collapse_mass: float = 0.0
@@ -327,6 +334,101 @@ def disk_gas(run: Run) -> float:
     return sum(run.disk_masses)
 
 
+def _add_fragment(run: Run, mass: float, radius: float) -> None:
+    """Add a new fragment, or coalesce it with the nearest one if full.
+
+    Coalescing conserves mass and angular momentum (m * sqrt(r)). The merged
+    body keeps the nearest fragment's orbital phase, whichever is heavier.
+    """
+    run.fragments_formed += 1
+    if len(run.fragments) < FRAGMENT_LIMIT:
+        phase = (run.fragments_formed * GOLDEN_ANGLE) % TWO_PI
+        run.fragments.append({"mass": mass, "radius": radius, "phase": phase})
+        return
+    nearest = run.fragments[0]
+    for other in run.fragments:
+        if abs(other["radius"] - radius) < abs(nearest["radius"] - radius):
+            nearest = other
+    momentum = nearest["mass"] * math.sqrt(nearest["radius"])
+    momentum += mass * math.sqrt(radius)
+    nearest["mass"] += mass
+    nearest["radius"] = (momentum / nearest["mass"]) ** 2
+
+
+def _form_fragments(run: Run, meta: Meta) -> None:
+    """Fragment each ring whose gas exceeds Toomre Q = 1 by a fragment mass.
+
+    A ring forms at most one fragment per step, with mass Sigma * H^2, taken
+    only while the ring's mass above the Q = 1 surface density is at least
+    that much. This regulates the ring back toward stability instead of
+    spawning fragments without limit.
+    """
+    star = max(run.star_mass, SEED_MASS)
+    floor = temperature(run, meta)
+    for i in range(disk.CELLS):
+        mass = run.disk_masses[i]
+        if mass <= 0:
+            continue
+        radius, area = disk.RADII[i], disk.AREAS[i]
+        omega = disk.orbital_frequency(radius, star)
+        scale_sq = disk.sound_speed_squared(radius, floor) / omega**2
+        fragment = min(mass, mass / area * scale_sq)
+        critical = disk.critical_surface_density(radius, star, floor)
+        if mass - critical * area >= fragment:
+            run.disk_masses[i] -= fragment
+            _add_fragment(run, fragment, radius)
+
+
+def _evolve_fragments(run: Run, meta: Meta) -> None:
+    """Accrete, migrate, advance, and merge each fragment for one step.
+
+    A fragment takes a share of its ring's gas per orbit, carrying that
+    gas's angular momentum with it. It then drifts inward at the local
+    viscous inflow speed 3 nu / (2 r), and merges with the star at the
+    disk's inner edge, adding its mass and the usual accretion energy.
+    """
+    dt = SIM_STEP_YEARS
+    star = max(run.star_mass, SEED_MASS)
+    floor = temperature(run, meta)
+    turbulence = alpha(run, meta)
+    specific = physics.G * physics.MSUN / (disk.R_IN * physics.AU)
+    survivors = []
+    for body in run.fragments:
+        cell = disk.feed_cell(body["radius"])
+        omega = disk.orbital_frequency(body["radius"], star)
+        share = min(
+            FRAGMENT_ACCRETION_MAX_SHARE,
+            FRAGMENT_ACCRETION_PER_ORBIT * dt * omega / TWO_PI,
+        )
+        take = share * run.disk_masses[cell]
+        run.disk_masses[cell] -= take
+        momentum = body["mass"] * math.sqrt(body["radius"])
+        momentum += take * math.sqrt(disk.RADII[cell])
+        body["mass"] += take
+        body["radius"] = (momentum / body["mass"]) ** 2
+        viscous = disk.viscosity(body["radius"], star, turbulence, floor)
+        drift = FRAGMENT_MIGRATION_FACTOR * 1.5 * viscous / body["radius"] * dt
+        body["radius"] -= drift
+        if body["radius"] <= disk.R_IN:
+            run.star_mass += body["mass"]
+            run.energy += 0.5 * specific * run.star_mass * body["mass"] * physics.MSUN
+            continue
+        omega = disk.orbital_frequency(body["radius"], star)
+        body["phase"] = (body["phase"] + omega * dt) % TWO_PI
+        survivors.append(body)
+    run.fragments = survivors
+
+
+def _settle_fragments(run: Run) -> None:
+    """Turn fragments still orbiting when accretion ends into companions."""
+    for body in run.fragments:
+        run.companion_records.append(
+            {"mass": body["mass"], "separation": body["radius"]}
+        )
+    run.fragments = []
+    run.companions = companion_mass(run)
+
+
 def _accrete_step(run: Run, meta: Meta) -> None:
     dt = SIM_STEP_YEARS
     rate = infall_now(run, meta)
@@ -349,17 +451,20 @@ def _accrete_step(run: Run, meta: Meta) -> None:
     if gas > 0:
         loss = physics.disk_loss_rate(run.star_mass, feed_radius(run)) * dt
         lost = min(gas, loss)
-        excess = max(0.0, gas - lost - run.star_mass) if run.star_mass > 1 else 0.0
-        keep = 1 - (lost + excess) / gas
+        keep = 1 - lost / gas
         run.disk_masses = [m * keep for m in run.disk_masses]
         run.ejected += lost
-        run.companions += excess
+    _form_fragments(run, meta)
+    _evolve_fragments(run, meta)
+    if run.star_mass >= physics.hydrogen_limit(run.metal_log10):
+        run.ignited = True
     feed_over = rate <= 0 or run.envelope <= 0
     timed_out = run.accrete_years >= ACCRETION_LIMIT_YEARS
     if (feed_over and disk_gas(run) < 1e-3) or timed_out:
         run.ejected += _gas(run)
         run.envelope = 0.0
         run.disk_masses = [0.0] * disk.CELLS
+        _settle_fragments(run)
         _start_main_sequence(run)
 
 
