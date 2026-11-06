@@ -13,7 +13,7 @@ const meta = E.newMeta(), rows = [];
 for (const z of [[0, 0, 0], [0.8, -0.5, 0], [-1, 1, -1]]) {
   [meta.zDensity, meta.zTemperature, meta.zMetal] = z;
   const run = play(meta);
-  rows.push([run.starMass, run.ejected + run.companions, run.energy, run.lifetimeMyr, run.seconds, run.kind, run.fragments.length, run.companionRecords.length]);
+  rows.push([run.starMass, run.ejected + run.companions, run.energy, run.lifetimeMyr, run.seconds, run.kind, run.fragments.length, run.fragmentsFormed, run.companionRecords.length]);
   E.prestige(run, meta);
   meta.unlocks.push("cooling");
   E.buyHeavy(meta, "cooling");

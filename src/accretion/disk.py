@@ -35,6 +35,42 @@ def viscosity(
     return alpha * sound2 / omega
 
 
+def sound_speed_squared(radius: float, floor_temperature: float = 0.0) -> float:
+    """Return the disk sound speed squared in AU^2/yr^2 at a radius."""
+    return max(CS2_1AU * radius**-0.5, KELVIN_TO_CS2 * floor_temperature)
+
+
+def orbital_frequency(radius: float, star_mass: float) -> float:
+    """Return the Keplerian angular frequency in rad/yr."""
+    return math.sqrt(G_AU * star_mass / radius**3)
+
+
+def critical_surface_density(
+    radius: float, star_mass: float, floor_temperature: float = 0.0
+) -> float:
+    """Return the surface density at Toomre Q = 1, in M_sun / AU^2.
+
+    Q = c_s * Omega / (pi * G * Sigma), so Q = 1 at
+    Sigma = c_s * Omega / (pi * G).
+    """
+    sound = math.sqrt(sound_speed_squared(radius, floor_temperature))
+    return sound * orbital_frequency(radius, star_mass) / (math.pi * G_AU)
+
+
+def stability(
+    masses: list[float], star_mass: float, floor_temperature: float = 0.0
+) -> list[float]:
+    """Return Toomre Q for each ring, infinite where a ring is empty."""
+    result = []
+    for radius, area, mass in zip(RADII, AREAS, masses, strict=True):
+        if mass <= 0:
+            result.append(math.inf)
+        else:
+            critical = critical_surface_density(radius, star_mass, floor_temperature)
+            result.append(critical * area / mass)
+    return result
+
+
 def feed_cell(radius: float) -> int:
     """Return the index of the cell holding a circularization radius."""
     for index in range(CELLS):

@@ -42,6 +42,7 @@ def test_python_and_browser_engines_agree():
                 run.seconds,
                 run.kind,
                 len(run.fragments),
+                run.fragments_formed,
                 len(run.companion_records),
             ]
         )
