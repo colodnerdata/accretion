@@ -21,11 +21,13 @@ See `FIDELITY.md` for each model's status and `DATA_REPORT.md` for sources.
 
 The game is a single static page, so there is nothing to serve.
 
-1. Build it from the sources (needed after any change to `web/` or `src/`
-   rules): `python tools/build.py`.
-2. Open `web/accretion.html` in a desktop browser (double-click it, or run
-   `start web/accretion.html` on Windows). A network connection is only needed
-   for the fonts; the game works without it.
+1. Run `uv run poe launch`. It rebuilds `web/accretion.html` from the sources
+   and opens it in a new Chrome window (falling back to your default browser
+   if Chrome is not found). Run it again after any change to `web/` or the
+   `src/` rules.
+2. To do it by hand instead: `python tools/build.py`, then open
+   `web/accretion.html` in a desktop browser. A network connection is only
+   needed for the fonts; the game works without it.
 3. Play through a run: gather gas, collapse, accrete, shine, and die, then pick
    a new region. The Journal tab should show one entry for the run.
 
