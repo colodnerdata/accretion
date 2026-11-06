@@ -7,7 +7,7 @@ Values come from the research report "Accretion prototype stellar data". Most pa
 | Jeans mass, free-fall time | Established | Standard forms. The Jeans definition gives about 1,755 M☉ at 200 K and 10^4 /cm3, against 400 to 500 in Bromm & Loeb and Dopcke |
 | Infall rate c_s^3/G | Established | Shu scaling. Primordial simulations run 2 to 10 times higher early on, so this is knowingly low |
 | Viscous disk, alpha viscosity | Established | Lynden-Bell & Pringle, Shakura-Sunyaev. Alpha 0.1 to 1 suits gravitationally unstable embedded disks; a planet phase needs its own, far lower value |
-| HII taper | Simplified | Mechanism from Hosokawa 2011 and McKee & Tan 2008. The break-mass formula is a calibration, not published |
+| HII taper | Simplified | Mechanism from Hosokawa 2011 and McKee & Tan 2008. Infall runs at the full Shu rate up to the break mass, then falls linearly to zero at twice that mass. The break-mass formula and the linear shape are calibrations, not published |
 | Disk photoevaporation | Simplified | Tanaka 2013 rate with Schaerer 2002 Q(H). The factor of 5 is a calibration |
 | Fragmentation cap | Simplified | Disk mass above the star's goes to companions, from Kratter & Lodato 2016 |
 | Landing radius | Simplified | 400 (M/10)^0.6 AU, fit to two points from Hosokawa 2011 |

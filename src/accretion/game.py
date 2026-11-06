@@ -291,10 +291,14 @@ def _gas(run: Run) -> float:
 
 
 def infall_now(run: Run, meta: Meta) -> float:
-    """Return the current infall rate after the HII region's taper."""
+    """Return the current infall rate after the HII region's taper.
+
+    Infall runs at the full rate until the star reaches the break mass, then
+    falls linearly to zero at twice that mass.
+    """
     rate = physics.infall_rate(temperature(run, meta)) * run.infall_factor
     onset = physics.break_mass(rate)
-    return rate * max(0.0, 1 - (run.star_mass - onset) / onset)
+    return rate * min(1.0, max(0.0, 1 - (run.star_mass - onset) / onset))
 
 
 def disk_gas(run: Run) -> float:

@@ -344,7 +344,7 @@ const Engine = (() => {
   const mainSequenceSeconds = (myr) => MS_REFERENCE_SECONDS * (myr / MS_REFERENCE_MYR) ** MS_EXPONENT;
   function infallNow(run, meta) {
     const rate = infallRate(temperature(run, meta)) * run.infallFactor, onset = breakMass(rate);
-    return rate * Math.max(0, 1 - (run.starMass - onset) / onset);
+    return rate * Math.min(1, Math.max(0, 1 - (run.starMass - onset) / onset));
   }
   const diskGas = (run) => run.diskMasses.reduce((a, b) => a + b, 0);
   function accreteStep(run, meta) {

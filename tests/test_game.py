@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from accretion import disk, game
+from accretion import disk, game, physics
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "tools"))
 import bot  # noqa: E402
@@ -127,3 +127,14 @@ def test_one_supernova_enriches_the_region():
     assert disk.CELLS == 16
     meta = game.Meta(local_metals=3.0)
     assert game.background_metal_log10(meta) > -4
+
+
+def test_infall_runs_at_full_rate_until_the_break_mass():
+    meta = game.Meta()
+    run = game.new_run(meta)
+    rate = physics.infall_rate(game.temperature(run, meta))
+    onset = physics.break_mass(rate)
+    cases = ((game.SEED_MASS, 1.0), (onset, 1.0), (1.5 * onset, 0.5), (2 * onset, 0.0))
+    for mass, share in cases:
+        run.star_mass = mass
+        assert game.infall_now(run, meta) == pytest.approx(share * rate, abs=1e-15)

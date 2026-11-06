@@ -11,15 +11,21 @@ HEAD = """<title>Accretion</title>
 """
 
 
+def read(name: str) -> str:
+    """Return a web source as UTF-8 text, whatever the platform default."""
+    return (WEB / name).read_text(encoding="utf-8")
+
+
 def main() -> None:
+    """Write web/accretion.html from the web sources."""
     page = (
         HEAD
-        + f"<style>\n{(WEB / 'style.css').read_text()}</style>\n"
-        + (WEB / "body.html").read_text()
-        + f"<script>\n{(WEB / 'engine.js').read_text()}\n"
-        + f"{(WEB / 'app.js').read_text()}</script>\n"
+        + f"<style>\n{read('style.css')}</style>\n"
+        + read("body.html")
+        + f"<script>\n{read('engine.js')}\n"
+        + f"{read('app.js')}</script>\n"
     )
-    (WEB / "accretion.html").write_text(page)
+    (WEB / "accretion.html").write_text(page, encoding="utf-8")
 
 
 if __name__ == "__main__":
