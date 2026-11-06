@@ -218,10 +218,12 @@ def luminosity(mass: float, metal_log10: float) -> float:
     return 10 ** _log_table(LUM_MASS, LUM_LOG10, LUM_METAL, mass, metal_log10)
 
 
+_LIFE_LOG10 = [[math.log10(value) for value in row] for row in LIFE_MYR]
+
+
 def lifetime_myr(mass: float, metal_log10: float) -> float:
     """Return the non-rotating core-hydrogen lifetime in Myr."""
-    rows = [[math.log10(value) for value in row] for row in LIFE_MYR]
-    return 10 ** _log_table(LIFE_MASS, rows, LIFE_METAL, mass, metal_log10)
+    return 10 ** _log_table(LIFE_MASS, _LIFE_LOG10, LIFE_METAL, mass, metal_log10)
 
 
 def rotation_bonus(mass: float, metal_log10: float) -> float:

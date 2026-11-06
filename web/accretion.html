@@ -574,6 +574,7 @@ const MILESTONES = [
   [30.3, "au", () => "Your reach now spans the distance from Earth to the Sun."],
   [41.4, "ly", () => "Your reach is one light-year wide. Faint gridlines now map the space around you."],
 ];
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 function note(text) { state.log.unshift(text); state.log = state.log.slice(0, 40); }
 function checkMilestones() {
   const run = state.run, seen = state.seen, meta = state.meta;
@@ -847,8 +848,8 @@ function resultsPlot() {
 }
 function entryCard(j) {
   const rows = [["Ending", ENDINGS[j.ending][0]], ["Final mass", `${sci(j.mass)} M☉`], ["Gas temperature", `${j.temperature.toFixed(0)} K`], ["Density", `${sci(j.density)} /cm³`], ["Disk turbulence", `α ${j.alpha.toFixed(2)}`], ["Gas landed at", `${j.feedRadius.toFixed(0)} AU`], ["Run time", duration(j.seconds)], ["Reward", `+${j.gain.toFixed(2)} probability${j.heavy ? `, +${sci(j.heavy)} M☉ heavy` : ""}`]];
-  const notes = (j.notes || []).filter((n) => !n.startsWith("New ")).slice(0, 5).reverse();
-  return `<section><h3>Run ${j.run}${j.skipped ? ", left early" : ""}</h3>${stat(rows)}${notes.length ? `<h3>Observations</h3><div id="log">${notes.map((t) => `<div>${t}</div>`).join("")}</div>` : ""}</section>`;
+  const notes = (j.notes || []).filter((n) => !String(n).startsWith("New ")).slice(0, 5).reverse();
+  return `<section><h3>Run ${j.run}${j.skipped ? ", left early" : ""}</h3>${stat(rows)}${notes.length ? `<h3>Observations</h3><div id="log">${notes.map((t) => `<div>${esc(t)}</div>`).join("")}</div>` : ""}</section>`;
 }
 function renderJournal(panel) {
   const m = state.meta, count = m.journal.length;
@@ -899,7 +900,7 @@ function update() {
   $("meter").style.width = `${Math.max(0, Math.min(1, value)) * 100}%`;
   $("meter-a").textContent = a; $("meter-b").textContent = b;
   $("stats").innerHTML = stat(statsFor());
-  $("log").innerHTML = state.log.slice(0, 4).map((t) => `<div>${t}</div>`).join("") || "<div>Nothing recorded yet.</div>";
+  $("log").innerHTML = state.log.slice(0, 4).map((t) => `<div>${esc(t)}</div>`).join("") || "<div>Nothing recorded yet.</div>";
   for (const name of Object.keys(E.UPGRADES)) {
     const el = $(`up-${name}`); if (!el) continue;
     const [title, text] = UPGRADE_TEXT[name], ok = E.canBuy(run, name, meta), maxed = run.levels[name] >= E.UPGRADES[name].max;

@@ -1,6 +1,6 @@
 const E = require("../web/engine.js");
 function play(meta) {
-  let run = E.newRun(meta), tick = 0, out = [];
+  let run = E.newRun(meta), tick = 0;
   while (run.phase !== "ended" && tick < 20000) {
     E.step(run, meta, 7.3);
     if (tick % 2 === 0) E.tap(run, meta);
