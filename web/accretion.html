@@ -370,7 +370,7 @@ const Engine = (() => {
   const fragmentMass = (run) => run.fragments.reduce((a, f) => a + f.mass, 0);
   const companionMass = (run) => run.companionRecords.reduce((a, c) => a + c.mass, 0);
   function addFragment(run, mass, radius) {
-    run.fragmentsFormed += 1;
+    run.fragmentsFormed = (run.fragmentsFormed ?? 0) + 1;
     if (run.fragments.length < FRAGMENT_LIMIT) {
       run.fragments.push({ mass, radius, phase: (run.fragmentsFormed * GOLDEN_ANGLE) % TWO_PI });
       return;

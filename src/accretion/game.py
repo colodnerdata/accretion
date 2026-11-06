@@ -337,8 +337,8 @@ def disk_gas(run: Run) -> float:
 def _add_fragment(run: Run, mass: float, radius: float) -> None:
     """Add a new fragment, or coalesce it with the nearest one if full.
 
-    Coalescing conserves mass and angular momentum (m * sqrt(r)), and the
-    merged body keeps the more massive body's phase.
+    Coalescing conserves mass and angular momentum (m * sqrt(r)). The merged
+    body keeps the nearest fragment's orbital phase, whichever is heavier.
     """
     run.fragments_formed += 1
     if len(run.fragments) < FRAGMENT_LIMIT:
