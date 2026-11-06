@@ -29,6 +29,7 @@ format = "ruff format ."
 format-check = "ruff format --check ."
 test = "pytest"
 check = ["lint", "format-check", "test"]
+launch = "python tools/launch.py"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

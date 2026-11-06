@@ -86,6 +86,8 @@ class Run:
     star_mass: float = 0.0
     ejected: float = 0.0
     companions: float = 0.0
+    fragments: list = field(default_factory=list)
+    companion_records: list = field(default_factory=list)
     accrete_years: float = 0.0
     collapse_mass: float = 0.0
     ignited: bool = False
@@ -303,6 +305,23 @@ def infall_now(run: Run, meta: Meta) -> float:
     return rate * min(1.0, max(0.0, 1 - (run.star_mass - onset) / onset))
 
 
+def fragment_mass(run: Run) -> float:
+    """Return the mass held by disk fragments still in flight.
+
+    Each fragment is a dict with ``mass`` (M_sun), ``radius`` (AU), and
+    ``phase`` (radians).
+    """
+    return sum(f["mass"] for f in run.fragments)
+
+
+def companion_mass(run: Run) -> float:
+    """Return the mass of recorded companions.
+
+    Each record is a dict with ``mass`` (M_sun) and ``separation`` (AU).
+    """
+    return sum(c["mass"] for c in run.companion_records)
+
+
 def disk_gas(run: Run) -> float:
     """Return the gas now in the disk."""
     return sum(run.disk_masses)
@@ -439,6 +458,7 @@ def journal_entry(run: Run, meta: Meta, skipped: bool) -> dict:
         "alpha": alpha(run, meta),
         "feed_radius": feed_radius(run),
         "skipped": skipped,
+        "companions": [dict(c) for c in run.companion_records],
     }
 
 

@@ -17,6 +17,35 @@ def finish(meta, seconds=1.0):
     return run
 
 
+def test_new_run_has_empty_fragment_state():
+    run = game.new_run(game.Meta())
+    assert run.fragments == []
+    assert run.companion_records == []
+    assert game.fragment_mass(run) == 0.0
+    assert game.companion_mass(run) == 0.0
+
+
+def test_fragment_and_companion_mass_sum_their_records():
+    run = game.new_run(game.Meta())
+    run.fragments = [
+        {"mass": 0.5, "radius": 100.0, "phase": 0.0},
+        {"mass": 1.5, "radius": 50.0, "phase": 1.0},
+    ]
+    run.companion_records = [{"mass": 2.0, "separation": 30.0}]
+    assert game.fragment_mass(run) == pytest.approx(2.0)
+    assert game.companion_mass(run) == pytest.approx(2.0)
+
+
+def test_journal_entry_records_companions_as_a_copy():
+    meta = game.Meta()
+    run = game.new_run(meta)
+    run.kind = "white_dwarf"
+    run.companion_records = [{"mass": 2.0, "separation": 30.0}]
+    entry = game.journal_entry(run, meta, skipped=False)
+    run.companion_records[0]["mass"] = 9.0
+    assert entry["companions"] == [{"mass": 2.0, "separation": 30.0}]
+
+
 def test_mass_budget_closes_through_a_run():
     meta = game.Meta()
     run = game.new_run(meta)

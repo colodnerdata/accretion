@@ -1,5 +1,5 @@
 const E = Engine;
-const SAVE_KEY = "accretion-prototype-v3";
+const SAVE_KEY = "accretion-prototype-v4";
 const $ = (id) => document.getElementById(id);
 const state = { meta: E.newMeta(), run: null, view: "play", pane: "main", speed: 1, log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null };
 state.run = E.newRun(state.meta);

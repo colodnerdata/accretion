@@ -17,6 +17,37 @@ Any rule change must be made in both `src/accretion/game.py` and `web/engine.js`
 
 See `FIDELITY.md` for each model's status and `DATA_REPORT.md` for sources.
 
+## Launch and test by hand
+
+The game is a single static page, so there is nothing to serve.
+
+1. Run `uv run poe launch`. It rebuilds `web/accretion.html` from the sources
+   and opens it in a new Chrome window (falling back to your default browser
+   if Chrome is not found). Run it again after any change to `web/` or the
+   `src/` rules.
+2. To do it by hand instead: `python tools/build.py`, then open
+   `web/accretion.html` in a desktop browser. A network connection is only
+   needed for the fonts; the game works without it.
+3. Play through a run: gather gas, collapse, accrete, shine, and die, then pick
+   a new region. The Journal tab should show one entry for the run.
+
+Handy while testing:
+
+- **Test speed** (bottom of the page) runs the clock at ×1, ×10, and ×60, so a
+  run is much shorter than the real 15 to 20 minutes.
+- **Reset** (bottom of the page, tap twice) erases the save and starts over.
+- Progress is saved in the browser's `localStorage` under the key
+  `accretion-prototype-v4`. If a build changes the save format, the key is
+  bumped and old saves are ignored, so a fresh start is expected after
+  updating. To clear it by hand, use the browser's site-data settings or
+  `localStorage.clear()` in the developer console.
+- Reload mid-run to check that progress and offline time are restored.
+
+Disk fragmentation and companion stars are being built in stages. Until the
+simulation lands, a run's journal entry carries an empty companion list and the
+play screen's "Companion stars" row still shows the old mass-cap total. Check
+the stage notes in `docs/NEXT.md` for what to look for in each stage.
+
 ## License
 
 Copyright (c) 2026 Stephen Colodner. All rights reserved. See [LICENSE](LICENSE).

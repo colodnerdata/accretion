@@ -41,6 +41,8 @@ def test_python_and_browser_engines_agree():
                 run.lifetime_myr,
                 run.seconds,
                 run.kind,
+                len(run.fragments),
+                len(run.companion_records),
             ]
         )
         game.prestige(run, meta)
