@@ -4,14 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Accretion is a prototype idle game (Layer 1): gather gas, collapse, accrete, shine, die, then prestige into a new region. Controls unlock one at a time; a journal and bubble plot record each run.
 
-Note: `../AGENTS.md` in the parent directory belongs to an unrelated Excel/LAMBDA project and does not apply here.
+Shared workflow rules (verification, decision log, handoff notes) live in @AGENTS.md. This file holds the Accretion-specific rules; where the two differ on commands, this file wins.
 
 ## Commands
 
 ```bash
-uv run --extra dev pytest                                  # all tests
-uv run --extra dev pytest tests/test_game.py::test_mass_budget_closes_through_a_run   # one test
-uv run --extra dev ruff check .                            # lint (pydocstyle on src/, not tests/ or tools/)
+uv run poe check                                           # lint + format check + all tests (what CI runs)
+uv run pytest tests/test_game.py::test_mass_budget_closes_through_a_run   # one test
+uv run poe lint                                            # ruff check (pydocstyle on src/, not tests/ or tools/)
+uv run poe format                                          # ruff format
 python tools/build.py                                      # regenerate web/accretion.html
 uv run python tools/bot.py                                 # simulated first-run player: phase timings, final star
 ```

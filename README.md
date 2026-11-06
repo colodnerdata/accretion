@@ -9,8 +9,7 @@ Layer 1 of the Accretion idle game: gather, collapse, accrete, shine, die, and s
 - `tools/build.py`: builds `web/accretion.html`
 
 ```bash
-uv run --extra dev pytest
-uv run --extra dev ruff check .
+uv run poe check
 python tools/build.py
 ```
 
