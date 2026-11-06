@@ -32,7 +32,7 @@ The engine is deterministic and step-size independent: `step(run, meta, seconds)
 
 ## Web front end
 
-- `web/app.js` holds UI state, rendering (play, ended, search, and journal panes), hints, milestones, the canvas sky, and `localStorage` save under `SAVE_KEY` (`accretion-prototype-v3`). Bump the key if the saved `meta`/`run` shape changes incompatibly.
+- `web/app.js` holds UI state, rendering (play, ended, search, and journal panes), hints, milestones, the canvas sky, and `localStorage` save under `SAVE_KEY` (`accretion-prototype-v4`). Bump the key if the saved `meta`/`run` shape changes incompatibly.
 - `web/body.html`, `web/style.css`, `engine.js`, and `app.js` are concatenated by `tools/build.py` into the single-file `web/accretion.html`. Treat that file as a build output: edit the sources and rebuild, never edit it by hand.
 
 ## Fidelity and data provenance
