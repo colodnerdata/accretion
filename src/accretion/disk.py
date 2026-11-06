@@ -48,8 +48,11 @@ def torque_rates(
 ) -> list[float]:
     """Return torque per unit cell mass, using h / sqrt(GM) as the grid."""
     return [
-        3 * math.pi * viscosity(r, star_mass, alpha, floor_temperature)
-        * math.sqrt(r) / area
+        3
+        * math.pi
+        * viscosity(r, star_mass, alpha, floor_temperature)
+        * math.sqrt(r)
+        / area
         for r, area in zip(RADII, AREAS, strict=True)
     ]
 

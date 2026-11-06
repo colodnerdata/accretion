@@ -238,10 +238,12 @@ def upgrade_cost(run: Run, name: str) -> float:
 def can_buy(run: Run, name: str, meta: Meta) -> bool:
     """Return whether an upgrade is available and affordable."""
     spec = UPGRADES[name]
-    return (name in meta.unlocks
-            and run.phase == spec["phase"]
-            and run.levels[name] < spec["max"]
-            and run.energy >= upgrade_cost(run, name))
+    return (
+        name in meta.unlocks
+        and run.phase == spec["phase"]
+        and run.levels[name] < spec["max"]
+        and run.energy >= upgrade_cost(run, name)
+    )
 
 
 def buy(run: Run, name: str, meta: Meta) -> bool:
@@ -365,8 +367,10 @@ def can_skip(run: Run) -> bool:
     """Return whether nothing the player can do will change the outcome."""
     if run.phase == "ended" and run.kind == "brown_dwarf":
         return True
-    return (run.phase == "main_sequence"
-            and run.ms_duration - run.ms_elapsed > SKIP_THRESHOLD_SECONDS)
+    return (
+        run.phase == "main_sequence"
+        and run.ms_duration - run.ms_elapsed > SKIP_THRESHOLD_SECONDS
+    )
 
 
 def step(run: Run, meta: Meta, seconds: float) -> None:
