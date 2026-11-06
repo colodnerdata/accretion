@@ -162,5 +162,6 @@ No agent changes a decided mechanic, a design principle, or a Game rule versus p
 ### Shared guardrails
 
 - Run the tests (`uv run poe check`) after any edit.
-- Keep the build output current with `python tools/build.py` after editing any web source.
+- Editors keep the build output current with `python tools/build.py` after editing any web source.
+  Reviewers never build inside the repository; they build a scratch copy outside it.
 - Never edit `web/accretion.html` directly.
