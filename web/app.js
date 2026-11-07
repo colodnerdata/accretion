@@ -449,7 +449,7 @@ function resultsPlot() {
   const left = two ? 40 : 12, right = W - 12, bottom = H - 34, top = two ? 10 : 8;
   const X = (t) => left + (Math.log10(t) - 1) / 2 * (right - left);
   const Y = (n) => two ? bottom - (Math.log10(n) - 2) / 4 * (bottom - top) : (top + bottom) / 2;
-  let out = `<svg class="plot" viewBox="0 0 ${W} ${H}" role="img" aria-label="Your completed runs by gas temperature${two ? " and density" : ""}. Bubble size shows final mass.">`;
+  let out = `<svg class="plot" viewBox="0 0 ${W} ${H}" role="group" aria-label="Your completed runs by gas temperature${two ? " and density" : ""}. Bubble size shows final mass.">`;
   for (const t of [10, 100, 1000]) out += `<line x1="${X(t)}" x2="${X(t)}" y1="${top}" y2="${bottom}" class="tick"/><text x="${X(t)}" y="${bottom + 14}" text-anchor="${t === 1000 ? "end" : t === 10 ? "start" : "middle"}">${t}</text>`;
   if (two) for (const e of [2, 3, 4, 5, 6]) out += `<line x1="${left}" x2="${right}" y1="${Y(10 ** e)}" y2="${Y(10 ** e)}" class="tick"/><text x="${left - 6}" y="${Y(10 ** e) + 4}" text-anchor="end">10${SUP[e]}</text>`;
   out += `<text x="${(left + right) / 2}" y="${H - 4}" text-anchor="middle">Gas temperature (K)</text>`;
@@ -459,7 +459,7 @@ function resultsPlot() {
     // Area follows final mass, down to a minimum size so tiny stars stay visible.
     const r = Math.max(2, 2.1 * Math.sqrt(j.mass)), x = X(Math.min(1000, Math.max(10, j.temperature))), y = Y(j.density), color = ENDING_COLOR[j.ending];
     const label = `Run ${j.run}: ${ENDINGS[j.ending][0]}, ${sci(j.mass)} solar masses, ${j.temperature.toFixed(0)} K${j.skipped ? ", left early" : ""}`;
-    out += `<circle cx="${x}" cy="${y}" r="${r}" fill="${color}" fill-opacity="${i === sel ? 0.75 : 0.3}" stroke="${color}" stroke-width="${i === sel ? 2.5 : 1.25}"${j.skipped ? ' stroke-dasharray="3 2"' : ""} tabindex="-1" role="button" aria-label="${esc(label)}" data-i="${i}"/><text class="mark" x="${x}" y="${Math.max(top + 8, y - r - 3)}" text-anchor="middle">${ENDING_MARK[j.ending]}</text>`;
+    out += `<circle cx="${x}" cy="${y}" r="${r}" fill="${color}" fill-opacity="${i === sel ? 0.75 : 0.3}" stroke="${color}" stroke-width="${i === sel ? 2.5 : 1.25}"${j.skipped ? ' stroke-dasharray="3 2"' : ""} role="img" aria-label="${esc(label)}" data-i="${i}"/><text class="mark" x="${x}" y="${Math.max(top + 8, y - r - 3)}" text-anchor="middle">${ENDING_MARK[j.ending]}</text>`;
   });
   return `${out}</svg>`;
 }
@@ -475,7 +475,7 @@ function renderJournal(panel) {
     panel.insertAdjacentHTML("beforeend", `<section>${resultsPlot()}<div class="legend">${[...new Set(m.journal.map((j) => j.ending))].map((k) => `<span><i style="background:${ENDING_COLOR[k]}"></i>${ENDING_MARK[k]} ${ENDINGS[k][0]}</span>`).join("")}${m.journal.some((j) => j.skipped) ? `<span><i class="dash"></i>Left early</span>` : ""}</div><div class="runs">${m.journal.map((j, i) => `<button type="button" class="run-chip" data-i="${i}" aria-pressed="${i === (state.selected ?? count - 1)}" aria-label="Run ${j.run}: ${ENDINGS[j.ending][0]}${j.skipped ? ", left early" : ""}">${j.run}<small>${ENDING_MARK[j.ending]}</small></button>`).join("")}</div></section>${entryCard(m.journal[state.selected ?? count - 1])}`);
     const pick = (el) => { state.selected = Number(el.dataset.i); shell = `journal:keep`; update(); };
     panel.querySelectorAll(".run-chip").forEach((c) => { c.onclick = () => pick(c); });
-    panel.querySelectorAll("circle").forEach((c) => { c.onclick = () => pick(c); c.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(c); } }; });
+    panel.querySelectorAll("circle").forEach((c) => { c.onclick = () => pick(c); });
   }
 }
 function footer() {
@@ -494,7 +494,7 @@ function footer() {
   const reset = button("reset", "Reset", () => {
     if (!state.resetArm) { state.resetArm = true; reset.textContent = "Tap again to erase"; setTimeout(() => { state.resetArm = false; reset.textContent = "Reset"; }, 3000); return; }
     try { localStorage.removeItem(SAVE_KEY); } catch {}
-    Object.assign(state, { meta: E.newMeta(), view: "play", pane: "main", log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {} });
+    Object.assign(state, { meta: E.newMeta(), view: "play", pane: "main", log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {}, banner: null });
     state.run = E.newRun(state.meta); shell = ""; update();
   });
   row.append(reset); box.append(row);
