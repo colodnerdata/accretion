@@ -165,9 +165,9 @@ function load() {
       E.step(state.run, state.meta, away);
       checkMilestones();
       const now = state.run.phase, stage = PHASES.find(([p]) => p === now)[1].toLowerCase();
-      const result = now === "ended" ? ` your star ended${ENDINGS[state.run.kind] ? ` as a ${ENDINGS[state.run.kind][0].toLowerCase()}` : ""}.` : ` your star moved on to the ${stage} stage.`;
-      note(`You were away for ${duration(away)}.${before !== now ? ` Your star moved on to the ${stage} stage.` : ""}`);
-      if (before !== now) state.banner = `While you were away (${duration(away)}),${result}`;
+      const happened = now === "ended" ? `Your star ended${ENDINGS[state.run.kind] ? ` as a ${ENDINGS[state.run.kind][0].toLowerCase()}` : ""}.` : `Your star moved on to the ${stage} stage.`;
+      note(`You were away for ${duration(away)}.${before !== now ? ` ${happened}` : ""}`);
+      if (before !== now) state.banner = `While you were away (${duration(away)}), ${happened[0].toLowerCase()}${happened.slice(1)}`;
     }
   } catch {}
 }
@@ -704,18 +704,18 @@ function diskScene(run, cx, cy, R, t, meta) {
     const rad = ringAt(E.RADII[i]);
     const bright = Math.max(0, Math.min(1, (Math.log10(m + 1e-9) + 3.5) / 3.5));
     ctx.globalAlpha = 0.08 + 0.5 * bright; ctx.strokeStyle = i % 2 ? "#ff5f7e" : "#ffb86b"; ctx.lineWidth = 1 + bright * R * 0.016;
-    ctx.beginPath(); ctx.ellipse(cx, cy, rad, rad * tilt, -0.32, 0, 6.283); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(cx, cy, rad, rad * tilt, tipAngle, 0, 6.283); ctx.stroke();
   });
   ctx.globalAlpha = 1;
   const landing = ringAt(E.feedRadius(run));
   ctx.strokeStyle = "#ffb86b"; ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]); ctx.globalAlpha = 0.9;
-  ctx.beginPath(); ctx.ellipse(cx, cy, landing, landing * tilt, -0.32, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.ellipse(cx, cy, landing, landing * tilt, tipAngle, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
   ctx.globalAlpha = 1; ctx.fillStyle = "#ffb86b"; ctx.font = "12px 'IBM Plex Mono', monospace"; ctx.textAlign = "center";
   ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.strokeText("Gas lands here", cx, cy + landing * tilt + 22); ctx.fillText("Gas lands here", cx, cy + landing * tilt + 22);
   const flow = E.alpha(run, meta) * 2.4;
   for (let i = 0; i < 46; i++) {
     const a = hash(i, 13) * 6.283, f = ((hash(i, 14) - (calm ? 0 : t * flow)) % 1 + 1) % 1, rad = R * 0.1 + (landing - R * 0.1) * f, turn = a + (calm ? 0 : t * (0.7 + 0.5 / (0.3 + f)));
-    const px = Math.cos(turn) * rad, py = Math.sin(turn) * rad * tilt, cosT = Math.cos(-0.32), sinT = Math.sin(-0.32);
+    const px = Math.cos(turn) * rad, py = Math.sin(turn) * rad * tilt, cosT = Math.cos(tipAngle), sinT = Math.sin(tipAngle);
     ctx.globalAlpha = 0.85 * Math.min(1, f * 5); ctx.fillStyle = "#ffe9c9";
     ctx.beginPath(); ctx.arc(cx + px * cosT - py * sinT, cy + px * sinT + py * cosT, 1.6, 0, 6.283); ctx.fill();
   }
