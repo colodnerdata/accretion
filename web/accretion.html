@@ -1,4 +1,5 @@
 <title>Accretion</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -29,7 +30,7 @@ body { margin: 0; background: var(--void); color: var(--ink); font: 15px/1.45 va
 #scale { bottom: 14px; left: max(16px, env(safe-area-inset-left, 0px)); font: 12px var(--data); color: var(--ink); }
 #scale i { display: block; width: 96px; height: 2px; margin-bottom: 5px; background: var(--ink); }
 #hint { left: 50%; bottom: 14px; transform: translateX(-50%); font: 12px var(--data); color: var(--oiii); white-space: nowrap; }
-#panel { min-width: 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;
+#panel { --pad: 18px; min-width: 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;
   background: var(--panel); border-left: 1px solid var(--line); padding-block: 18px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 #panel section { display: flex; flex-direction: column; gap: 8px; }
@@ -50,7 +51,11 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--oiii); outl
 .upgrade b { font-weight: 600; }
 .upgrade small { color: var(--quiet); font-size: 12.5px; grid-column: 1; }
 .upgrade .cost { grid-column: 2; grid-row: 1 / span 2; align-self: center; text-align: right; font: 12px var(--data); }
-.upgrade:disabled { cursor: default; opacity: .62; }
+.upgrade { background-image: linear-gradient(90deg, rgba(95, 230, 207, .2) calc(var(--fill, 0) * 100%), transparent 0); }
+.upgrade:disabled { cursor: default; }
+.upgrade small { color: var(--ink); }
+.upgrade.ready { background-image: linear-gradient(rgba(95, 230, 207, .38), rgba(95, 230, 207, .38)); }
+.upgrade.ready b { color: var(--oiii); }
 .upgrade.ready { border-color: var(--oiii); }
 .primary { background: var(--oiii); color: #081b1a; border: 0; padding: 12px 14px; font-weight: 700; width: 100%; }
 .primary:disabled { opacity: .5; cursor: default; }
@@ -59,19 +64,30 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--oiii); outl
 #log div:first-child { color: var(--ink); }
 .foot { margin-top: auto; gap: 10px !important; }
 .speed { display: flex; align-items: center; gap: 6px; font: 12px var(--data); color: var(--quiet); }
-.speed button { background: none; border: 1px solid var(--line); padding: 3px 8px; font: 12px var(--data); }
+.speed button { background: none; border: 1px solid var(--line); padding: 3px 8px; font: 12px var(--data); min-height: 28px; min-width: 36px; }
 .speed button[aria-pressed="true"] { background: var(--raise); border-color: var(--oiii); color: var(--oiii); }
 .speed .reset { margin-left: auto; color: var(--quiet); }
 .field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; font-size: 14px; }
 .field output { font: 12px var(--data); color: var(--quiet); text-align: right; }
-.field input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--oiii); }
+/* Diverging track: the centre is the starting region and costs nothing. Cost grows toward either end. */
+.field input[type="range"] { grid-column: 1 / -1; width: 100%; height: 32px; margin: 0; -webkit-appearance: none; appearance: none; background:
+  linear-gradient(var(--ink), var(--ink)) center / 2px 20px no-repeat,
+  linear-gradient(90deg, #6aa7ff, var(--line) 50%, #ff7a5c) center / 100% 8px no-repeat; }
+.field input[type="range"]::-webkit-slider-runnable-track { background: transparent; height: 32px; }
+.field input[type="range"]::-moz-range-track { background: transparent; height: 32px; }
+.field input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 22px; background: var(--oiii); border: 2px solid var(--void); border-radius: 3px; }
+.field input[type="range"]::-moz-range-thumb { width: 10px; height: 18px; background: var(--oiii); border: 2px solid var(--void); border-radius: 3px; }
+.field .scale { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto 1fr; font: 11.5px var(--data); color: var(--quiet); }
+.field .scale span:last-child { text-align: right; }
 .check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
 .check input { accent-color: var(--oiii); }
 .tag { color: var(--sii); }
 @media (max-width: 760px) {
   #app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 44%) minmax(0, 1fr); }
-  #panel { border-left: 0; border-top: 1px solid var(--line); padding-block: 14px; }
+  #panel { --pad: 14px; border-left: 0; border-top: 1px solid var(--line); padding-block: 14px; }
   #hint { left: auto; right: max(16px, env(safe-area-inset-right, 0px)); transform: none; }
+  .runs .run-chip, .speed button { min-height: 44px; min-width: 44px; }
+  .ghost, .primary, .upgrade { min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 
@@ -94,7 +110,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--oiii); outl
 .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font: 12px var(--data); color: var(--quiet); }
 .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
 .runs { display: flex; flex-wrap: wrap; gap: 4px; }
-.run-chip { min-width: 34px; padding: 4px 6px; background: none; border: 1px solid var(--line); font: 12px var(--data); }
+.run-chip { min-width: 34px; min-height: 32px; padding: 4px 6px; background: none; border: 1px solid var(--line); font: 12px var(--data); }
 .run-chip[aria-pressed="true"] { border-color: var(--oiii); color: var(--oiii); }
 .countdown { flex-direction: row !important; align-items: baseline; flex-wrap: wrap; gap: 4px 12px !important; }
 .countdown b { font: 600 34px var(--data); color: var(--oiii); font-variant-numeric: tabular-nums; line-height: 1; }
@@ -105,6 +121,21 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--oiii); outl
 .reading article p { font-size: 13.5px; }
 .reading article.new { border-left-color: var(--oiii); }
 .reading article.new p { color: var(--ink); }
+.earlier summary { cursor: pointer; font: 12px var(--data); color: var(--quiet); padding: 4px 0; }
+.earlier details > :not(summary) { margin-top: 8px; }
+.earlier details[open] summary { margin-bottom: 4px; }
+.earlier div { font-size: 13.5px; color: var(--quiet); }
+.earlier:empty { display: none; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.cta { position: sticky; bottom: calc(var(--pad) * -1); z-index: 1; background: var(--panel); padding-top: 6px; padding-bottom: calc(var(--pad) + 6px); margin-bottom: calc(var(--pad) * -1); }
+.ghost.skip { border-color: var(--sii); color: var(--sii); margin-top: 8px; }
+.banner { border-left: 2px solid var(--sii); padding-left: 10px; }
+.banner p { color: var(--ink); }
+.plot .mark { fill: var(--ink); font-size: 10px; pointer-events: none; }
+.run-chip small { margin-left: 4px; font-size: 10px; color: var(--quiet); }
+.legend i.dash { background: none; border: 1px dashed var(--quiet); }
+.ghost.skip.armed { background: var(--sii); color: #1b1000; font-weight: 700; }
+.plot { overflow: visible; }
 </style>
 <div id="app">
   <div id="stage">
@@ -114,6 +145,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--oiii); outl
     <div class="hud" id="hint">Tap the sky to gather</div>
   </div>
   <aside id="panel" aria-live="off"></aside>
+  <div id="live" class="sr" aria-live="polite"></div>
 </div>
 <script>
 // Browser port of src/accretion. tests/test_parity.py keeps the two in step.
@@ -533,7 +565,7 @@ if (typeof module !== "undefined") module.exports = Engine;
 const E = Engine;
 const SAVE_KEY = "accretion-prototype-v4";
 const $ = (id) => document.getElementById(id);
-const state = { meta: E.newMeta(), run: null, view: "play", pane: "main", speed: 1, log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null };
+const state = { meta: E.newMeta(), run: null, view: "play", pane: "main", speed: 1, log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {} };
 state.run = E.newRun(state.meta);
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -565,6 +597,11 @@ function duration(seconds) {
   return `${(seconds / 86400).toFixed(0)} days`;
 }
 function myr(value) { return value >= 1000 ? `${sci(value / 1000)} Gyr` : `${sci(value)} Myr`; }
+// The Sun's main sequence lasts about 10 billion years. Quote both lifetimes in one unit so they compare directly.
+function lifeVsSun(forecastMyr) {
+  const gyr = forecastMyr >= 1000;
+  return `about ${sci(gyr ? forecastMyr / 1000 : forecastMyr)} ${gyr ? "Gyr" : "Myr"}, where the Sun lasts about ${gyr ? "10" : "10,000"} ${gyr ? "Gyr" : "Myr"}`;
+}
 function clock(seconds) {
   const s = Math.max(0, Math.ceil(seconds)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, pad = (x) => String(x).padStart(2, "0");
   return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
@@ -590,13 +627,18 @@ function shineNotes(run, meta) {
     [0, "The main sequence", "The core is fusing hydrogen into helium. The heat from fusion pushes outward exactly as hard as gravity pulls inward, so the star holds steady. Stars spend about 90% of their lives in this balance."],
     [0.08, "Fast time", `Each second you watch is about ${sci(years)} years for this star. All of recorded human history would pass in about ${sci(5000 / years)} seconds.`],
     [0.2, "Brightness", heavy
-      ? `This star shines about ${sci(L)} times as bright as the Sun. Brightness climbs much faster than mass, so a heavier star spends its fuel far faster. It is expected to last about ${myr(run.forecastMyr)}, against about 10 billion years for the Sun.`
-      : `This star shines at about ${sci(L)} of the Sun's brightness. Small stars sip their fuel, so it is expected to last about ${myr(run.forecastMyr)}, longer than the Sun's 10 billion years.`],
-    [0.35, "How it fuses", m < 1.3
+      ? `This star shines about ${sci(L)} times as bright as the Sun. Brightness climbs much faster than mass, so a heavier star spends its fuel far faster. It is expected to last ${lifeVsSun(run.forecastMyr)}.`
+      : `This star shines at about ${sci(L)} of the Sun's brightness. Small stars sip their fuel, so it is expected to last ${lifeVsSun(run.forecastMyr)}.`],
+    [0.35, "How it fuses", `${m < 1.3
       ? "This star fuses hydrogen proton by proton, as the Sun does. It is a slow route, one reason small stars last so long."
       : run.metalLog10 < E.PRIMORDIAL_METAL_LOG10
         ? "Heavier stars usually fuse hydrogen with carbon, nitrogen, and oxygen as catalysts. This gas formed before any star had made those elements, so the core squeezed itself hotter until it made a trace of carbon of its own, then burned on."
-        : "This star's core uses the carbon, nitrogen, and oxygen it was born with as catalysts, cycling hydrogen through them into helium. Earlier stars made those elements."],
+        : "This star's core uses the carbon, nitrogen, and oxygen it was born with as catalysts, cycling hydrogen through them into helium. Earlier stars made those elements."} ${
+      m < 0.5
+        ? "Its core will never get hot enough to fuse helium, so hydrogen is the only fuel it will ever burn."
+        : m < 9
+          ? "Once the hydrogen is gone, the core shrinks and heats until it can fuse helium into carbon and oxygen. Heavier nuclei repel each other more, so each new fuel needs a hotter, denser core. This star will not get hot enough to go past carbon and oxygen."
+          : "Once the hydrogen is gone, the core shrinks and heats until it can fuse helium, then carbon, neon, oxygen, and silicon, ending in iron. Heavier nuclei repel each other more, so each new fuel needs a hotter, denser core. Each stage also releases less energy per reaction, so the core must burn faster to hold itself up. Hydrogen lasts millions of years here. Silicon lasts days."}`],
     [0.5, "Starlight on the gas", b
       ? `Ultraviolet light from the star strips electrons from the hydrogen around it. That ionized gas, near 10,000 K, glows and pushes into the cold gas beyond. The bubble's edge is now ${length(b.now)} from the star.`
       : "This star is too cool to ionize much of the gas around it. Its light mostly warms the nearby dust and gas."],
@@ -645,7 +687,18 @@ const MILESTONES = [
   [41.4, "ly", () => "Your reach is one light-year wide. Faint gridlines now map the space around you."],
 ];
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-function note(text) { state.log.unshift(text); state.log = state.log.slice(0, 40); }
+// A note describes one moment, so it is stamped with the phase and run time it belongs to.
+// Once the run moves past that phase, or the note's lifetime in run seconds runs out, it is
+// "earlier": collapsed out of sight but still available to open.
+const phaseIndex = (p) => PHASES.findIndex(([name]) => name === p);
+const NOTE_SECONDS = 30;
+function asNote(n) { return typeof n === "string" ? { text: n, p: -1, at: 0, ttl: 0 } : { ...n, ttl: n.ttl ?? Infinity }; }
+function note(text, { phase = state.run.phase, ttl = NOTE_SECONDS } = {}) {
+  if ($("live")) $("live").textContent = text;
+  state.log.unshift({ text, p: phaseIndex(phase), at: state.run.seconds, ttl });
+  state.log = state.log.slice(0, 40);
+}
+function noteExpired(n, run) { return phaseIndex(run.phase) > n.p || run.seconds - n.at > n.ttl; }
 function checkMilestones() {
   const run = state.run, seen = state.seen, meta = state.meta;
   for (const [lr, key, text] of MILESTONES) {
@@ -655,7 +708,11 @@ function checkMilestones() {
   if (run.phase === "collapse" && !seen.collapse) { seen.collapse = 1; note("Gravity has beaten pressure. The patch passed the Jeans mass and is collapsing."); }
   if (run.ignited && !seen.ignite) { seen.ignite = 1; note("Hydrogen fusion has begun. Starlight will now start clearing the disk."); }
   if (run.phase === "main_sequence" && !seen.ms) { seen.ms = 1; note(`The gas is gone. Final mass: ${sci(run.starMass)} M☉.`); }
-  while (state.noted < meta.unlocks.length) { const name = meta.unlocks[state.noted++]; note(CONTROL_NOTES[name]); }
+  while (state.noted < meta.unlocks.length) {
+    // A new control's note stays current through the phase where the control is used.
+    const name = meta.unlocks[state.noted++], where = E.UPGRADES[name]?.phase ?? "gather";
+    note(CONTROL_NOTES[name], { phase: where, ttl: Infinity });
+  }
 }
 
 function save() {
@@ -665,17 +722,33 @@ function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
     if (!saved?.run) return;
-    Object.assign(state, { meta: saved.meta, run: saved.run, view: saved.view, seen: saved.seen || {}, log: saved.log || [], skipped: !!saved.skipped, noted: saved.noted || 0 });
+    Object.assign(state, { meta: saved.meta, run: saved.run, view: saved.view, seen: saved.seen || {}, log: (saved.log || []).map(asNote), skipped: !!saved.skipped, noted: saved.noted || 0 });
     const away = (Date.now() - saved.savedAt) / 1000;
     if (away > 60 && state.view === "play") {
       const before = state.run.phase;
       E.step(state.run, state.meta, away);
       checkMilestones();
-      note(`You were away for ${duration(away)}.${before !== state.run.phase ? " Your star moved to a new stage." : ""}`);
+      const now = state.run.phase, stage = PHASES.find(([p]) => p === now)[1].toLowerCase();
+      const result = now === "ended" ? ` your star ended${ENDINGS[state.run.kind] ? ` as a ${ENDINGS[state.run.kind][0].toLowerCase()}` : ""}.` : ` your star moved on to the ${stage} stage.`;
+      note(`You were away for ${duration(away)}.${before !== now ? ` Your star moved on to the ${stage} stage.` : ""}`);
+      if (before !== now) state.banner = `While you were away (${duration(away)}),${result}`;
     }
   } catch {}
 }
 
+// Shows current items in place and tucks expired ones into a closed <details> that stays openable.
+function paintFolded(id, foldId, items, render, label, empty) {
+  const now = items.filter((i) => !i.expired).slice(0, 4), old = items.filter((i) => i.expired);
+  const html = now.map(render).join("") || (empty ? `<div>${empty}</div>` : "");
+  const fresh = $(id).dataset.html !== html;
+  if (fresh) { $(id).dataset.html = html; $(id).innerHTML = html; }
+  const fold = $(foldId), body = old.map(render).join(""), sig = `${label}|${old.length}|${body}`;
+  if (fold.dataset.sig === sig) return;
+  fold.dataset.sig = sig;
+  fold.innerHTML = old.length ? `<details${state.open[foldId] ? " open" : ""}><summary>${label} (${old.length})</summary>${body}</details>` : "";
+  const d = fold.firstElementChild;
+  if (d) d.addEventListener("toggle", () => { state.open[foldId] = d.open; });
+}
 function button(cls, text, on) { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = text; b.onclick = on; return b; }
 function stat(list) { return `<dl class="stats">${list.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`; }
 
@@ -690,7 +763,7 @@ function headline() {
   const { run, meta } = state;
   if (run.phase === "gather") return ["Gather the gas", `Tap the sky to pull in gas. At ${mass(E.jeansMass(E.temperature(run, meta), run.density))}, gravity beats gas pressure and the patch collapses.`];
   if (run.phase === "collapse") return ["Free fall", `Nothing is holding the cloud up now. In reality this fall takes about ${myr(E.freeFallTime(run.density) / 3.156e13)}.`];
-  if (run.phase === "accrete") return [run.ignited ? "Feed the star" : "Build a protostar", "Gas spirals through the disk into the star. As the star brightens, its ionizing light cuts off the gas falling in and boils away the disk."];
+  if (run.phase === "accrete") return [run.ignited ? "Feed the star" : "Build a protostar", "Gas lands on the disk at the dashed ring and spirals in to the star. Brighter rings hold more gas; faint rings mark distance in AU (Earth to the Sun). Starlight will end the infall and boil away the disk."];
   return ["The star shines", "Its final mass is set, and it will decide how this star ends. Until then, it burns hydrogen in its core."];
 }
 function progress() {
@@ -709,7 +782,7 @@ function statsFor() {
   if (run.phase === "collapse") return [["Cloud mass", `${sci(run.collapseMass)} M☉`], ["Temperature", `${E.temperature(run, meta).toFixed(0)} K`], ["Energy", `${sci(run.energy)} erg`]];
   if (run.phase === "accrete") {
     const disk = run.diskMasses.reduce((a, b) => a + b, 0);
-    return [["Star", `${sci(run.starMass)} M☉`], ["In the disk", `${sci(disk)} M☉`], ["Still falling in", `${sci(run.envelope)} M☉`], ["Falling in", `${sci(E.infallNow(run, meta))} M☉/yr`], ["Boiled off", `${sci(E.diskLossRate(run.starMass, E.feedRadius(run)))} M☉/yr`], ["Companion stars", `${sci(run.companions)} M☉`], ["Energy", `${sci(run.energy)} erg`]];
+    return [["Star", `${sci(run.starMass)} M☉`], ["In the disk", `${sci(disk)} M☉`], ["Still to reach the disk", `${sci(run.envelope)} M☉`], ["Landing on the disk", `${sci(E.infallNow(run, meta))} M☉/yr`], ["Boiled off the disk", `${sci(E.diskLossRate(run.starMass, E.feedRadius(run)))} M☉/yr`], ["Companion stars", `${sci(run.companions)} M☉`], ["Energy", `${sci(run.energy)} erg`]];
   }
   const b = bubble(run, meta);
   return [["Star", `${sci(run.starMass)} M☉`], ["Brightness", `${sci(E.luminosity(run.starMass, run.metalLog10))} Suns`], ["Forecast life", myr(run.forecastMyr)], ["Age", myr(run.msElapsed / run.msDuration * run.lifetimeMyr)], ...(b ? [["Ionized bubble", `${length(b.now)} radius`]] : [])];
@@ -717,17 +790,19 @@ function statsFor() {
 
 // Hints use what has actually happened in this save, and go one step deeper each time.
 function hintSet() {
-  const { run, meta, view } = state, last = meta.journal.at(-1);
+  const { run, meta, view } = state, dense = meta.unlocks.includes("density");
+  // On the ended pane the run is not journaled yet, so read the ending from the run itself.
+  const last = view === "play" && run.phase === "ended" ? { ending: run.kind } : meta.journal.at(-1);
   if (view === "play" && run.phase === "gather") {
-    if (!meta.unlocks.includes("reach")) return ["start", "The patch has to grow until gravity beats gas pressure.", "Keep tapping the sky. Each tap also releases energy.", "Falling gas releases energy. Soon you will have enough for your first upgrade."];
+    if (!meta.unlocks.includes("reach")) return ["start", "The patch has to grow until gravity beats gas pressure.", "Keep tapping the sky. Each tap also releases energy.", "Gas falling together releases energy, and that energy is what you spend on controls."];
     if (run.levels.reach === 0) return ["reach", "You can make gas gather without tapping.", "Spend energy on Gravitational reach.", "Reach compounds, so early levels save the most time."];
     return ["gather", "The bar shows how close the patch is to collapse.", "Buy upgrades as soon as energy allows. Each level costs far more than the last, but energy rises quickly too.", "A patch's binding energy climbs steeply as it grows."];
   }
   if (view === "play" && run.phase === "accrete") return ["accrete", "Your star's mass depends on a race between feeding and clearing.", "Disk controls mainly change how quickly gas gets through. Final mass depends more on how fast gas falls in.", "Faster infall feeds the star for longer before its ionizing light shuts the supply off."];
   if (view === "play" && run.phase === "main_sequence") return ["shine", "Nothing can change this star now.", "Use the wait to review your journal.", "A star's fuel lasts far less time as its mass rises."];
-  if (last && (last.ending === "white_dwarf" || last.ending === "brown_dwarf")) return ["small", "Your last star was too small to explode.", "Search for a hotter region, or a less dense one.", "Hotter gas falls inward faster, so the star gains mass before its light clears the gas."];
-  if (last?.ending === "black_hole") return ["big", "Your last star collapsed into a black hole, and most of its heavy elements went with it.", "Try a cooler or denser region, or aim for a slightly different mass.", "Explosions depend on core structure, so some masses fail even between masses that explode."];
-  if (last) return ["compare", "Most stars from about 9 to 20 solar masses explode, but not all of them.", "Change one search option, then compare the result in your journal.", "One change at a time shows which control caused the difference."];
+  if (last && (last.ending === "white_dwarf" || last.ending === "brown_dwarf")) return ["small", "Your last star was too small to explode.", `Search for a hotter region${dense ? ", or a less dense one" : ""}.`, "Hotter gas falls inward faster, so the star gains mass before its light clears the gas."];
+  if (last?.ending === "black_hole") return ["big", "Your last star collapsed into a black hole, and most of its heavy elements went with it.", `Try a cooler${dense ? " or denser" : ""} region, or aim for a slightly different mass.`, "Explosions depend on core structure, so some masses fail even between masses that explode."];
+  if (last) return ["compare", "Most stars from about 9 to 25 solar masses explode, but not all of them.", "Change one search option, then compare the result in your journal.", "One change at a time shows which control caused the difference."];
   return ["none", "Keep going. There is nothing to work out yet.", "", ""];
 }
 function stuck() {
@@ -752,23 +827,36 @@ function paintHints() {
   const area = $("hints"); if (!area) return;
   const set = hintSet(), key = set[0], lines = set.slice(1).filter(Boolean);
   const tier = state.hint.key === key ? state.hint.tier : 0;
-  area.innerHTML = lines.slice(0, tier).map((t) => `<p class="hint">${t}</p>`).join("");
-  const b = $("hint-button");
+  const html = lines.slice(0, tier).map((t) => `<p class="hint">${t}</p>`).join("");
+  if (area.dataset.html !== html) { area.dataset.html = html; area.innerHTML = html; }
+  // Nudge only when the player can act on it: choosing a region or looking at an ending.
+  const nudge = !tier && stuck() && (state.view === "search" || state.run.phase === "ended");
+  const b = $("hint-button"), label = tier ? "Show more" : nudge ? "A hint is available" : "Ask for a hint";
   b.hidden = tier >= lines.length;
-  b.textContent = tier ? "Show more" : stuck() ? "A hint is available" : "Ask for a hint";
-  b.classList.toggle("nudge", !tier && stuck());
+  if (b.textContent !== label) b.textContent = label;
+  b.classList.toggle("nudge", nudge);
 }
 
 let shell = "";
 function renderShell() {
   const ended = state.run.phase === "ended";
   const view = state.pane === "journal" ? "journal" : state.view === "search" ? "search" : ended ? "ended" : "play";
-  const key = `${view}:${state.run.phase}:${state.meta.unlocks.length}:${state.meta.journal.length}`;
+  const key = `${view}:${state.run.phase}:${state.meta.unlocks.length}:${state.meta.journal.length}:${state.banner ? 1 : 0}`;
   if (key === shell) return;
   const sameView = shell.startsWith(`${view}:`);
   shell = key;
   const panel = $("panel"), top = sameView ? panel.scrollTop : 0;
+  // Rebuilding drops keyboard focus, so remember what had it and put it back.
+  const was = document.activeElement, inPanel = panel.contains(was);
+  const refocus = inPanel ? (was.id ? `#${was.id}` : was.dataset?.i != null ? `${was.localName}[data-i="${was.dataset.i}"]` : was.dataset?.s != null ? `button[data-s="${was.dataset.s}"]` : "") : "";
   panel.textContent = "";
+  if (state.banner) {
+    const banner = document.createElement("section");
+    banner.className = "banner";
+    banner.innerHTML = `<p>${esc(state.banner)}</p>`;
+    banner.append(button("ghost", "Dismiss", () => { state.banner = null; update(); }));
+    panel.appendChild(banner);
+  }
   if (view === "ended") renderEnded(panel);
   else if (view === "search") renderSearch(panel);
   else if (view === "journal") renderJournal(panel);
@@ -777,15 +865,20 @@ function renderShell() {
   panel.appendChild(footer());
   panel.scrollTop = top;
   paintHints();
+  if (inPanel) {
+    const target = (sameView && refocus && panel.querySelector(refocus)) || panel.querySelector("h2");
+    if (target) { if (target.localName === "h2") target.tabIndex = -1; target.focus({ preventScroll: true }); }
+  }
 }
 function renderPlay(panel) {
   const shine = state.run.phase === "main_sequence";
   panel.insertAdjacentHTML("beforeend", `<section><p class="goal" id="goal"></p><h2 id="head"></h2><p id="sub"></p></section>
     ${shine ? `<section class="countdown"><b id="count"></b><span id="count-note"></span></section>` : ""}
-    <section><div class="meter"><i id="meter"></i></div><div class="meter-note"><span id="meter-a"></span><span id="meter-b"></span></div><div id="stats"></div></section>
+    <section><div class="meter"><i id="meter"></i></div><div class="meter-note"><span id="meter-a"></span><span id="meter-b"></span></div></section>
     <section id="upgrade-box"><h3>Controls</h3><p class="fine">Energy comes from falling gas. Spend it here.</p><div class="upgrades" id="upgrades"></div></section>
-    ${shine ? `<section><h3>Field notes</h3><div id="reading" class="reading"></div></section>` : ""}
-    <section id="skip-box" hidden></section><section><h3>Observations</h3><div id="log"></div></section>`);
+    <section><div id="stats"></div></section>
+    ${shine ? `<section><h3>Field notes</h3><div id="reading" class="reading"></div><div id="reading-earlier" class="earlier reading"></div></section>` : ""}
+    <section id="skip-box" hidden></section><section><h3>Observations</h3><div id="log"></div><div id="log-earlier" class="earlier"></div></section>`);
   const list = $("upgrades");
   const names = Object.keys(E.UPGRADES).filter((n) => E.UPGRADES[n].phase === state.run.phase && state.meta.unlocks.includes(n));
   $("upgrade-box").hidden = !names.length;
@@ -796,52 +889,65 @@ function renderPlay(panel) {
     b.onclick = () => { if (E.buy(state.run, name, state.meta)) { update(); save(); } };
     list.appendChild(b);
   }
-  const skip = button("ghost", "Move on to a new region", () => { state.skipped = true; state.run.phase = "ended"; update(); });
+  const skipLabel = "Move on to a new region";
+  let armed = false, timer;
+  const skip = button("ghost skip", skipLabel, () => {
+    if (!armed) {
+      armed = true; skip.textContent = "Tap again to leave this star"; skip.classList.add("armed");
+      if ($("live")) $("live").textContent = "Tap again within three seconds to leave this star.";
+      timer = setTimeout(() => { armed = false; skip.textContent = skipLabel; skip.classList.remove("armed"); }, 3000);
+      return;
+    }
+    clearTimeout(timer); state.skipped = true; state.run.phase = "ended"; update();
+  });
   skip.id = "skip";
   $("skip-box").append(skip, Object.assign(document.createElement("p"), { id: "skip-note" }));
 }
-const BANDS = [["brown_dwarf", "Failed star", "below 0.08"], ["white_dwarf", "White dwarf", "up to about 9"], ["supernova", "Supernova", "about 9–25, with gaps"], ["black_hole", "Black hole", "some above 18, most above 27"]];
+const BANDS = [["brown_dwarf", "Brown dwarf", "below 0.08 M☉"], ["white_dwarf", "White dwarf", "up to about 9 M☉"], ["supernova", "Supernova", "about 9–25 M☉, with gaps"], ["black_hole", "Black hole", "some above 18 M☉, most above 27 M☉"]];
 function outcomeBands(current) {
   const seen = new Set(state.meta.journal.map((j) => j.ending));
   if (current) seen.add(current);
-  return `<div class="bands">${BANDS.map(([kind, label, range]) => `<div class="band${kind === current ? " now" : ""}"><b>${seen.has(kind) ? label : "?"}</b><span>${seen.has(kind) ? `${range} M☉` : "Not seen yet"}</span></div>`).join("")}</div>`;
+  return `<div class="bands">${BANDS.map(([kind, label, range]) => `<div class="band${kind === current ? " now" : ""}"><b>${seen.has(kind) ? label : "?"}</b><span>${seen.has(kind) ? range : "Not seen yet"}</span></div>`).join("")}</div>`;
 }
 function renderEnded(panel) {
   const { run, meta } = state;
   const [title, text] = ENDINGS[run.kind];
   const gain = E.runGain(run), released = E.heavyYield(run.starMass, run.kind, run.metalLog10);
   const after = meta.regions * Math.exp(gain);
-  const beyond = run.lifetimeMyr > run.forecastMyr * 1.01;
+  const beyond = !state.skipped && run.lifetimeMyr > run.forecastMyr * 1.01;
   if (beyond && !state.seen.anomaly) { state.seen.anomaly = 1; note(`Anomaly: this star lived ${Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100)}% longer than forecast.`); }
   panel.insertAdjacentHTML("beforeend", `<section><h3>${state.skipped ? "Forecast ending" : "Ending"}</h3><h2>${title}</h2><p>${text}</p>
     ${state.skipped ? `<p>You left before this happened. The universe aged only by the time you stayed.</p>` : ""}
     ${beyond ? `<p class="tag">Anomaly: this star lived ${Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100)}% longer than forecast. The cause is not yet known.</p>` : ""}</section>
     <section><h3>Final mass ${sci(run.starMass)} M☉</h3>${outcomeBands(run.kind)}</section>
-    <section>${stat([["Blown away", `${sci(run.ejected)} M☉`], ["Companion stars", `${sci(run.companions)} M☉`], ["Run time", duration(run.seconds)], ["Regions surveyed", `${sci(meta.regions)} → ${sci(after)}`], ["Probability", `${E.budget(meta).toFixed(2)} → ${Math.log(after).toFixed(2)}`], ...(released > 0 ? [["Heavy elements", `+${sci(released)} M☉`]] : [])])}<p class="fine">Probability lets you search for rarer regions.</p></section>`);
+    <section>${stat([["Blown away", `${sci(run.ejected)} M☉`], ["Companion stars", `${sci(run.companions)} M☉`], ["Run time", duration(run.seconds)], ["Regions surveyed", `${sci(meta.regions)} → ${sci(after)}`], ["Probability", `${E.budget(meta).toFixed(2)} → ${Math.log(after).toFixed(2)}`], ...(released > 0 ? [["Heavy elements", `+${sci(released)} M☉`]] : [])])}<p class="fine">Probability lets you search for rarer regions. Your gas, energy and upgrades reset for the next run. Probability, unlocked controls and heavy elements stay.</p></section>`);
   const box = document.createElement("section");
+  box.className = "cta";
   box.append(button("primary", "Survey new regions", () => {
-    const notes = state.log.slice();
+    const notes = state.log.map((n) => n.text);
     state.run = E.prestige(state.run, state.meta, state.skipped);
     state.meta.journal.at(-1).notes = notes;
     state.selected = state.meta.journal.length - 1;
-    state.skipped = false; state.seen = {}; state.log = []; state.view = "search"; shell = ""; update(); save();
+    state.skipped = false; state.seen = {}; state.log = []; state.view = "search"; state.banner = null; shell = ""; update(); save();
   }));
   panel.appendChild(box);
 }
-function fieldRow(id, label, key, text) {
+function fieldRow(id, label, key, text, [low, high]) {
   const wrap = document.createElement("label");
   wrap.className = "field";
-  wrap.innerHTML = `<span>${label}</span><output id="${id}-out"></output><small>${text}</small><input id="${id}" type="range" min="-3" max="3" step="0.1">`;
+  wrap.innerHTML = `<span>${label}</span><output id="${id}-out"></output><small>${text}</small><input id="${id}" type="range" min="-3" max="3" step="0.1"><span class="scale" aria-hidden="true"><span>${low}</span><span>no cost</span><span>${high}</span></span>`;
   const input = wrap.querySelector("input");
   input.value = state.meta[key];
   input.oninput = () => {
     const m = state.meta, old = m[key];
     m[key] = Number(input.value);
+    $("limit").hidden = true;
     if (E.regionCost(m) > E.budget(m) + 1e-9) {
       const others = E.regionCost({ ...m, [key]: 0 });
       const limit = Math.sqrt(Math.max(0, 2 * (E.budget(m) - others)));
       m[key] = Math.sign(m[key]) * Math.floor(limit * 10) / 10;
       input.value = m[key];
+      $("limit").hidden = false;
     }
     if (old !== m[key]) refreshSearch();
   };
@@ -859,11 +965,11 @@ function refreshSearch() {
 function renderSearch(panel) {
   const m = state.meta, has = (n) => m.unlocks.includes(n);
   panel.insertAdjacentHTML("beforeend", `<section><p class="goal">${goal()}</p><h2>Survey the region</h2><p>Spend probability to find a rarer starting point. Your full budget returns after every run, so experiments cost nothing.</p>
-    <div class="meter"><i id="spent-bar" style="background:var(--oiii)"></i></div><div class="meter-note"><span>Probability</span><span id="spent"></span></div></section>`);
+    <div class="meter"><i id="spent-bar" style="background:var(--oiii)"></i></div><div class="meter-note"><span>Probability</span><span id="spent"></span></div><p class="fine tag" id="limit" hidden>Probability budget used up. Lower another slider to go further.</p></section>`);
   const box = document.createElement("section");
-  if (has("temperature")) box.append(fieldRow("temperature", "Temperature", "zTemperature", "Hotter gas needs more mass to collapse, but falls inward faster and feeds a bigger star."));
-  if (has("density")) box.append(fieldRow("density", "Density", "zDensity", "Denser gas collapses with less total mass."));
-  if (has("metals")) box.append(fieldRow("metals", "Metal content", "zMetal", "More metals let gas cool further."));
+  if (has("temperature")) box.append(fieldRow("temperature", "Temperature", "zTemperature", "Hotter gas needs more mass to collapse, but falls inward faster and feeds a bigger star.", ["cooler", "hotter"]));
+  if (has("density")) box.append(fieldRow("density", "Density", "zDensity", "Denser gas collapses with less total mass.", ["sparser", "denser"]));
+  if (has("metals")) box.append(fieldRow("metals", "Metal content", "zMetal", "More metals let gas cool further.", ["fewer metals", "more metals"]));
   if (m.blackHoleUnlocked) {
     const row = document.createElement("label"); row.className = "check";
     row.innerHTML = `<input id="bh" type="checkbox"><span>Start near a black hole. Gas falls in 50% faster (cost 1.00).</span>`;
@@ -895,10 +1001,12 @@ function renderSearch(panel) {
     }
   }
   const go = document.createElement("section");
-  go.append(button("primary", "Begin run", () => { state.run = E.newRun(m); state.view = "play"; shell = ""; note(`Run ${m.runs + 1} begins at ${sci(state.run.density)} atoms per cm³ and ${state.run.baseTemperature.toFixed(0)} K.`); update(); save(); }));
+  go.className = "cta";
+  go.append(button("primary", "Begin run", () => { state.run = E.newRun(m); state.view = "play"; state.banner = null; shell = ""; note(`Run ${m.runs + 1} begins at ${sci(state.run.density)} atoms per cm³ and ${state.run.baseTemperature.toFixed(0)} K.`); update(); save(); }));
   panel.appendChild(go);
   refreshSearch();
 }
+const ENDING_MARK = { brown_dwarf: "BD", white_dwarf: "WD", supernova: "SN", black_hole: "BH", pair_instability: "PI" };
 const ENDING_COLOR = { brown_dwarf: "var(--dwarf)", white_dwarf: "var(--ink)", supernova: "var(--oiii)", black_hole: "var(--sii)", pair_instability: "var(--halpha)" };
 function resultsPlot() {
   const m = state.meta, two = m.unlocks.includes("density"), W = 340, H = two ? 250 : 92;
@@ -910,9 +1018,12 @@ function resultsPlot() {
   if (two) for (const e of [2, 3, 4, 5, 6]) out += `<line x1="${left}" x2="${right}" y1="${Y(10 ** e)}" y2="${Y(10 ** e)}" class="tick"/><text x="${left - 6}" y="${Y(10 ** e) + 4}" text-anchor="end">10${SUP[e]}</text>`;
   out += `<text x="${(left + right) / 2}" y="${H - 4}" text-anchor="middle">Gas temperature (K)</text>`;
   if (two) out += `<text x="10" y="${(top + bottom) / 2}" text-anchor="middle" transform="rotate(-90 10 ${(top + bottom) / 2})">Density (/cm³)</text>`;
+  const sel = state.selected ?? m.journal.length - 1;
   m.journal.forEach((j, i) => {
-    const r = Math.max(3.5, 2.1 * Math.sqrt(j.mass));
-    out += `<circle cx="${X(Math.min(1000, Math.max(10, j.temperature)))}" cy="${Y(j.density)}" r="${r}" fill="${ENDING_COLOR[j.ending]}" fill-opacity="${i === state.selected ? 0.75 : 0.3}" stroke="${ENDING_COLOR[j.ending]}" stroke-width="${i === state.selected ? 2.5 : 1.25}" tabindex="0" role="button" aria-label="Run ${j.run}" data-i="${i}"/>`;
+    // Area follows final mass, down to a minimum size so tiny stars stay visible.
+    const r = Math.max(2, 2.1 * Math.sqrt(j.mass)), x = X(Math.min(1000, Math.max(10, j.temperature))), y = Y(j.density), color = ENDING_COLOR[j.ending];
+    const label = `Run ${j.run}: ${ENDINGS[j.ending][0]}, ${sci(j.mass)} solar masses, ${j.temperature.toFixed(0)} K${j.skipped ? ", left early" : ""}`;
+    out += `<circle cx="${x}" cy="${y}" r="${r}" fill="${color}" fill-opacity="${i === sel ? 0.75 : 0.3}" stroke="${color}" stroke-width="${i === sel ? 2.5 : 1.25}"${j.skipped ? ' stroke-dasharray="3 2"' : ""} tabindex="-1" role="button" aria-label="${esc(label)}" data-i="${i}"/><text class="mark" x="${x}" y="${Math.max(top + 8, y - r - 3)}" text-anchor="middle">${ENDING_MARK[j.ending]}</text>`;
   });
   return `${out}</svg>`;
 }
@@ -923,9 +1034,9 @@ function entryCard(j) {
 }
 function renderJournal(panel) {
   const m = state.meta, count = m.journal.length;
-  panel.insertAdjacentHTML("beforeend", `<section><h2>Journal</h2><p>${count ? "Bigger bubbles are heavier stars. Select one to read that run." : "Finished runs will appear here."}</p></section>`);
+  panel.insertAdjacentHTML("beforeend", `<section><h2>Journal</h2><p>${count ? "Bubble area is the star's final mass, and the letters name how it ended. Select a run to read it." : "Finished runs appear here as bubbles. Size is final mass, position is the region's gas, and letters name the ending."}</p></section>`);
   if (count) {
-    panel.insertAdjacentHTML("beforeend", `<section>${resultsPlot()}<div class="legend">${[...new Set(m.journal.map((j) => j.ending))].map((k) => `<span><i style="background:${ENDING_COLOR[k]}"></i>${ENDINGS[k][0]}</span>`).join("")}</div><div class="runs">${m.journal.map((j, i) => `<button type="button" class="run-chip" data-i="${i}" aria-pressed="${i === (state.selected ?? count - 1)}">${j.run}</button>`).join("")}</div></section>${entryCard(m.journal[state.selected ?? count - 1])}`);
+    panel.insertAdjacentHTML("beforeend", `<section>${resultsPlot()}<div class="legend">${[...new Set(m.journal.map((j) => j.ending))].map((k) => `<span><i style="background:${ENDING_COLOR[k]}"></i>${ENDING_MARK[k]} ${ENDINGS[k][0]}</span>`).join("")}${m.journal.some((j) => j.skipped) ? `<span><i class="dash"></i>Left early</span>` : ""}</div><div class="runs">${m.journal.map((j, i) => `<button type="button" class="run-chip" data-i="${i}" aria-pressed="${i === (state.selected ?? count - 1)}" aria-label="Run ${j.run}: ${ENDINGS[j.ending][0]}${j.skipped ? ", left early" : ""}">${j.run}<small>${ENDING_MARK[j.ending]}</small></button>`).join("")}</div></section>${entryCard(m.journal[state.selected ?? count - 1])}`);
     const pick = (el) => { state.selected = Number(el.dataset.i); shell = `journal:keep`; update(); };
     panel.querySelectorAll(".run-chip").forEach((c) => { c.onclick = () => pick(c); });
     panel.querySelectorAll("circle").forEach((c) => { c.onclick = () => pick(c); c.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(c); } }; });
@@ -935,7 +1046,7 @@ function footer() {
   const box = document.createElement("section");
   box.className = "foot";
   const open = state.pane === "journal";
-  const journal = button("ghost", open ? "Back to the run" : `Journal (${state.meta.journal.length})`, () => { state.pane = open ? "main" : "journal"; update(); });
+  const journal = button("ghost", open ? "Close journal" : `Journal (${state.meta.journal.length})`, () => { state.pane = open ? "main" : "journal"; update(); });
   journal.id = "journal-button";
   box.append(journal);
   const row = document.createElement("div"); row.className = "speed";
@@ -947,7 +1058,7 @@ function footer() {
   const reset = button("reset", "Reset", () => {
     if (!state.resetArm) { state.resetArm = true; reset.textContent = "Tap again to erase"; setTimeout(() => { state.resetArm = false; reset.textContent = "Reset"; }, 3000); return; }
     try { localStorage.removeItem(SAVE_KEY); } catch {}
-    Object.assign(state, { meta: E.newMeta(), view: "play", pane: "main", log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null });
+    Object.assign(state, { meta: E.newMeta(), view: "play", pane: "main", log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {} });
     state.run = E.newRun(state.meta); shell = ""; update();
   });
   row.append(reset); box.append(row);
@@ -959,6 +1070,16 @@ function update() {
   const { run, meta } = state;
   const track = PHASES.findIndex(([p]) => p === run.phase);
   $("track").innerHTML = PHASES.map(([, label], i) => `<span class="${i === track ? "now" : i < track ? "done" : ""}">${label}</span>`).join("");
+  const sky = $("sky"), mode = run.phase === "gather" && state.view === "play" ? "tap" : `${state.view}:${run.phase}`;
+  if (sky.dataset.mode !== mode) {
+    sky.dataset.mode = mode;
+    if (mode === "tap") { sky.setAttribute("role", "button"); sky.tabIndex = 0; sky.setAttribute("aria-label", "Telescope view. Tap to gather gas."); }
+    else {
+      if (document.activeElement === sky) { const h = $("panel").querySelector("h2"); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); } }
+      sky.setAttribute("role", "img"); sky.removeAttribute("tabindex"); sky.setAttribute("aria-label", state.view === "search" ? "Telescope view of the region you are surveying." : `Telescope view, ${PHASES[track][1]} phase.`);
+    }
+  }
+  $("scale").hidden = run.phase === "accrete";
   $("scale-label").textContent = length(viewRadius() * 0.5);
   $("hint").hidden = !(run.phase === "gather" && state.view === "play" && run.seconds < 30 && !meta.runs);
   paintHints();
@@ -970,13 +1091,15 @@ function update() {
   $("meter").style.width = `${Math.max(0, Math.min(1, value)) * 100}%`;
   $("meter-a").textContent = a; $("meter-b").textContent = b;
   $("stats").innerHTML = stat(statsFor());
-  $("log").innerHTML = state.log.slice(0, 4).map((t) => `<div>${esc(t)}</div>`).join("") || "<div>Nothing recorded yet.</div>";
+  paintFolded("log", "log-earlier", state.log.map((n) => ({ ...n, expired: noteExpired(n, run) })), (n) => `<div>${esc(n.text)}</div>`, "Earlier observations", "Nothing new right now.");
   for (const name of Object.keys(E.UPGRADES)) {
     const el = $(`up-${name}`); if (!el) continue;
     const [title, text] = UPGRADE_TEXT[name], ok = E.canBuy(run, name, meta), maxed = run.levels[name] >= E.UPGRADES[name].max;
     el.querySelector("b").textContent = `${title}, level ${run.levels[name]}`;
     el.querySelector("small").textContent = text(run, meta);
-    el.querySelector(".cost").textContent = maxed ? "Maxed" : `${sci(E.upgradeCost(run, name))} erg`;
+    const cost = E.upgradeCost(run, name), fill = maxed ? 0 : Math.min(1, run.energy / cost);
+    el.querySelector(".cost").textContent = maxed ? "Maxed" : ok ? `${sci(cost)} erg` : `${Math.floor(fill * 100)}% of ${sci(cost)} erg`;
+    el.style.setProperty("--fill", fill.toFixed(3));
     el.disabled = !ok; el.classList.toggle("ready", ok);
   }
   if ($("count")) {
@@ -985,10 +1108,10 @@ function update() {
     $("count-note").textContent = `until the core's hydrogen runs out. Each second here is about ${sci(years)} years.`;
   }
   if ($("reading")) {
-    // Newest first, so a fresh note is visible without scrolling.
+    // Newest first. Only the newest note stays open; earlier ones fold away but can be reopened.
     const shown = shineNotes(run, meta).filter(([at]) => burned(run) >= at).reverse();
-    const html = shown.map(([, title, text], i) => `<article${i === 0 ? ' class="new"' : ""}><b>${title}</b><p>${text}</p></article>`).join("");
-    if ($("reading").innerHTML !== html) $("reading").innerHTML = html;
+    const items = shown.map(([, title, text], i) => ({ title, text, expired: i > 0 }));
+    paintFolded("reading", "reading-earlier", items, (n) => `<article${n.expired ? "" : ' class="new"'}><b>${n.title}</b><p>${n.text}</p></article>`, "Earlier field notes", "");
   }
   const skippable = E.canSkip(run);
   $("skip-box").hidden = !skippable;
@@ -1035,7 +1158,8 @@ function shineScene(run, meta, cx, cy, R, t) {
     g.addColorStop(0, "rgba(95,230,207,0.34)"); g.addColorStop(0.5, "rgba(95,230,207,0.14)");
     g.addColorStop(0.82, "rgba(255,95,126,0.22)"); g.addColorStop(1, "rgba(255,95,126,0.04)");
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, rb, 0, 6.283); ctx.fill();
-    const edge = (ang) => rb * (1 + 0.035 * Math.sin(5 * ang + 1.3 + time * 0.2) + 0.022 * Math.sin(9 * ang + 4.1 - time * 0.13) + 0.012 * Math.sin(17 * ang + time * 0.3));
+    // A smooth circle: its radius is the physical front, with no decorative wobble.
+    const edge = () => rb;
     for (const [width, color, alpha] of [[7, "#ff5f7e", 0.22], [1.6, "#ffb86b", 0.85]]) {
       ctx.beginPath();
       for (let k = 0; k <= 120; k++) { const ang = k / 120 * 6.283, r = edge(ang); k ? ctx.lineTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r) : ctx.moveTo(cx + r, cy); }
@@ -1125,20 +1249,29 @@ function starColor(m) { return m > 16 ? "#9fc4ff" : m > 2 ? "#e9eeff" : m > 0.8 
 function star(cx, cy, size, m, t) {
   glow(cx, cy, size * 5, starColor(m), 0.28);
   glow(cx, cy, size * 2, starColor(m), 0.75);
-  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(cx, cy, size * (calm ? 1 : 1 + Math.sin(t * 2) * 0.03), 0, 6.283); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(cx, cy, size, 0, 6.283); ctx.fill();
 }
 function diskScene(run, cx, cy, R, t, meta) {
-  const tilt = 0.42, maxR = Math.log(3000);
+  const tilt = 0.42, maxR = Math.log(3000), tipAngle = -0.32;
+  const ringAt = (au) => R * 0.1 + R * 0.9 * Math.log(au) / maxR;
+  // Distance rings on a log scale, so the size of the disk reads in AU.
+  ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.textAlign = "left";
+  for (const au of [1, 10, 100, 1000]) {
+    const rad = ringAt(au);
+    ctx.globalAlpha = 0.22; ctx.strokeStyle = "#cfc8ff"; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
+    ctx.beginPath(); ctx.ellipse(cx, cy, rad, rad * tilt, tipAngle, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.globalAlpha = 1;
   const total = Math.max(run.collapseMass, 1);
   if (run.envelope > 0) glow(cx, cy, R * 1.4, "#ff5f7e", 0.14 + 0.2 * run.envelope / total);
   run.diskMasses.forEach((m, i) => {
-    const rad = R * 0.1 + R * 0.9 * Math.log(E.RADII[i]) / maxR;
+    const rad = ringAt(E.RADII[i]);
     const bright = Math.max(0, Math.min(1, (Math.log10(m + 1e-9) + 3.5) / 3.5));
     ctx.globalAlpha = 0.08 + 0.5 * bright; ctx.strokeStyle = i % 2 ? "#ff5f7e" : "#ffb86b"; ctx.lineWidth = 1 + bright * R * 0.016;
     ctx.beginPath(); ctx.ellipse(cx, cy, rad, rad * tilt, -0.32, 0, 6.283); ctx.stroke();
   });
   ctx.globalAlpha = 1;
-  const landing = R * 0.1 + R * 0.9 * Math.log(E.feedRadius(run)) / maxR;
+  const landing = ringAt(E.feedRadius(run));
   ctx.strokeStyle = "#ffb86b"; ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]); ctx.globalAlpha = 0.9;
   ctx.beginPath(); ctx.ellipse(cx, cy, landing, landing * tilt, -0.32, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
   ctx.globalAlpha = 1; ctx.fillStyle = "#ffb86b"; ctx.font = "12px 'IBM Plex Mono', monospace"; ctx.textAlign = "center";
@@ -1156,6 +1289,13 @@ function diskScene(run, cx, cy, R, t, meta) {
     const a = hash(i, 11) * 6.283, f = ((hash(i, 12) + (calm ? 0 : t * 0.08)) % 1), rad = R * (0.1 + f * 1.1);
     ctx.globalAlpha = (1 - f) * 0.7; ctx.fillStyle = "#5fe6cf";
     ctx.beginPath(); ctx.arc(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad, 1.3, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // Distance labels last, so the disk rings never cover them.
+  ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.textAlign = "left"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.fillStyle = "#cfc8ff";
+  for (const au of W < 500 ? [100, 1000] : [1, 10, 100, 1000]) {
+    const x = cx + ringAt(au) * Math.cos(tipAngle) + 4, y = cy + ringAt(au) * Math.sin(tipAngle) - 3;
+    ctx.globalAlpha = 0.9; ctx.strokeText(`${au} AU`, x, y); ctx.fillText(`${au} AU`, x, y);
   }
   ctx.globalAlpha = 1;
   if (run.starMass > 0) star(cx, cy, run.ignited ? R * 0.022 * (2 + Math.log10(run.starMass + 1) * 2) : R * 0.02, run.ignited ? run.starMass : 0.3, t);
@@ -1214,7 +1354,7 @@ function draw(t) {
     shineScene(run, meta, cx, cy, R, t);
   } else {
     drawGrid(cx, cy, R * 1.4, 0.16, run.kind === "black_hole" ? 0.72 : 0.3);
-    deathScene(run, cx, cy, R, t);
+    if (!state.skipped) deathScene(run, cx, cy, R, t);
   }
   for (const r of ripple) { const age = t - r; ctx.globalAlpha = Math.max(0, 0.5 - age); ctx.strokeStyle = "#5fe6cf"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, R * (0.2 + age * 1.4), 0, 6.283); ctx.stroke(); }
   ctx.globalAlpha = 1;
@@ -1240,7 +1380,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 function start(data) {
-  if (data?.run) Object.assign(state, data); else load();
+  if (data?.run) Object.assign(state, data, { log: (data.log || []).map(asNote) }); else load();
   resize(); update(); requestAnimationFrame(frame);
 }
 window.accretion = state;

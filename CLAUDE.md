@@ -17,7 +17,17 @@ python tools/build.py                                      # regenerate web/accr
 uv run python tools/bot.py                                 # simulated first-run player: phase timings, final star
 ```
 
+```bash
+uv run poe launch                                          # rebuild web/accretion.html and open it in Chrome
+uv run poe hooks                                           # once per clone: install the pre-commit hook
+python tools/build.py --check                              # fail if web/accretion.html is stale
+```
+
+The pre-commit hook (`.githooks/pre-commit`) runs `build.py --check` and then `poe check`, so commit the rebuilt `web/accretion.html` together with any web source change.
+
 The parity test needs `node` on PATH; without it the test is skipped, not failed.
+
+`docs/` holds `DECISIONS.md` (decision log), `DEVELOPMENT.md`, and `NEXT.md` (handoff notes); `README.md` has hand-testing steps (test-speed buttons, etc.).
 
 ## Architecture: two engines that must agree
 
