@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>How the bins grow</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#5fe6cf}a:hover{color:#9ff2e4}
+</style>
+</helmet>
+<div style="width: 1040px; height: 560px; box-sizing: border-box; background: #151230; color: #f1edff; font-family: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif; padding: 32px; display: flex; flex-direction: column; gap: 24px">
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <h1 style="margin: 0; font-size: 26px; line-height: 1.15; font-weight: 700">Prediction bins unlock one stage at a time</h1>
+    <p style="margin: 0; font-size: 14px; line-height: 1.45; color: #b1a9d6">Each stage arrives when the player has met a relationship the earlier bins can't describe.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+    <div style="background: #201c43; border: 1px solid #3a3468; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5fe6cf">1 · Direction</span>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+        <div style="display: flex; gap: 12px; align-items: center"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px; width: 26px">↑</span>Goes up</div>
+        <div style="display: flex; gap: 12px; align-items: center"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px; width: 26px">↓</span>Goes down</div>
+        <div style="display: flex; gap: 12px; align-items: center"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px; width: 26px">—</span>No change</div>
+        <div style="display: flex; gap: 12px; align-items: center"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px; width: 26px; color: #b1a9d6">?</span>Not sure</div>
+      </div>
+      <span style="font-size: 12.5px; color: #b1a9d6; margin-top: auto">From the first run</span>
+    </div>
+
+    <div style="background: #201c43; border: 1px solid #3a3468; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5fe6cf">2 · Shape</span>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+        <div style="display: flex; gap: 12px; align-items: center"><svg width="26" height="18" viewBox="0 0 26 18" fill="none" stroke="#f1edff" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 16 Q13 -6 24 16"></path></svg>Rises, then falls</div>
+        <div style="display: flex; gap: 12px; align-items: center"><svg width="26" height="18" viewBox="0 0 26 18" fill="none" stroke="#f1edff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 15 H12 V3 H24"></path></svg>Jumps at a threshold</div>
+        <div style="display: flex; gap: 12px; align-items: center"><svg width="26" height="18" viewBox="0 0 26 18" fill="none" stroke="#f1edff" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 16 Q8 3 24 3"></path></svg>Levels off</div>
+      </div>
+      <span style="font-size: 12.5px; color: #b1a9d6; margin-top: auto">After a straight-line guess fails</span>
+    </div>
+
+    <div style="background: #201c43; border: 1px solid #3a3468; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5fe6cf">3 · Strength</span>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+        <div style="display: flex; gap: 12px; align-items: center"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px; width: 26px">↑</span>A little</div>
+        <div style="display: flex; gap: 12px; align-items: center"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px; width: 26px">⇈</span>A lot</div>
+      </div>
+      <p style="margin: 0; font-size: 13px; line-height: 1.45; color: #b1a9d6">The exponent, without the math: doubling the input changes the output by less, about the same, or far more.</p>
+      <span style="font-size: 12.5px; color: #b1a9d6; margin-top: auto">After several confirmed directions</span>
+    </div>
+
+    <div style="background: #201c43; border: 1px solid #ffb86b; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #ffb86b">4 · Depends</span>
+      <div style="display: flex; gap: 12px; align-items: center; font-size: 14px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px; width: 26px; color: #ffb86b">⇅</span>Direction changes with conditions</div>
+      <p style="margin: 0; font-size: 13px; line-height: 1.45; color: #b1a9d6">Unlocked per relationship, by the first locked prediction that breaks.</p>
+      <span style="font-size: 12.5px; color: #b1a9d6; margin-top: auto">After a streak breaks</span>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <svg width="100%" height="110" viewBox="0 0 300 110" role="img" aria-label="Two runs joined by a dashed guess line">
+        <line x1="20" y1="95" x2="290" y2="95" stroke="#3a3468"></line><line x1="20" y1="10" x2="20" y2="95" stroke="#3a3468"></line>
+        <line x1="60" y1="80" x2="250" y2="30" stroke="#b1a9d6" stroke-width="1.5" stroke-dasharray="5 5"></line>
+        <circle cx="90" cy="72" r="6" fill="#5fe6cf"></circle><circle cx="160" cy="54" r="6" fill="#5fe6cf"></circle>
+      </svg>
+      <span style="font-size: 13.5px; line-height: 1.4"><b style="font-weight: 600">Two runs:</b> <span style="color: #b1a9d6">a dashed line, labeled as a guess.</span></span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <svg width="100%" height="110" viewBox="0 0 300 110" role="img" aria-label="A third run lands below the guess line">
+        <line x1="20" y1="95" x2="290" y2="95" stroke="#3a3468"></line><line x1="20" y1="10" x2="20" y2="95" stroke="#3a3468"></line>
+        <line x1="60" y1="80" x2="250" y2="30" stroke="#b1a9d6" stroke-width="1.5" stroke-dasharray="5 5"></line>
+        <circle cx="90" cy="72" r="6" fill="#5fe6cf"></circle><circle cx="160" cy="54" r="6" fill="#5fe6cf"></circle>
+        <circle cx="235" cy="50" r="6" fill="#ffb86b"></circle>
+        <line x1="235" y1="50" x2="235" y2="35" stroke="#ffb86b" stroke-width="1.5"></line>
+      </svg>
+      <span style="font-size: 13.5px; line-height: 1.4"><b style="font-weight: 600">A third run</b> <span style="color: #b1a9d6">misses the line.</span></span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <svg width="100%" height="110" viewBox="0 0 300 110" role="img" aria-label="The guess bends into a curve that levels off">
+        <line x1="20" y1="95" x2="290" y2="95" stroke="#3a3468"></line><line x1="20" y1="10" x2="20" y2="95" stroke="#3a3468"></line>
+        <path d="M60 86 Q150 40 260 47" fill="none" stroke="#5fe6cf" stroke-width="2"></path>
+        <circle cx="90" cy="72" r="6" fill="#5fe6cf"></circle><circle cx="160" cy="54" r="6" fill="#5fe6cf"></circle><circle cx="235" cy="50" r="6" fill="#5fe6cf"></circle>
+      </svg>
+      <span style="font-size: 13.5px; line-height: 1.4"><b style="font-weight: 600">The shape updates:</b> <span style="color: #b1a9d6">it levels off, unlocking shape bins.</span></span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1040,"height":560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
