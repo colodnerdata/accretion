@@ -22,6 +22,16 @@ WINDOWS_CHROME = [
 ]
 
 
+def is_wsl() -> bool:
+    """Check if running in Windows Subsystem for Linux."""
+    try:
+        with open("/proc/version", encoding="utf-8") as f:
+            version = f.read().lower()
+            return "microsoft" in version or "wsl" in version
+    except OSError:
+        return False
+
+
 def chrome_command(url: str) -> list[str] | None:
     """Return the command that opens ``url`` in a new Chrome window, if found."""
     if sys.platform == "darwin":
@@ -29,6 +39,40 @@ def chrome_command(url: str) -> list[str] | None:
         if app.exists():
             return ["open", "-na", str(app), "--args", "--new-window", url]
         return None
+
+    # In WSL, launch Windows Chrome directly through PowerShell.
+    if is_wsl():
+        wsl_chrome_path = Path(
+            "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"
+        )
+        if wsl_chrome_path.exists():
+            # Convert Linux path to Windows path.
+            result = subprocess.run(
+                ["wslpath", "-w", str(PAGE.resolve())],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0:
+                win_file = result.stdout.strip()
+                win_url = f"file:///{win_file.replace(chr(92), '/')}"
+                chrome_exe = (
+                    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+                )
+                command = (
+                    "Start-Process"
+                    f" -FilePath '{chrome_exe}'"
+                    f" -ArgumentList @('--new-window','{win_url}')"
+                )
+                return [
+                    "powershell.exe",
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    command,
+                ]
+        return None
+
     candidates = WINDOWS_CHROME if sys.platform == "win32" else []
     for path in candidates:
         if path.exists():
