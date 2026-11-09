@@ -43,10 +43,9 @@ Handy while testing:
   `localStorage.clear()` in the developer console.
 - Reload mid-run to check that progress and offline time are restored.
 
-Disk fragmentation and companion stars are being built in stages. Until the
-simulation lands, a run's journal entry carries an empty companion list and the
-play screen's "Companion stars" row still shows the old mass-cap total. Check
-the stage notes in `docs/NEXT.md` for what to look for in each stage.
+Disk fragmentation and companion stars are part of the current simulation. A
+run's journal records surviving companions, and the play screen's "Companion
+stars" row reflects the current companion mass in that run.
 
 ## Pre-commit hook
 
