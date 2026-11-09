@@ -22,6 +22,16 @@ Commit dependency metadata and `uv.lock` together, and rerun `check` after
 updates. `--locked` detects stale dependency metadata instead of silently
 refreshing it. Review the dependency diff before merging it.
 
+### WSL launch note
+
+If you run from WSL with a Windows virtual environment active, uv may print:
+`VIRTUAL_ENV=... does not match the project environment path .venv`.
+Use `uv run --active poe launch` to target the active environment and silence
+that warning.
+
+`uv run poe launch` builds `web/accretion.html` and, in WSL, opens it in
+Windows Chrome through PowerShell.
+
 ## A small development loop
 
 1. Write down the expected behavior and the smallest useful change.

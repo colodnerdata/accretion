@@ -39,13 +39,13 @@ def chrome_command(url: str) -> list[str] | None:
             return ["open", "-na", str(app), "--args", "--new-window", url]
         return None
 
-    # In WSL, use cmd.exe /c start to launch Windows Chrome
+    # In WSL, launch Windows Chrome directly through PowerShell.
     if is_wsl():
         wsl_chrome_path = Path(
             "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"
         )
         if wsl_chrome_path.exists():
-            # Convert Linux path to Windows path
+            # Convert Linux path to Windows path.
             result = subprocess.run(
                 ["wslpath", "-w", str(PAGE.resolve())],
                 capture_output=True,
@@ -55,16 +55,20 @@ def chrome_command(url: str) -> list[str] | None:
             if result.returncode == 0:
                 win_file = result.stdout.strip()
                 win_url = f"file:///{win_file.replace(chr(92), '/')}"
-                # Use cmd.exe with /d to ignore registry defaults
                 chrome_exe = (
-                    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"  # noqa: E501
+                    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
                 )
-                cmd_str = f'start /d C:\\ "" "{chrome_exe}" --new-window "{win_url}"'
+                command = (
+                    "Start-Process"
+                    f" -FilePath '{chrome_exe}'"
+                    f" -ArgumentList @('--new-window','{win_url}')"
+                )
                 return [
-                    "cmd.exe",
-                    "/d",
-                    "/c",
-                    cmd_str,
+                    "powershell.exe",
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    command,
                 ]
         return None
 

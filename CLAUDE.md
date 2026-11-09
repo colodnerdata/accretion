@@ -23,6 +23,9 @@ uv run poe hooks                                           # once per clone: ins
 python tools/build.py --check                              # fail if web/accretion.html is stale
 ```
 
+In WSL, `uv run poe launch` opens Windows Chrome through PowerShell. If uv warns
+that `VIRTUAL_ENV` does not match `.venv`, use `uv run --active poe launch`.
+
 The pre-commit hook (`.githooks/pre-commit`) runs `build.py --check` and then `poe check`, so commit the rebuilt `web/accretion.html` together with any web source change.
 
 The parity test needs `node` on PATH; without it the test is skipped, not failed.
