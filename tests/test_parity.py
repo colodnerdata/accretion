@@ -145,6 +145,8 @@ def test_python_and_browser_engines_agree():
         rows.append(
             [
                 entry["run"],
+                entry["temperature"],
+                entry["density"],
                 entry["mass"],
                 entry["ending"],
                 entry["gain"],
