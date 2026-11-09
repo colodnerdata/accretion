@@ -37,6 +37,7 @@ class TextTables:
 
     texts: dict[str, str] = field(default_factory=dict)
     kinds: dict[str, str] = field(default_factory=dict)
+    sources: dict[str, str] = field(default_factory=dict)
 
 
 def _check_placeholders(key: str, text: str) -> None:
@@ -72,9 +73,10 @@ def _add_entry(tables: TextTables, key: str, entry: dict, source: Path) -> None:
         values = ", ".join(ALLOWED_KINDS)
         raise TextError(f"{key} in {source.name}: kind '{kind}' is not one of {values}")
     if key in tables.texts:
-        raise TextError(f"duplicate key {key} in {source.name}")
+        raise TextError(f"duplicate key {key}: {tables.sources[key]} vs {source.name}")
     _check_placeholders(key, entry["text"])
     tables.texts[key] = entry["text"]
+    tables.sources[key] = source.name
     if kind is not None:
         tables.kinds[key] = kind
 
@@ -88,8 +90,11 @@ def _walk(tables: TextTables, table: dict, prefix: str, source: Path) -> None:
         if isinstance(value, str):
             _check_placeholders(key, value)
             if key in tables.texts:
-                raise TextError(f"duplicate key {key} in {source.name}")
+                raise TextError(
+                    f"duplicate key {key}: {tables.sources[key]} vs {source.name}"
+                )
             tables.texts[key] = value
+            tables.sources[key] = source.name
             continue
         if not isinstance(value, dict):
             raise TextError(

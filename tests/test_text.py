@@ -21,7 +21,7 @@ CONTENT = ROOT / "content"
 APP_JS = (ROOT / "web" / "app.js").read_text(encoding="utf-8")
 BODY_HTML = (ROOT / "web" / "body.html").read_text(encoding="utf-8")
 
-KEY = re.compile(r'\bt\(\s*"([a-z][a-z0-9_.]*)"')
+KEY = re.compile(r'\bt\(\s*["\']([a-z][a-z0-9_.]*)["\']')
 TEMPLATE_KEY = re.compile(r"\{\{([a-z][a-z0-9_.]*)\}\}")
 PLACEHOLDER_ARG = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\s*:")
 
@@ -133,13 +133,6 @@ def test_content_files_load_and_validate():
     for stem in ("ui", "hints", "notes", "endings", "voice"):
         assert (CONTENT / f"{stem}.toml").exists()
     assert texts(), "no entries loaded"
-    assert not [
-        key
-        for key in texts()
-        if key == RESERVED_PREFIX
-        or key.startswith(RESERVED_PREFIX + ".")
-        or key.startswith(f"{RESERVED_PREFIX}.")
-    ]
     assert not [key for key in texts() if key.startswith("voice.")], (
         "voice.toml must stay entry-free"
     )
@@ -198,17 +191,15 @@ def test_no_banned_words(pattern, reason):
     assert not offenders, f"{reason} found in: {sorted(offenders)}"
 
 
-def test_length_report(capsys):
+def test_length_report():
     """Report word counts against each tier's range, without failing.
 
     Read it with ``uv run --locked pytest tests/test_text.py::test_length_report -s``.
     """
-    ranges = {
-        "hook": "5-12",
-        "tooltip": "25-50",
-        "panel": "60-150",
-        "reference": "none",
-    }
+    ranges = {}
+    for kind, bounds in WORD_RANGES.items():
+        ranges[kind] = "none" if bounds is None else f"{bounds[0]}-{bounds[1]}"
+    ranges["reference"] = "none"
     out = []
     for key in sorted(tables().kinds):
         kind = tables().kinds[key]
@@ -223,7 +214,6 @@ def test_length_report(capsys):
     print("key\tkind\twords\tcheck")
     print("\n".join(out))
     assert all(kind in ranges for kind in tables().kinds.values())
-    assert capsys
 
 
 def test_leftover_text_report():

@@ -615,7 +615,8 @@ function t(key, values = {}) {
   const raw = typeof TEXT?.[key] === "string" ? TEXT[key] : null;
   if (raw == null) { console.warn(`Text key not found: ${key}`); return `[missing: ${key}]`; }
   return raw.replace(/\{([a-z][a-z0-9_]*)\}/g, (whole, name) => {
-    if (Object.prototype.hasOwnProperty.call(values, name)) return values[name];
+    const value = Object.prototype.hasOwnProperty.call(values, name) ? values[name] : undefined;
+    if (value != null) return String(value);
     console.warn(`Placeholder {${name}} not supplied for key: ${key}`);
     return `[missing: ${key}.${name}]`;
   });
@@ -1210,7 +1211,7 @@ function shineScene(run, meta, cx, cy, R, t) {
   star(cx, cy, size, run.starMass, t);
   coreGauge(run, f);
 }
-// The core in cross-section: helium ash grows from the centre as hydrogen burns.
+// The core in cross-section: helium ash grows from the centre as hydrogen fuses.
 function coreGauge(run, f) {
   // Top right, clear of the brand (top left), scale bar (bottom left), and front label (bottom centre).
   const cr = Math.max(20, Math.min(32, Math.min(W, H) * 0.065)), x = W - 16 - cr, y = 16 + cr, tx = W - 16;
