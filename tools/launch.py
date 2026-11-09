@@ -22,6 +22,15 @@ WINDOWS_CHROME = [
 ]
 
 
+def is_wsl() -> bool:
+    """Check if running in Windows Subsystem for Linux."""
+    try:
+        with open("/proc/version", encoding="utf-8") as f:
+            return "microsoft" in f.read().lower() or "wsl" in f.read().lower()
+    except (FileNotFoundError, OSError):
+        return False
+
+
 def chrome_command(url: str) -> list[str] | None:
     """Return the command that opens ``url`` in a new Chrome window, if found."""
     if sys.platform == "darwin":
@@ -29,6 +38,36 @@ def chrome_command(url: str) -> list[str] | None:
         if app.exists():
             return ["open", "-na", str(app), "--args", "--new-window", url]
         return None
+
+    # In WSL, use cmd.exe /c start to launch Windows Chrome
+    if is_wsl():
+        wsl_chrome_path = Path(
+            "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"
+        )
+        if wsl_chrome_path.exists():
+            # Convert Linux path to Windows path
+            result = subprocess.run(
+                ["wslpath", "-w", str(PAGE.resolve())],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0:
+                win_file = result.stdout.strip()
+                win_url = f"file:///{win_file.replace(chr(92), '/')}"
+                # Use cmd.exe with /d to ignore registry defaults
+                chrome_exe = (
+                    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"  # noqa: E501
+                )
+                cmd_str = f'start /d C:\\ "" "{chrome_exe}" --new-window "{win_url}"'
+                return [
+                    "cmd.exe",
+                    "/d",
+                    "/c",
+                    cmd_str,
+                ]
+        return None
+
     candidates = WINDOWS_CHROME if sys.platform == "win32" else []
     for path in candidates:
         if path.exists():
