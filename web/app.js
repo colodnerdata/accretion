@@ -350,7 +350,7 @@ function renderPlay(panel) {
     // and a buy button whose accessible name carries the control and cost.
     const row = document.createElement("div");
     row.className = "control"; row.id = `urow-${name}`;
-    row.innerHTML = `<b></b><span class="level"></span><small></small>`;
+    row.innerHTML = `<span class="u-head"><b></b><span class="level"></span></span><small></small>`;
     const b = document.createElement("button");
     b.type = "button"; b.className = "buy"; b.id = `up-${name}`;
     b.innerHTML = `<span class="cost"></span>`;
@@ -386,7 +386,7 @@ function renderEnded(panel) {
   const beyond = !state.skipped && run.lifetimeMyr > run.forecastMyr * 1.01;
   if (beyond && !state.seen.anomaly) { state.seen.anomaly = 1; note(t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })); }
   panel.insertAdjacentHTML("beforeend", `<section><h3>${esc(state.skipped ? t("ui.ended.heading_forecast") : t("ui.ended.heading"))}</h3><h2>${esc(title)}</h2><p>${esc(description)}</p>
-    ${state.skipped ? `<p>${esc(t("ui.ended.left_early_note"))}</p>` : ""}
+    ${state.skipped || run.skipped ? `<p>${esc(t("ui.ended.left_early_note"))}</p>` : ""}
     ${beyond ? `<p class="tag">${esc(`${t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })} ${t("ui.ended.anomaly_cause")}`)}</p>` : ""}</section>
     <section><h3>${esc(t("ui.ended.final_mass_heading", { mass: sci(run.starMass) }))}</h3>${outcomeBands(run.kind)}</section>
     <section>${stat([[t("ui.stats.blown_away"), `${sci(run.ejected)} M☉`], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.run_time"), duration(run.seconds)], [t("ui.stats.regions_surveyed"), `${sci(meta.regions)} → ${sci(after)}`], [t("ui.stats.probability"), `${E.budget(meta).toFixed(2)} → ${Math.log(after).toFixed(2)}`], ...(released > 0 ? [[t("ui.stats.heavy_elements"), `+${sci(released)} M☉`]] : [])])}<p class="fine">${esc(t("ui.ended.fine"))}</p></section>`);
@@ -466,7 +466,11 @@ function renderSearch(panel) {
         b.disabled = m.heavy < cost || blocked;
         shop.querySelector("h3").textContent = t("ui.heavy.heading", { mass: sci(m.heavy) });
       };
-      b.onclick = () => { if (E.buyHeavy(m, name)) { buttons.forEach((x) => x.paint()); refreshSearch(); save(); } };
+      b.onclick = () => {
+        // Same run the guard judged: the purchase would be refused for a
+        // differently-built one, and the guard and buy must agree.
+        if (E.buyHeavy(m, name, E.newRun(m))) { buttons.forEach((x) => x.paint()); refreshSearch(); save(); }
+      };
       buttons.push(b);
       $("heavy-list").appendChild(b);
       b.paint();
