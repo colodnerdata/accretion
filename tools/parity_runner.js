@@ -31,10 +31,10 @@ const meta = E.newMeta(), rows = [];
 for (const z of [[0, 0, 0], [0.8, -0.5, 0], [-1, 1, -1]]) {
   [meta.zDensity, meta.zTemperature, meta.zMetal] = z;
   const run = play(meta);
-  rows.push([run.starMass, run.ejected + run.companions, run.energy, run.lifetimeMyr, run.seconds, run.kind, run.fragments.length, run.fragmentsFormed, run.companionRecords.length]);
-  E.prestige(run, meta);
+  rows.push([run.starMass, run.ejected + run.companions, run.energy, run.lifetimeMyr, run.seconds, run.kind, run.fragments.length, run.fragmentsFormed, run.companionRecords.length, run.levels.cooling]);
+  const next = E.prestige(run, meta);
   meta.unlocks.push("cooling");
-  E.buyHeavy(meta, "cooling");
+  E.buyHeavy(meta, "cooling", next);
   rows.push([meta.regions, meta.heavy, meta.cosmicMyr, meta.heavyCooling]);
   rows.push([...meta.unlocks]);
 }
@@ -42,5 +42,26 @@ rows.push([E.stromgrenRadius(E.ionizingRate(22), 1e4), E.hiiRadius(E.ionizingRat
 {
   const run = stress(E.newMeta()), records = run.companionRecords;
   rows.push([run.starMass, run.ejected + run.companions, run.energy, run.fragmentsFormed, records.length, ...records.map((c) => c.mass), ...records.map((c) => c.separation)]);
+}
+{
+  // Leave a run early: the entry records it as skipped, and the universal
+  // clock advances only by the time that actually passed.
+  [meta.zDensity, meta.zTemperature, meta.zMetal] = [0, 0, 0];
+  const run = E.newRun(meta);
+  let tick = 0;
+  while (run.phase !== "main_sequence" && tick < 20000) {
+    E.step(run, meta, 7.3);
+    if (tick % 2 === 0) E.tap(run, meta);
+    for (const n of ["reach", "tap"]) while (E.buy(run, n, meta));
+    tick++;
+  }
+  E.skip(run, meta);
+  E.prestige(run, meta);
+  rows.push([meta.regions, meta.cosmicMyr, meta.runs]);
+  // One row per journal entry: both engines must record the same run record,
+  // appended when the run ended and reused by prestige.
+  for (const j of meta.journal) {
+    rows.push([j.run, j.mass, j.ending, j.gain, j.heavy, j.seconds, j.lifetimeMyr, j.forecastMyr, j.alpha, j.feedRadius, j.skipped, j.companions.length]);
+  }
 }
 console.log(JSON.stringify(rows));
