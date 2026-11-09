@@ -82,6 +82,17 @@ const Engine = (() => {
     return 10 ** interpolate(logs, AGE_REDSHIFT.map((z) => Math.log10(1 + z)), x) - 1;
   }
   const temperatureFloor = (z, age) => Math.max(2.725 * (1 + redshift(age)), coolingTemperature(z));
+  const cmbTemperature = (age) => 2.725 * (1 + redshift(age));
+  // The coldest gas a new region can start at: each purchased level of dust
+  // and metal cooling multiplies the composition-limited bound by 0.9; the
+  // cosmic background stays the hard bound and falls as the clock advances.
+  const regionFloor = (meta, z, age) => Math.max(cmbTemperature(age), coolingTemperature(z) * 0.9 ** meta.heavyCooling);
+  // Purchased cooling is refused once the bound rests on the background:
+  // another level would cost mass and change nothing.
+  const coolingBoundHelps = (meta, z) => {
+    const background = cmbTemperature(cosmicAgeGyr(meta)), composition = coolingTemperature(z);
+    return Math.max(background, composition * 0.9 ** (meta.heavyCooling + 1)) < Math.max(background, composition * 0.9 ** meta.heavyCooling);
+  };
   const cosmicFit = (age) => { const x = age / 3.82; return Math.log10(0.108 * x ** 3.42 / (1 + x ** 3.20)); };
   const cosmicMetal = (age) => age >= 0.2 ? cosmicFit(age) : interpolate([0.12, 0.2], [-8, cosmicFit(0.2)], age);
   const hydrogenLimit = (z) => z >= -0.5 ? 0.075 : z >= -4 ? 0.083 : 0.09;
@@ -167,11 +178,9 @@ const Engine = (() => {
   }
   const heavyCost = (meta, name) => name === "cooling" ? 0.5 * 2 ** meta.heavyCooling : 2 ** meta.heavyTurbulence;
   function buyHeavy(meta, name, run) {
-    // Dust and metal cooling is refused once the current gas already sits at
-    // its composition floor: another level would cost mass and do nothing.
     const cost = heavyCost(meta, name);
     if (meta.heavy < cost || !meta.unlocks.includes(name)) return false;
-    if (name === "cooling" && !coolingHelps(run, meta)) return false;
+    if (name === "cooling" && !coolingBoundHelps(meta, run.metalLog10)) return false;
     meta.heavy -= cost;
     if (name === "cooling") meta.heavyCooling += 1; else meta.heavyTurbulence += 1;
     return true;
@@ -179,7 +188,7 @@ const Engine = (() => {
   function newRun(meta) {
     const density = BASE_DENSITY * Math.exp(SIGMA_LN_DENSITY * meta.zDensity);
     const metalLog10 = backgroundMetal(meta) + SIGMA_LOG10_METAL * meta.zMetal;
-    const floorTemperature = temperatureFloor(metalLog10, cosmicAgeGyr(meta));
+    const floorTemperature = regionFloor(meta, metalLog10, cosmicAgeGyr(meta));
     const primordial = metalLog10 < PRIMORDIAL_METAL_LOG10;
     const centre = primordial ? Math.max(BASE_TEMPERATURE, floorTemperature) : Math.max(floorTemperature, ENRICHED_ENVIRONMENT) * ENRICHED_TEMPERATURE_MARGIN;
     const sigma = primordial ? SIGMA_LN_TEMPERATURE_PRIMORDIAL : SIGMA_LN_TEMPERATURE_ENRICHED;
@@ -442,7 +451,7 @@ const Engine = (() => {
   return {
     UPGRADES, RADII, CELLS, SIGMA_LN_DENSITY, SIGMA_LOG10_METAL, BLACK_HOLE_START_COST,
     newMeta, newRun, step, tap, buy, canBuy, upgradeCost, budget, regionCost, backgroundMetal, heavyCost, buyHeavy,
-    temperature, temperatureAt, coolingHelps, alpha, feedRadius, reachRate, tapPower, patchMass, jeansLogReach, jeansMass, infallRate,
+    temperature, temperatureAt, coolingHelps, regionFloor, coolingBoundHelps, cosmicAgeGyr, alpha, feedRadius, reachRate, tapPower, patchMass, jeansLogReach, jeansMass, infallRate,
     diskLossRate, infallNow, diskGas, stability, criticalSurfaceDensity, fragmentMass, companionMass, luminosity, lifetimeMyr, canSkip, runGain, skip, prestige, heavyYield, gas, BASE_DENSITY, BASE_TEMPERATURE,
     freeFallTime, updateUnlocks, COLLAPSE_SECONDS, ionizingRate, stromgrenRadius, hiiRadius, soundSpeed, YR, PRIMORDIAL_METAL_LOG10, HII_SOUND_SPEED,
   };

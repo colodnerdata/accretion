@@ -165,6 +165,8 @@ text = "Each tap pulls in 50% more gas."
 text = "Gas cools from {temp_now} to {temp_next} K. Mass needed for collapse falls from {jeans_now} to {jeans_next} M☉."
 [upgrades.cooling_maxed]
 text = "Gas is already at the coldest this composition allows."
+[upgrades.cooling_background]
+text = "The cosmic background sets the coldest gas this universe allows."
 [upgrades.turbulence]
 text = "Gas moves through the disk 30% faster, so it reaches the star sooner."
 [upgrades.braking]

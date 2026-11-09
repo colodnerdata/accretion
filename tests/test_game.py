@@ -113,17 +113,39 @@ def test_cooling_can_be_bought_up_to_the_floor_but_not_past_it():
     assert game.temperature(run, meta) == pytest.approx(run.floor_temperature)
 
 
-def test_heavy_cooling_is_blocked_once_the_floor_is_reached():
+def test_heavy_cooling_lowers_what_new_regions_can_reach():
     meta = game.Meta()
-    run = game.new_run(meta)
-    run.base_temperature, run.floor_temperature = 100.0, 81.0
     meta.unlocks = ["cooling"]
     meta.heavy = 100.0
-    assert game.buy_heavy(meta, "cooling", run)  # 100 -> 90 K
-    assert game.buy_heavy(meta, "cooling", run)  # 90 -> 81 K, the floor
-    assert meta.heavy_cooling == 2
-    assert not game.buy_heavy(meta, "cooling", run)  # the floor again
-    assert meta.heavy_cooling == 2
+    run = game.new_run(meta)
+    assert run.floor_temperature == pytest.approx(200.0)
+    assert game.buy_heavy(meta, "cooling", run)
+    assert game.new_run(meta).floor_temperature == pytest.approx(200.0 * 0.9)
+
+
+def test_heavy_cooling_stops_at_the_cosmic_background():
+    # At 0.12 Gyr the cosmic background is 74.99 K; 200 x 0.9^9 = 77.4 K
+    # still cools down to it, and the next level would change nothing.
+    meta = game.Meta()
+    run = game.new_run(meta)
+    meta.unlocks = ["cooling"]
+    meta.heavy = 1e9
+    meta.heavy_cooling = 9
+    assert game.buy_heavy(meta, "cooling", run)
+    assert meta.heavy_cooling == 10
+    assert not game.buy_heavy(meta, "cooling", run)
+    assert meta.heavy_cooling == 10
+
+
+def test_heavy_cooling_also_scales_the_in_run_multiplier():
+    meta = game.Meta()
+    meta.unlocks = ["cooling"]
+    run = game.new_run(meta)
+    run.base_temperature, run.floor_temperature = 100.0, 50.0
+    meta.heavy_cooling = 2
+    run.energy = 1.0e60
+    assert game.temperature(run, meta) == pytest.approx(81.0)
+    assert game.can_buy(run, "cooling", meta)  # 81 -> 72.9, above the floor
 
 
 def test_journal_entry_exists_as_soon_as_the_run_ends():

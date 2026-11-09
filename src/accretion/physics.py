@@ -317,9 +317,14 @@ def redshift(age_gyr: float) -> float:
     return 10 ** interpolate(logs, points, x) - 1
 
 
+def cmb_temperature(age_gyr: float) -> float:
+    """Return the cosmic background temperature in K at a cosmic age."""
+    return 2.725 * (1 + redshift(age_gyr))
+
+
 def temperature_floor(metal_log10: float, age_gyr: float) -> float:
     """Return the lowest gas temperature in K, including the CMB."""
-    return max(2.725 * (1 + redshift(age_gyr)), cooling_temperature(metal_log10))
+    return max(cmb_temperature(age_gyr), cooling_temperature(metal_log10))
 
 
 def cosmic_metal_log10(age_gyr: float) -> float:
