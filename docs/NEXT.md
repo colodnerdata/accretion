@@ -3,39 +3,23 @@
 Keep this page short and current. Replace obsolete notes instead of appending
 a diary. Link to an issue when it owns the detail.
 
-- **Current goal:** redesign the metals "Dust and metal cooling" purchase
-  (decided by Stephen in the fix/cooling-floor-journal-entry session, 2026-11-09,
-  not yet implemented; branch fix/cooling-floor-journal-entry / PR #14 hold the
-  per-region gate this replaces). Both effects, in both engines:
-    1. Keep the in-run multiplier as merged: `heavy_cooling` adds to
-       `run.levels.cooling` in `temperature()` (×0.9 per level against the
-       composition floor), with the can_buy/buy_heavy floor gate from PR #14
-       for the in-run control.
-    2. Additionally, `heavy_cooling` permanently lowers the composition-limited
-       bound of future regions: floor = `max(CMB, max(10.0,
-       200 × 10^(-0.47×excess)) × 0.9^heavy_cooling)` — the temperature shop's
-       slider positions that were previously pinned at the 200 K primordial
-       floor become real starting gas. Rationale: the purchase's honest physical
-       meaning is more dust and metal cooling, a lower achievable temperature.
-       buy_heavy("cooling") stays refused only when the next level cannot lower
-       the bound once the floor has reached the CMB (which loosens as the
-       universal clock advances). The PR #14 per-region gate and the
-       refreshSearch heavy-shop repaint (web/app.js) may then become redundant;
-       decide per what remains no-op-able.
-  Tests: boundary in both engines (buy_heavy buys below the old primordial
-  bound; refused at the CMB clamp); extend parity to buy heavy cooling with a
-  run context; bot.py before/after re-run (baseline collapse 2.4 / accrete 2.7 /
-  main_sequence 5.9 / ended 13.4, unchanged by PR #14). FIDELITY.md: label the
-  purchased floor multiplier a Game rule (the slope -0.47 floor row is already
-  Constructed); consider whether the search screen's "cooler" label wording
-  needs to match the deeper reach.
-- **Working state:** PR #14 ("three small fixes": cooling floor gate, journal
-  entry at run end, control rows) awaits CI/merge. poe check 75 tests pass.
-  String tables (PR #13, merged) hold all player text; t(key, values) reads
-  content/*.toml.
-- **Pacing:** unchanged by PR #14 (bot identical before/after). Early runs
+- **Working state:** both small-fix batches are merged (PR #13 string tables,
+  PR #14 cooling floor gate / journal at run end / control rows). The metals
+  redesign decided on 2026-11-09 is implemented on
+  `feature/metals-lowers-floor-bound`: `heavy_cooling` keeps the in-run
+  multiplier and additionally lowers what future regions can reach
+  (`max(CMB, coolingTemperature x 0.9^heavy_cooling)`); the heavy purchase is
+  refused only at the background clamp, with its own refusal text
+  (`notes.upgrades.cooling_background`). Boundary tests in both engines
+  (tests/test_game.py, tools/engine_checks.js); parity re-run; bot pacing
+  unchanged (collapse 2.4 / accrete 2.7 / main_sequence 5.9 / ended 13.4).
+  poe check 77 tests pass. The PR #14 per-region heavy gate was removed
+  (the bound is never region-specific); the refreshSearch heavy-shop repaint
+  stays, since the bound still re-judges with the sliders (verified in the
+  browser).
+- **Pacing:** unchanged by both batches (bot identical). Early runs
   ~13.4 min vs the 15-20 target — still open (see below).
-- **Next action:** implement the metals floor-bound redesign above. Still open
+- **Next action:** merge the branch after review; then the still-open items
   from before: whether to lengthen early runs toward 15 minutes, and whether
   16 rings is enough (32 would cost about 2x). Then the angular-momentum
   ledger.
