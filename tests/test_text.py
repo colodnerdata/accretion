@@ -36,8 +36,6 @@ BANNED = (
     (r"\bgravity\s+cancell?s?\b", '"gravity cancels"'),
 )
 
-# Word ranges for the kind field, from docs/planning/teaching-principles.md.
-# "reference" is allowed but currently has no target range.
 WORD_RANGES = {
     "hook": (5, 12),
     "tooltip": (25, 50),
