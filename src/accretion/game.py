@@ -226,7 +226,8 @@ def temperature_at(run: Run, meta: Meta, level: int) -> float:
     """Return gas temperature at a cooling level, floored by composition.
 
     Each level multiplies the region's starting temperature by 0.9, but the
-    gas never cools below the floor set by its metallicity and cosmic age.
+    gas never cools below the floor set by its metallicity, cosmic age, and
+    purchased cooling.
     """
     return max(run.floor_temperature, run.base_temperature * 0.9**level)
 

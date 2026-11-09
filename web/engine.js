@@ -81,8 +81,8 @@ const Engine = (() => {
     if (x < logs[0]) return 21 * (AGE_GYR[0] / age) ** (2 / 3) - 1;
     return 10 ** interpolate(logs, AGE_REDSHIFT.map((z) => Math.log10(1 + z)), x) - 1;
   }
-  const temperatureFloor = (z, age) => Math.max(2.725 * (1 + redshift(age)), coolingTemperature(z));
   const cmbTemperature = (age) => 2.725 * (1 + redshift(age));
+  const cosmicFit = (age) => { const x = age / 3.82; return Math.log10(0.108 * x ** 3.42 / (1 + x ** 3.20)); };
   // The coldest gas a new region can start at: each purchased level of dust
   // and metal cooling multiplies the composition-limited bound by 0.9; the
   // cosmic background stays the hard bound and falls as the clock advances.
@@ -93,7 +93,6 @@ const Engine = (() => {
     const background = cmbTemperature(cosmicAgeGyr(meta)), composition = coolingTemperature(z);
     return Math.max(background, composition * 0.9 ** (meta.heavyCooling + 1)) < Math.max(background, composition * 0.9 ** meta.heavyCooling);
   };
-  const cosmicFit = (age) => { const x = age / 3.82; return Math.log10(0.108 * x ** 3.42 / (1 + x ** 3.20)); };
   const cosmicMetal = (age) => age >= 0.2 ? cosmicFit(age) : interpolate([0.12, 0.2], [-8, cosmicFit(0.2)], age);
   const hydrogenLimit = (z) => z >= -0.5 ? 0.075 : z >= -4 ? 0.083 : 0.09;
   const explodes = (m) => EXPLOSION_ISLANDS.some(([low, high]) => low <= m && m < high);
@@ -204,7 +203,7 @@ const Engine = (() => {
   }
   // Gas temperature at a cooling level: each level multiplies the region's
   // starting temperature by 0.9, but the gas never cools below the floor set
-  // by its metallicity and cosmic age.
+  // by its metallicity, cosmic age, and purchased cooling.
   const temperatureAt = (run, meta, level) => Math.max(run.floorTemperature, run.baseTemperature * 0.9 ** level);
   const coolingHelps = (run, meta) => {
     const level = run.levels.cooling + meta.heavyCooling;
