@@ -1,0 +1,52 @@
+# How each run ends. One table per ending kind, using the engine's kind names
+# (brown_dwarf, white_dwarf, supernova, black_hole, pair_instability), plus
+# the ending bands shown under "Final mass" on the ending screen.
+# Entries: a title, a description, and band labels and ranges.
+# The description's tier is tooltip. Placeholders such as {brightness} are
+# filled in by the game; see docs/DEVELOPMENT.md under "Editing game text".
+
+[brown_dwarf]
+title = "Brown dwarf"
+[brown_dwarf.description]
+kind = "tooltip"
+text = "The core never reached sustained hydrogen fusion. It will cool for trillions of years, so nothing here will change. This run counts as a failed search."
+
+[white_dwarf]
+title = "White dwarf"
+[white_dwarf.description]
+kind = "tooltip"
+text = "The star shed its outer layers and left a hot, Earth-sized core. There was no explosion, and few heavy elements escaped."
+
+[supernova]
+title = "Core-collapse supernova"
+[supernova.description]
+kind = "tooltip"
+text = "The core collapsed in under a second, and the star blew itself apart. Elements heavier than helium now drift through this region."
+
+[black_hole]
+title = "Black hole"
+[black_hole.description]
+kind = "tooltip"
+text = "The core collapsed without a successful explosion, and most heavy elements fell in with it. Stars can fail like this even at masses close to ones that explode. You can now search for regions near a black hole."
+
+[pair_instability]
+title = "Pair-instability supernova"
+[pair_instability.description]
+kind = "tooltip"
+text = "The core became unstable and the whole star was destroyed, leaving no remnant at all."
+
+[bands.brown_dwarf]
+label = "Brown dwarf"
+range = "below 0.08 M☉"
+
+[bands.white_dwarf]
+label = "White dwarf"
+range = "up to about 9 M☉"
+
+[bands.supernova]
+label = "Supernova"
+range = "about 9–25 M☉, with gaps"
+
+[bands.black_hole]
+label = "Black hole"
+range = "some above 18 M☉, most above 27 M☉"

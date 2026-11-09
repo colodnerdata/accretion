@@ -1,0 +1,171 @@
+# Per-situation writing that changes with the run: headlines and goals, the
+# announcements for new controls, one-off observations in the journal log,
+# distance milestones, the shine-phase field notes, and upgrade descriptions.
+# Titled field notes use a "title" entry and a "body" entry; bodies' tier is
+# tooltip. "How it fuses" is joined from one fusion_route entry and one
+# fusion_future entry; the code picks which, so keep each complete.
+# Control announcements' tier is hook.
+# Placeholders such as {brightness} are filled in by the game; see
+# docs/DEVELOPMENT.md under "Editing game text".
+
+[headlines.gather.title]
+text = "Gather the gas"
+[headlines.gather.body]
+text = "Tap the sky to pull in gas. At {mass_needed}, gravity beats gas pressure and the patch collapses."
+
+[headlines.collapse.title]
+text = "Free fall"
+[headlines.collapse.body]
+text = "Nothing is holding the cloud up now. In reality this fall takes about {fall_time}."
+
+[headlines.accrete_star.title]
+text = "Feed the star"
+[headlines.accrete_protostar.title]
+text = "Build a protostar"
+[headlines.accrete.body]
+text = "Gas lands on the disk at the dashed ring and spirals in to the star. Brighter rings hold more gas; faint rings mark distance in AU (Earth to the Sun). Starlight will end the infall and boil away the disk."
+
+[headlines.shine.title]
+text = "The star shines"
+[headlines.shine.body]
+text = "Its final mass is set, and it will decide how this star ends. Until then, it fuses hydrogen in its core."
+
+[goals.first]
+text = "Goal: build a star massive enough to explode, so its heavy elements can seed the next generation."
+[goals.black_hole]
+text = "Goal: find out what happens to a star too massive to explode cleanly."
+[goals.white_dwarf]
+text = "Goal: find out what becomes of a much smaller star."
+[goals.explore]
+text = "Goal: map how each region shapes the stars born there."
+
+[controls.reach]
+kind = "hook"
+text = "New control: Gravitational reach. Spend energy to make gas gather on its own."
+[controls.tap]
+kind = "hook"
+text = "New control: Stronger pull. Tapping had started to matter less."
+[controls.turbulence]
+kind = "hook"
+text = "New control: Disk turbulence. Gas is piling up in the disk faster than it reaches the star."
+[controls.temperature]
+kind = "hook"
+text = "New search option: Temperature. Your first star's size was not a choice."
+[controls.density]
+kind = "hook"
+text = "New search option: Density. The mass needed for collapse can now be targeted."
+[controls.braking]
+kind = "hook"
+text = "New control: Magnetic braking. Gas is landing far from the star and stalling in the disk."
+[controls.cooling]
+kind = "hook"
+text = "New control: Radiative cooling. Heavy elements from your supernova make cooler gas possible."
+[controls.metals]
+kind = "hook"
+text = "New search option: Metal content. Enriched gas cools better."
+
+[observations.sun_mass]
+text = "You have gathered one solar mass of gas, but its pressure still holds it apart."
+[observations.collapse]
+text = "Gravity has beaten pressure. The patch passed the Jeans mass and is collapsing."
+[observations.ignite]
+text = "Hydrogen fusion has begun. Starlight will now start clearing the disk."
+[observations.final_mass]
+text = "The gas is gone. Final mass: {mass} M☉."
+[observations.run_start]
+text = "Run {number} begins at {density} atoms per cm³ and {temperature} K."
+[observations.anomaly]
+text = "Anomaly: this star lived {percent}% longer than forecast."
+
+[milestones.cm]
+text = "A cubic centimeter of this gas holds only about {density} atoms."
+[milestones.m]
+text = "Your reach is 1 meter across. The patch still weighs less than a speck of dust."
+[milestones.earth]
+text = "Your reach is as wide as Earth. Its mass is still tiny."
+[milestones.au]
+text = "Your reach now spans the distance from Earth to the Sun."
+[milestones.ly]
+text = "Your reach is one light-year wide. Faint gridlines now map the space around you."
+
+[shine.main_sequence.title]
+text = "The main sequence"
+[shine.main_sequence.body]
+kind = "tooltip"
+text = "The core is fusing hydrogen into helium. The heat from fusion pushes outward exactly as hard as gravity pulls inward, so the star holds steady. Stars spend about 90% of their lives in this balance."
+
+[shine.fast_time.title]
+text = "Fast time"
+[shine.fast_time.body]
+kind = "tooltip"
+text = "Each second you watch is about {years_per_second} years for this star. All of recorded human history would pass in about {history_seconds} seconds."
+
+[shine.brightness.title]
+text = "Brightness"
+[shine.brightness_heavy.body]
+kind = "tooltip"
+text = "This star shines about {brightness} times as bright as the Sun. Brightness climbs much faster than mass, so a heavier star spends its fuel far faster. It is expected to last {life_vs_sun}."
+[shine.brightness_small.body]
+kind = "tooltip"
+text = "This star shines at about {brightness} of the Sun's brightness. Small stars sip their fuel, so it is expected to last {life_vs_sun}."
+
+[shine.how_it_fuses.title]
+text = "How it fuses"
+[shine.fusion_route.pp]
+kind = "tooltip"
+text = "This star fuses hydrogen proton by proton, as the Sun does. It is a slow route, one reason small stars last so long."
+[shine.fusion_route.cno_pristine]
+kind = "tooltip"
+text = "Heavier stars usually fuse hydrogen with carbon, nitrogen, and oxygen as catalysts. This gas formed before any star had made those elements, so the core squeezed itself hotter until it made a trace of carbon of its own, then fused on."
+[shine.fusion_route.cno_enriched]
+kind = "tooltip"
+text = "This star's core uses the carbon, nitrogen, and oxygen it was born with as catalysts, cycling hydrogen through them into helium. Earlier stars made those elements."
+[shine.fusion_future.never_helium]
+kind = "tooltip"
+text = "Its core will never get hot enough to fuse helium, so hydrogen is the only fuel it will ever fuse."
+[shine.fusion_future.stops_at_carbon]
+kind = "tooltip"
+text = "Once the hydrogen is gone, the core shrinks and heats until it can fuse helium into carbon and oxygen. Heavier nuclei repel each other more, so each new fuel needs a hotter, denser core. This star will not get hot enough to go past carbon and oxygen."
+[shine.fusion_future.ends_in_iron]
+kind = "tooltip"
+text = "Once the hydrogen is gone, the core shrinks and heats until it can fuse helium, then carbon, neon, oxygen, and silicon, ending in iron. Heavier nuclei repel each other more, so each new fuel needs a hotter, denser core. Each stage also releases less energy per reaction, so the core must fuse faster to hold itself up. Hydrogen lasts millions of years here. Silicon lasts days."
+
+[shine.starlight.title]
+text = "Starlight on the gas"
+[shine.starlight_bubble.body]
+kind = "tooltip"
+text = "Ultraviolet light from the star strips electrons from the hydrogen around it. That ionized gas, near 10,000 K, glows and pushes into the cold gas beyond. The bubble's edge is now {edge_distance} from the star."
+[shine.starlight_cool.body]
+kind = "tooltip"
+text = "This star is too cool to ionize much of the gas around it. Its light mostly warms the nearby dust and gas."
+
+[shine.bubble_stalls.title]
+text = "The bubble stops"
+[shine.bubble_stalls.body]
+kind = "tooltip"
+text = "The ionized bubble has stopped growing, with its edge about {edge_distance} from the star. Its pressure now matches the cold gas around it."
+
+[shine.helium_ash.title]
+text = "Helium ash"
+[shine.helium_ash.body]
+kind = "tooltip"
+text = "Helium is piling up in the core. It needs far higher temperatures to fuse, so for now it just sits there. The core slowly shrinks and heats to keep the hydrogen around it fusing, and the star swells and brightens a little."
+
+[shine.running_low.title]
+text = "Running low"
+[shine.running_low.body]
+kind = "tooltip"
+text = "The core's hydrogen is nearly gone. What happens next depends mostly on the mass this star was born with."
+
+[upgrades.reach]
+text = "Gas gathers 25% faster on its own."
+[upgrades.tap]
+text = "Each tap pulls in 50% more gas."
+[upgrades.cooling]
+text = "Gas cools from {temp_now} to {temp_next} K. Mass needed for collapse falls from {jeans_now} to {jeans_next} M☉."
+[upgrades.cooling_maxed]
+text = "Gas is already at the coldest this composition allows."
+[upgrades.turbulence]
+text = "Gas moves through the disk 30% faster, so it reaches the star sooner."
+[upgrades.braking]
+text = "Gas lands {distance_new} AU from the star instead of {distance_old} AU, so it has less far to travel."
