@@ -37,7 +37,13 @@ BANNED = (
 )
 
 # Word ranges for the kind field, from docs/planning/teaching-principles.md.
-WORD_RANGES = {"hook": (5, 12), "tooltip": (25, 50), "panel": (60, 150)}
+# "reference" is allowed but currently has no target range.
+WORD_RANGES = {
+    "hook": (5, 12),
+    "tooltip": (25, 50),
+    "panel": (60, 150),
+    "reference": None,
+}
 
 # Strings the leftover-text heuristic may ignore: fonts, colors, identifiers.
 LEFTOVER_ALLOWLIST = re.compile(r"^(IBM Plex Mono|var\(--|#|accretion-|en-US|\d)")
@@ -209,9 +215,13 @@ def test_length_report(capsys):
     out = []
     for key in sorted(tables().kinds):
         kind = tables().kinds[key]
-        low, high = WORD_RANGES[kind]
         count = word_count(texts()[key])
-        note = "OK" if low <= count <= high else f"outside {low}-{high}"
+        bounds = WORD_RANGES[kind]
+        if bounds is None:
+            note = "OK"
+        else:
+            low, high = bounds
+            note = "OK" if low <= count <= high else f"outside {low}-{high}"
         out.append(f"{key}\t{kind}\t{count}\t{note}")
     print("key\tkind\twords\tcheck")
     print("\n".join(out))
