@@ -41,7 +41,7 @@ def test_journal_entry_records_companions_as_a_copy():
     run = game.new_run(meta)
     run.kind = "white_dwarf"
     run.companion_records = [{"mass": 2.0, "separation": 30.0}]
-    entry = game.journal_entry(run, meta, skipped=False)
+    entry = game.journal_entry(run, meta)
     run.companion_records[0]["mass"] = 9.0
     assert entry["companions"] == [{"mass": 2.0, "separation": 30.0}]
 
@@ -97,6 +97,53 @@ def test_locked_upgrade_cannot_be_bought():
     assert not game.buy(run, "cooling", meta)
 
 
+def test_cooling_can_be_bought_up_to_the_floor_but_not_past_it():
+    meta = game.Meta()
+    run = game.new_run(meta)
+    run.base_temperature, run.floor_temperature = 100.0, 81.0
+    run.energy = 1.0e60
+    meta.unlocks = ["cooling"]
+    run.levels["cooling"] = 1
+    # 100 x 0.9^2 == 81: the next level is the first that reaches the floor.
+    assert game.temperature_at(run, meta, 2) == pytest.approx(run.floor_temperature)
+    assert game.buy(run, "cooling", meta)
+    assert run.levels["cooling"] == 2
+    assert not game.buy(run, "cooling", meta)
+    assert run.levels["cooling"] == 2
+    assert game.temperature(run, meta) == pytest.approx(run.floor_temperature)
+
+
+def test_heavy_cooling_is_blocked_once_the_floor_is_reached():
+    meta = game.Meta()
+    run = game.new_run(meta)
+    run.base_temperature, run.floor_temperature = 100.0, 81.0
+    meta.unlocks = ["cooling"]
+    meta.heavy = 100.0
+    assert game.buy_heavy(meta, "cooling", run)  # 100 -> 90 K
+    assert game.buy_heavy(meta, "cooling", run)  # 90 -> 81 K, the floor
+    assert meta.heavy_cooling == 2
+    assert not game.buy_heavy(meta, "cooling", run)  # the floor again
+    assert meta.heavy_cooling == 2
+
+
+def test_journal_entry_exists_as_soon_as_the_run_ends():
+    run, meta, _ = bot.play(0.5, False)
+    assert run.phase == "ended"
+    assert meta.journal and meta.journal[0]["run"] == 1
+    game.prestige(run, meta)
+    assert len(meta.journal) == 1
+
+
+def test_brown_dwarf_run_is_journaled_when_it_fails_to_ignite():
+    meta = game.Meta()
+    run = game.new_run(meta)
+    run.phase = "accrete"
+    run.envelope, run.star_mass = 0.0, game.SEED_MASS  # feed already over
+    game.step(run, meta, 1.0)
+    assert run.phase == "ended" and run.kind == "brown_dwarf"
+    assert meta.journal[0]["ending"] == "brown_dwarf"
+
+
 def test_journal_records_each_run():
     run, meta, _ = bot.play(0.5, False)
     game.prestige(run, meta)
@@ -141,7 +188,12 @@ def test_skip_advances_clock_only_by_elapsed_time():
     run.ms_duration = game.main_sequence_seconds(56000.0)
     run.ms_elapsed = run.ms_duration / 100
     assert game.can_skip(run)
-    game.prestige(run, meta, skipped=True)
+    game.skip(run, meta)
+    assert run.phase == "ended"
+    assert meta.journal[0]["skipped"] is True
+    game.prestige(run, meta)
+    assert len(meta.journal) == 1
+    assert meta.journal[0]["skipped"] is True
     assert meta.cosmic_myr == pytest.approx(560.0)
 
 

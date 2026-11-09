@@ -3,31 +3,41 @@
 Keep this page short and current. Replace obsolete notes instead of appending
 a diary. Link to an issue when it owns the detail.
 
-- **Current goal:** simulate disk fragmentation and companion stars, replacing
-  the rule that moves disk mass above the star's mass into a companion total.
-  Decisions: the gas grid stays 1D rings; fragments carry mass, radius, and
-  orbital phase; spiral arms are drawn from ring Q and affect no rule; a ring
-  forms at most one fragment per step, only when its mass above Toomre Q = 1
-  is at least one fragment mass; a full companion list coalesces new fragments
-  into the nearest; merging fragments add mass and energy to the star;
-  companions are recorded in the journal.
-- **Working state:** stages 1 and 2 are merged (PRs 5 and 6). The data model is in
-  both engines,
-  and the fragment simulation replaces the old mass cap: Toomre Q per ring,
-  fragment formation, accretion, migration, phase, merging, coalescing at 4,
-  and end-of-run companions. Unit tests cover each rule; parity compares the
-  three scripted regions, which form fragments that all merge before the end,
-  plus a stress scenario that loads an unstable disk and four seeded fragments
-  at the start of accretion. It forces about 120 formations, coalescing at the
-  four-fragment limit, merges, and three end-of-run companions. A guard test
-  fails if the scenario stops reaching coalescing or companions.
-- **Pacing:** accretion playback slowed from 1000 to 700 years per second, which
-  restores the first run to about 13.4 minutes (it was 13.2 before fragments,
-  12.4 after). That is still under the "about 15 to 20 minutes" design target,
-  as before; 500 years per second would give about 14.6. The main sequence is
-  unchanged. The first-run test passes again.
-- **Next action:** decide whether to lengthen early runs toward 15 minutes, and
-  whether 16 rings is enough (32 would cost about 2x). Then the angular-momentum
+- **Current goal:** redesign the metals "Dust and metal cooling" purchase
+  (decided by Stephen in the fix/cooling-floor-journal-entry session, 2026-11-09,
+  not yet implemented; branch fix/cooling-floor-journal-entry / PR #14 hold the
+  per-region gate this replaces). Both effects, in both engines:
+    1. Keep the in-run multiplier as merged: `heavy_cooling` adds to
+       `run.levels.cooling` in `temperature()` (×0.9 per level against the
+       composition floor), with the can_buy/buy_heavy floor gate from PR #14
+       for the in-run control.
+    2. Additionally, `heavy_cooling` permanently lowers the composition-limited
+       bound of future regions: floor = `max(CMB, max(10.0,
+       200 × 10^(-0.47×excess)) × 0.9^heavy_cooling)` — the temperature shop's
+       slider positions that were previously pinned at the 200 K primordial
+       floor become real starting gas. Rationale: the purchase's honest physical
+       meaning is more dust and metal cooling, a lower achievable temperature.
+       buy_heavy("cooling") stays refused only when the next level cannot lower
+       the bound once the floor has reached the CMB (which loosens as the
+       universal clock advances). The PR #14 per-region gate and the
+       refreshSearch heavy-shop repaint (web/app.js) may then become redundant;
+       decide per what remains no-op-able.
+  Tests: boundary in both engines (buy_heavy buys below the old primordial
+  bound; refused at the CMB clamp); extend parity to buy heavy cooling with a
+  run context; bot.py before/after re-run (baseline collapse 2.4 / accrete 2.7 /
+  main_sequence 5.9 / ended 13.4, unchanged by PR #14). FIDELITY.md: label the
+  purchased floor multiplier a Game rule (the slope -0.47 floor row is already
+  Constructed); consider whether the search screen's "cooler" label wording
+  needs to match the deeper reach.
+- **Working state:** PR #14 ("three small fixes": cooling floor gate, journal
+  entry at run end, control rows) awaits CI/merge. poe check 75 tests pass.
+  String tables (PR #13, merged) hold all player text; t(key, values) reads
+  content/*.toml.
+- **Pacing:** unchanged by PR #14 (bot identical before/after). Early runs
+  ~13.4 min vs the 15-20 target — still open (see below).
+- **Next action:** implement the metals floor-bound redesign above. Still open
+  from before: whether to lengthen early runs toward 15 minutes, and whether
+  16 rings is enough (32 would cost about 2x). Then the angular-momentum
   ledger.
 - **Stages after that:** angular-momentum ledger; DATA_REPORT.md note that its
   cap tables are superseded; visuals last.

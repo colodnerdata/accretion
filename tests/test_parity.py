@@ -107,11 +107,12 @@ def test_python_and_browser_engines_agree():
                 len(run.fragments),
                 run.fragments_formed,
                 len(run.companion_records),
+                run.levels["cooling"],
             ]
         )
-        game.prestige(run, meta)
+        next_run = game.prestige(run, meta)
         meta.unlocks.append("cooling")
-        game.buy_heavy(meta, "cooling")
+        game.buy_heavy(meta, "cooling", next_run)
         rows.append([meta.regions, meta.heavy, meta.cosmic_myr, meta.heavy_cooling])
         rows.append(list(meta.unlocks))
     rows.append(
@@ -122,6 +123,43 @@ def test_python_and_browser_engines_agree():
         ]
     )
     rows.append(stress_row(stress(game.Meta())))
+    # Leave a run early: the entry records it as skipped, and the universal
+    # clock advances only by the time that actually passed.
+    meta.z_density, meta.z_temperature, meta.z_metal = 0, 0, 0
+    run = game.new_run(meta)
+    tick = 0
+    while run.phase != "main_sequence" and tick < 20000:
+        game.step(run, meta, 7.3)
+        if tick % 2 == 0:
+            game.tap(run, meta)
+        for name in ("reach", "tap"):
+            while game.buy(run, name, meta):
+                pass
+        tick += 1
+    game.skip(run, meta)
+    game.prestige(run, meta)
+    rows.append([meta.regions, meta.cosmic_myr, meta.runs])
+    # One row per journal entry: both engines must record the same run record,
+    # appended when the run ended and reused by prestige.
+    for entry in meta.journal:
+        rows.append(
+            [
+                entry["run"],
+                entry["temperature"],
+                entry["density"],
+                entry["mass"],
+                entry["ending"],
+                entry["gain"],
+                entry["heavy"],
+                entry["seconds"],
+                entry["lifetime_myr"],
+                entry["forecast_myr"],
+                entry["alpha"],
+                entry["feed_radius"],
+                entry["skipped"],
+                len(entry["companions"]),
+            ]
+        )
     assert len(rows) == len(browser)
     for ours, theirs in zip(rows, browser, strict=True):
         if isinstance(ours[0], str):

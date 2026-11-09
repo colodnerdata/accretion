@@ -18,3 +18,5 @@ Thumbs.db
 *.Identifier
 *:Zone.Identifier
 RESUME.txt
+
+.claude/settings.local.json

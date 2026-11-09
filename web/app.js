@@ -346,11 +346,17 @@ function renderPlay(panel) {
   const names = Object.keys(E.UPGRADES).filter((n) => E.UPGRADES[n].phase === state.run.phase && state.meta.unlocks.includes(n));
   $("upgrade-box").hidden = !names.length;
   for (const name of names) {
+    // One row per control: name and level outside the button, effect text,
+    // and a buy button whose accessible name carries the control and cost.
+    const row = document.createElement("div");
+    row.className = "control"; row.id = `urow-${name}`;
+    row.innerHTML = `<span class="u-head"><b></b><span class="level"></span></span><small></small>`;
     const b = document.createElement("button");
-    b.type = "button"; b.className = "upgrade"; b.id = `up-${name}`;
-    b.innerHTML = `<b></b><small></small><span class="cost"></span>`;
+    b.type = "button"; b.className = "buy"; b.id = `up-${name}`;
+    b.innerHTML = `<span class="cost"></span>`;
     b.onclick = () => { if (E.buy(state.run, name, state.meta)) { update(); save(); } };
-    list.appendChild(b);
+    row.append(b);
+    list.appendChild(row);
   }
   const skipLabel = t("ui.skip.label");
   let armed = false, timer;
@@ -361,7 +367,7 @@ function renderPlay(panel) {
       timer = setTimeout(() => { armed = false; skip.textContent = skipLabel; skip.classList.remove("armed"); }, 3000);
       return;
     }
-    clearTimeout(timer); state.skipped = true; state.run.phase = "ended"; update();
+    clearTimeout(timer); state.skipped = true; E.skip(state.run, state.meta); update();
   });
   skip.id = "skip";
   $("skip-box").append(skip, Object.assign(document.createElement("p"), { id: "skip-note" }));
@@ -380,7 +386,7 @@ function renderEnded(panel) {
   const beyond = !state.skipped && run.lifetimeMyr > run.forecastMyr * 1.01;
   if (beyond && !state.seen.anomaly) { state.seen.anomaly = 1; note(t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })); }
   panel.insertAdjacentHTML("beforeend", `<section><h3>${esc(state.skipped ? t("ui.ended.heading_forecast") : t("ui.ended.heading"))}</h3><h2>${esc(title)}</h2><p>${esc(description)}</p>
-    ${state.skipped ? `<p>${esc(t("ui.ended.left_early_note"))}</p>` : ""}
+    ${state.skipped || run.skipped ? `<p>${esc(t("ui.ended.left_early_note"))}</p>` : ""}
     ${beyond ? `<p class="tag">${esc(`${t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })} ${t("ui.ended.anomaly_cause")}`)}</p>` : ""}</section>
     <section><h3>${esc(t("ui.ended.final_mass_heading", { mass: sci(run.starMass) }))}</h3>${outcomeBands(run.kind)}</section>
     <section>${stat([[t("ui.stats.blown_away"), `${sci(run.ejected)} M☉`], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.run_time"), duration(run.seconds)], [t("ui.stats.regions_surveyed"), `${sci(meta.regions)} → ${sci(after)}`], [t("ui.stats.probability"), `${E.budget(meta).toFixed(2)} → ${Math.log(after).toFixed(2)}`], ...(released > 0 ? [[t("ui.stats.heavy_elements"), `+${sci(released)} M☉`]] : [])])}<p class="fine">${esc(t("ui.ended.fine"))}</p></section>`);
@@ -418,6 +424,8 @@ function fieldRow(id, label, key, text, [low, high]) {
 }
 function refreshSearch() {
   const m = state.meta, run = E.newRun(m), T = E.temperature(run, m);
+  // Composition changes re-judge the shop's cooling bound, so repaint it.
+  document.querySelectorAll("#heavy-list button").forEach((b) => b.paint && b.paint());
   if ($("density-out")) $("density-out").textContent = `${sci(run.density)} /cm³`;
   if ($("temperature-out")) $("temperature-out").textContent = `${run.baseTemperature.toFixed(0)} K`;
   if ($("metals-out")) $("metals-out").textContent = `10^${run.metalLog10.toFixed(1)} Z☉`;
@@ -453,11 +461,18 @@ function renderSearch(panel) {
       b.type = "button"; b.className = "upgrade"; b.id = `heavy-${name}`;
       b.paint = () => {
         const cost = E.heavyCost(m, name), lvl = name === "cooling" ? m.heavyCooling : m.heavyTurbulence;
-        b.innerHTML = `<b>${esc(t("ui.upgrades.level_label", { name: label, level: lvl }))}</b><small>${esc(text)}</small><span class="cost">${sci(cost)} M☉</span>`;
-        b.disabled = m.heavy < cost;
+        // Cooling is refused once the upcoming region's gas already sits at
+        // its composition floor; the button says so instead of taking mass.
+        const blocked = name === "cooling" && !E.coolingHelps(E.newRun(m), m);
+        b.innerHTML = `<b>${esc(t("ui.upgrades.level_label", { name: label, level: lvl }))}</b><small>${esc(blocked ? t("notes.upgrades.cooling_maxed") : text)}</small><span class="cost">${sci(cost)} M☉</span>`;
+        b.disabled = m.heavy < cost || blocked;
         shop.querySelector("h3").textContent = t("ui.heavy.heading", { mass: sci(m.heavy) });
       };
-      b.onclick = () => { if (E.buyHeavy(m, name)) { buttons.forEach((x) => x.paint()); refreshSearch(); save(); } };
+      b.onclick = () => {
+        // Same run the guard judged: the purchase would be refused for a
+        // differently-built one, and the guard and buy must agree.
+        if (E.buyHeavy(m, name, E.newRun(m))) { buttons.forEach((x) => x.paint()); refreshSearch(); save(); }
+      };
       buttons.push(b);
       $("heavy-list").appendChild(b);
       b.paint();
@@ -559,14 +574,22 @@ function update() {
   $("stats").innerHTML = stat(statsFor());
   paintFolded("log", "log-earlier", state.log.map((n) => ({ ...n, expired: noteExpired(n, run) })), (n) => `<div>${esc(n.text)}</div>`, t("ui.play.earlier_observations"), t("ui.play.nothing_new"));
   for (const name of Object.keys(E.UPGRADES)) {
-    const el = $(`up-${name}`); if (!el) continue;
-    const [title, text] = UPGRADE_TEXT[name], ok = E.canBuy(run, name, meta), maxed = run.levels[name] >= E.UPGRADES[name].max;
-    el.querySelector("b").textContent = t("ui.upgrades.level_label", { name: title, level: run.levels[name] });
-    el.querySelector("small").textContent = text(run, meta);
+    const row = $(`urow-${name}`); if (!row) continue;
+    const el = $(`up-${name}`), [title, text] = UPGRADE_TEXT[name], ok = E.canBuy(run, name, meta), maxed = run.levels[name] >= E.UPGRADES[name].max;
     const cost = E.upgradeCost(run, name), fill = maxed ? 0 : Math.min(1, run.energy / cost);
-    el.querySelector(".cost").textContent = maxed ? t("ui.upgrades.maxed") : ok ? t("ui.upgrades.cost", { cost: sci(cost) }) : t("ui.upgrades.cost_progress", { percent: Math.floor(fill * 100), cost: sci(cost) });
+    const floorBlocked = name === "cooling" && !maxed && meta.unlocks.includes(name) && run.phase === E.UPGRADES[name].phase && run.energy >= cost && !E.coolingHelps(run, meta);
+    row.querySelector("b").textContent = title;
+    row.querySelector(".level").textContent = t("ui.upgrades.level", { level: run.levels[name] });
+    row.querySelector("small").textContent = text(run, meta);
+    el.querySelector(".cost").textContent = maxed ? t("ui.upgrades.maxed") : ok || floorBlocked ? t("ui.upgrades.cost", { cost: sci(cost) }) : t("ui.upgrades.cost_progress", { percent: Math.floor(fill * 100), cost: sci(cost) });
+    // The accessible name must not offer a purchase the button cannot make.
+    el.setAttribute("aria-label", ok
+      ? t("ui.upgrades.buy", { name: title, cost: `${sci(cost)} erg` })
+      : t("ui.upgrades.unavailable", { name: title, cost: maxed ? t("ui.upgrades.maxed") : `${sci(cost)} erg` }));
+    row.classList.toggle("ready", ok);
+    el.classList.toggle("ready", ok);
+    el.disabled = !ok;
     el.style.setProperty("--fill", fill.toFixed(3));
-    el.disabled = !ok; el.classList.toggle("ready", ok);
   }
   if ($("count")) {
     const left = (run.msDuration - run.msElapsed) / state.speed, years = run.lifetimeMyr * 1e6 / run.msDuration * state.speed;
