@@ -26,8 +26,8 @@ def is_wsl() -> bool:
     """Check if running in Windows Subsystem for Linux."""
     try:
         with open("/proc/version", encoding="utf-8") as f:
-            return "microsoft" in f.read().lower() or "wsl" in f.read().lower()
-    except (FileNotFoundError, OSError):
+            version = f.read().lower()
+            return "microsoft" in version or "wsl" in version
         return False
 
 
