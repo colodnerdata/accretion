@@ -17,6 +17,7 @@ source of truth. The development Python version is in `.python-version`.
 | Add a runtime dependency | `uv add PACKAGE` |
 | Add a development dependency | `uv add --dev PACKAGE` |
 | Deliberately refresh dependencies | `uv lock --upgrade` |
+| Capture screenshots of a full run | `uv run python tools/shoot.py` (see also `--phase`, `--out`) |
 
 Commit dependency metadata and `uv.lock` together, and rerun `check` after
 updates. `--locked` detects stale dependency metadata instead of silently
