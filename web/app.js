@@ -43,6 +43,30 @@ function clock(seconds) {
   return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
 }
 
+// Player-facing text lives in content/*.toml. The build validates the files and
+// embeds them as TEXT; t() looks a key up and fills named placeholders with
+// finished strings. A missing key or placeholder degrades instead of throwing.
+function t(key, values = {}) {
+  const raw = typeof TEXT?.[key] === "string" ? TEXT[key] : null;
+  if (raw == null) { console.warn(`Text key not found: ${key}`); return `[missing: ${key}]`; }
+  return raw.replace(/\{([a-z][a-z0-9_]*)\}/g, (whole, name) => {
+    if (Object.prototype.hasOwnProperty.call(values, name)) return values[name];
+    console.warn(`Placeholder {${name}} not supplied for key: ${key}`);
+    return `[missing: ${key}.${name}]`;
+  });
+}
+
+// Canvas-drawn labels. The sky scene functions take the frame time as `t`, so
+// they read these instead of calling the lookup by that name.
+const SKY_TEXT = {
+  ionizationFront: t("ui.canvas.ionization_front"),
+  ionizationFrontStalled: t("ui.canvas.ionization_front_stalled"),
+  gasLands: t("ui.canvas.gas_lands"),
+  collapseLimit: t("ui.canvas.collapse_limit"),
+  coreHydrogen: t("ui.canvas.core_hydrogen"),
+  heliumAsh: t("ui.canvas.helium_ash"),
+};
+
 // Shine phase. The HII region is display only: Stromgren sphere, Spitzer expansion, then stall.
 const IONIZING_MIN_MASS = 5;
 function bubble(run, meta) {
@@ -59,68 +83,66 @@ function burned(run) { return run.msDuration ? Math.min(1, run.msElapsed / run.m
 function shineNotes(run, meta) {
   const m = run.starMass, b = bubble(run, meta), years = run.lifetimeMyr * 1e6 / run.msDuration;
   const L = E.luminosity(m, run.metalLog10), heavy = m >= 1;
+  // "How it fuses" joins one fusion route and one later-fate entry, as it did before the move.
+  const route = m < 1.3 ? t("notes.shine.fusion_route.pp")
+    : run.metalLog10 < E.PRIMORDIAL_METAL_LOG10 ? t("notes.shine.fusion_route.cno_pristine")
+      : t("notes.shine.fusion_route.cno_enriched");
+  const future = m < 0.5 ? t("notes.shine.fusion_future.never_helium")
+    : m < 9 ? t("notes.shine.fusion_future.stops_at_carbon")
+      : t("notes.shine.fusion_future.ends_in_iron");
   const notes = [
-    [0, "The main sequence", "The core is fusing hydrogen into helium. The heat from fusion pushes outward exactly as hard as gravity pulls inward, so the star holds steady. Stars spend about 90% of their lives in this balance."],
-    [0.08, "Fast time", `Each second you watch is about ${sci(years)} years for this star. All of recorded human history would pass in about ${sci(5000 / years)} seconds.`],
-    [0.2, "Brightness", heavy
-      ? `This star shines about ${sci(L)} times as bright as the Sun. Brightness climbs much faster than mass, so a heavier star spends its fuel far faster. It is expected to last ${lifeVsSun(run.forecastMyr)}.`
-      : `This star shines at about ${sci(L)} of the Sun's brightness. Small stars sip their fuel, so it is expected to last ${lifeVsSun(run.forecastMyr)}.`],
-    [0.35, "How it fuses", `${m < 1.3
-      ? "This star fuses hydrogen proton by proton, as the Sun does. It is a slow route, one reason small stars last so long."
-      : run.metalLog10 < E.PRIMORDIAL_METAL_LOG10
-        ? "Heavier stars usually fuse hydrogen with carbon, nitrogen, and oxygen as catalysts. This gas formed before any star had made those elements, so the core squeezed itself hotter until it made a trace of carbon of its own, then burned on."
-        : "This star's core uses the carbon, nitrogen, and oxygen it was born with as catalysts, cycling hydrogen through them into helium. Earlier stars made those elements."} ${
-      m < 0.5
-        ? "Its core will never get hot enough to fuse helium, so hydrogen is the only fuel it will ever burn."
-        : m < 9
-          ? "Once the hydrogen is gone, the core shrinks and heats until it can fuse helium into carbon and oxygen. Heavier nuclei repel each other more, so each new fuel needs a hotter, denser core. This star will not get hot enough to go past carbon and oxygen."
-          : "Once the hydrogen is gone, the core shrinks and heats until it can fuse helium, then carbon, neon, oxygen, and silicon, ending in iron. Heavier nuclei repel each other more, so each new fuel needs a hotter, denser core. Each stage also releases less energy per reaction, so the core must burn faster to hold itself up. Hydrogen lasts millions of years here. Silicon lasts days."}`],
-    [0.5, "Starlight on the gas", b
-      ? `Ultraviolet light from the star strips electrons from the hydrogen around it. That ionized gas, near 10,000 K, glows and pushes into the cold gas beyond. The bubble's edge is now ${length(b.now)} from the star.`
-      : "This star is too cool to ionize much of the gas around it. Its light mostly warms the nearby dust and gas."],
-    [0.7, "Helium ash", "Helium is piling up in the core. It needs far higher temperatures to fuse, so for now it just sits there. The core slowly shrinks and heats to keep the hydrogen around it burning, and the star swells and brightens a little."],
-    [0.9, "Running low", "The core's hydrogen is nearly gone. What happens next depends mostly on the mass this star was born with."],
+    [0, t("notes.shine.main_sequence.title"), t("notes.shine.main_sequence.body")],
+    [0.08, t("notes.shine.fast_time.title"), t("notes.shine.fast_time.body", { years_per_second: sci(years), history_seconds: sci(5000 / years) })],
+    [0.2, t("notes.shine.brightness.title"), heavy
+      ? t("notes.shine.brightness_heavy.body", { brightness: sci(L), life_vs_sun: lifeVsSun(run.forecastMyr) })
+      : t("notes.shine.brightness_small.body", { brightness: sci(L), life_vs_sun: lifeVsSun(run.forecastMyr) })],
+    [0.35, t("notes.shine.how_it_fuses.title"), `${route} ${future}`],
+    [0.5, t("notes.shine.starlight.title"), b
+      ? t("notes.shine.starlight_bubble.body", { edge_distance: length(b.now) })
+      : t("notes.shine.starlight_cool.body")],
+    [0.7, t("notes.shine.helium_ash.title"), t("notes.shine.helium_ash.body")],
+    [0.9, t("notes.shine.running_low.title"), t("notes.shine.running_low.body")],
   ];
-  if (b) notes.push([Math.max(0.12, b.stallShare), "The bubble stops", `The ionized bubble has stopped growing, with its edge about ${length(b.end)} from the star. Its pressure now matches the cold gas around it.`]);
+  if (b) notes.push([Math.max(0.12, b.stallShare), t("notes.shine.bubble_stalls.title"), t("notes.shine.bubble_stalls.body", { edge_distance: length(b.end) })]);
   return notes.sort((x, y) => x[0] - y[0]);
 }
 
-const PHASES = [["gather", "Gather"], ["collapse", "Collapse"], ["accrete", "Accrete"], ["main_sequence", "Shine"], ["ended", "Death"]];
+const PHASES = [["gather", t("ui.phases.gather")], ["collapse", t("ui.phases.collapse")], ["accrete", t("ui.phases.accrete")], ["main_sequence", t("ui.phases.main_sequence")], ["ended", t("ui.phases.ended")]];
 const ENDINGS = {
-  brown_dwarf: ["Brown dwarf", "The core never reached sustained hydrogen fusion. It will cool for trillions of years, so nothing here will change. This run counts as a failed search."],
-  white_dwarf: ["White dwarf", "The star shed its outer layers and left a hot, Earth-sized core. There was no explosion, and few heavy elements escaped."],
-  supernova: ["Core-collapse supernova", "The core collapsed in under a second, and the star blew itself apart. Elements heavier than helium now drift through this region."],
-  black_hole: ["Black hole", "The core collapsed without a successful explosion, and most heavy elements fell in with it. Stars can fail like this even at masses close to ones that explode. You can now search for regions near a black hole."],
-  pair_instability: ["Pair-instability supernova", "The core became unstable and the whole star was destroyed, leaving no remnant at all."],
+  brown_dwarf: { title: t("endings.brown_dwarf.title"), description: t("endings.brown_dwarf.description") },
+  white_dwarf: { title: t("endings.white_dwarf.title"), description: t("endings.white_dwarf.description") },
+  supernova: { title: t("endings.supernova.title"), description: t("endings.supernova.description") },
+  black_hole: { title: t("endings.black_hole.title"), description: t("endings.black_hole.description") },
+  pair_instability: { title: t("endings.pair_instability.title"), description: t("endings.pair_instability.description") },
 };
 const CONTROL_NOTES = {
-  reach: "New control: Gravitational reach. Spend energy to make gas gather on its own.",
-  tap: "New control: Stronger pull. Tapping had started to matter less.",
-  turbulence: "New control: Disk turbulence. Gas is piling up in the disk faster than it reaches the star.",
-  temperature: "New search option: Temperature. Your first star's size was not a choice.",
-  density: "New search option: Density. The mass needed for collapse can now be targeted.",
-  braking: "New control: Magnetic braking. Gas is landing far from the star and stalling in the disk.",
-  cooling: "New control: Radiative cooling. Heavy elements from your supernova make cooler gas possible.",
-  metals: "New search option: Metal content. Enriched gas cools better.",
+  reach: t("notes.controls.reach"),
+  tap: t("notes.controls.tap"),
+  turbulence: t("notes.controls.turbulence"),
+  temperature: t("notes.controls.temperature"),
+  density: t("notes.controls.density"),
+  braking: t("notes.controls.braking"),
+  cooling: t("notes.controls.cooling"),
+  metals: t("notes.controls.metals"),
 };
 const nextLevel = (run, name) => ({ ...run, levels: { ...run.levels, [name]: run.levels[name] + 1 } });
 const UPGRADE_TEXT = {
-  reach: ["Gravitational reach", () => "Gas gathers 25% faster on its own."],
-  tap: ["Stronger pull", () => "Each tap pulls in 50% more gas."],
-  cooling: ["Radiative cooling", (r, m) => {
+  reach: [t("ui.upgrades.reach"), () => t("notes.upgrades.reach")],
+  tap: [t("ui.upgrades.tap"), () => t("notes.upgrades.tap")],
+  cooling: [t("ui.upgrades.cooling"), (r, m) => {
     const a = E.temperature(r, m), b = E.temperature(nextLevel(r, "cooling"), m);
-    if (b >= a) return "Gas is already at the coldest this composition allows.";
-    return `Gas cools from ${a.toFixed(0)} to ${b.toFixed(0)} K. Mass needed for collapse falls from ${sci(E.jeansMass(a, r.density))} to ${sci(E.jeansMass(b, r.density))} M☉.`;
+    if (b >= a) return t("notes.upgrades.cooling_maxed");
+    return t("notes.upgrades.cooling", { temp_now: a.toFixed(0), temp_next: b.toFixed(0), jeans_now: sci(E.jeansMass(a, r.density)), jeans_next: sci(E.jeansMass(b, r.density)) });
   }],
-  turbulence: ["Disk turbulence", () => "Gas moves through the disk 30% faster, so it reaches the star sooner."],
-  braking: ["Magnetic braking", (r) => `Gas lands ${E.feedRadius(nextLevel(r, "braking")).toFixed(0)} AU from the star instead of ${E.feedRadius(r).toFixed(0)} AU, so it has less far to travel.`],
+  turbulence: [t("ui.upgrades.turbulence"), () => t("notes.upgrades.turbulence")],
+  braking: [t("ui.upgrades.braking"), (r) => t("notes.upgrades.braking", { distance_new: E.feedRadius(nextLevel(r, "braking")).toFixed(0), distance_old: E.feedRadius(r).toFixed(0) })],
 };
 const MILESTONES = [
-  [0.6, "cm", (run) => `A cubic centimeter of this gas holds only about ${sci(run.density)} atoms.`],
-  [4.6, "m", () => "Your reach is 1 meter across. The patch still weighs less than a speck of dust."],
-  [20.9, "earth", () => "Your reach is as wide as Earth. Its mass is still tiny."],
-  [30.3, "au", () => "Your reach now spans the distance from Earth to the Sun."],
-  [41.4, "ly", () => "Your reach is one light-year wide. Faint gridlines now map the space around you."],
+  [0.6, "cm", (run) => t("notes.milestones.cm", { density: sci(run.density) })],
+  [4.6, "m", () => t("notes.milestones.m")],
+  [20.9, "earth", () => t("notes.milestones.earth")],
+  [30.3, "au", () => t("notes.milestones.au")],
+  [41.4, "ly", () => t("notes.milestones.ly")],
 ];
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 // A note describes one moment, so it is stamped with the phase and run time it belongs to.
@@ -140,10 +162,10 @@ function checkMilestones() {
   for (const [lr, key, text] of MILESTONES) {
     if (run.logReach >= lr && !seen[key]) { seen[key] = 1; note(text(run)); }
   }
-  if (run.phase === "gather" && E.patchMass(run) >= 1 && !seen.sun) { seen.sun = 1; note("You have gathered one solar mass of gas, but its pressure still holds it apart."); }
-  if (run.phase === "collapse" && !seen.collapse) { seen.collapse = 1; note("Gravity has beaten pressure. The patch passed the Jeans mass and is collapsing."); }
-  if (run.ignited && !seen.ignite) { seen.ignite = 1; note("Hydrogen fusion has begun. Starlight will now start clearing the disk."); }
-  if (run.phase === "main_sequence" && !seen.ms) { seen.ms = 1; note(`The gas is gone. Final mass: ${sci(run.starMass)} M☉.`); }
+  if (run.phase === "gather" && E.patchMass(run) >= 1 && !seen.sun) { seen.sun = 1; note(t("notes.observations.sun_mass")); }
+  if (run.phase === "collapse" && !seen.collapse) { seen.collapse = 1; note(t("notes.observations.collapse")); }
+  if (run.ignited && !seen.ignite) { seen.ignite = 1; note(t("notes.observations.ignite")); }
+  if (run.phase === "main_sequence" && !seen.ms) { seen.ms = 1; note(t("notes.observations.final_mass", { mass: sci(run.starMass) })); }
   while (state.noted < meta.unlocks.length) {
     // A new control's note stays current through the phase where the control is used.
     const name = meta.unlocks[state.noted++], where = E.UPGRADES[name]?.phase ?? "gather";
@@ -165,9 +187,11 @@ function load() {
       E.step(state.run, state.meta, away);
       checkMilestones();
       const now = state.run.phase, stage = PHASES.find(([p]) => p === now)[1].toLowerCase();
-      const happened = now === "ended" ? `Your star ended${ENDINGS[state.run.kind] ? ` as a ${ENDINGS[state.run.kind][0].toLowerCase()}` : ""}.` : `Your star moved on to the ${stage} stage.`;
-      note(`You were away for ${duration(away)}.${before !== now ? ` ${happened}` : ""}`);
-      if (before !== now) state.banner = `While you were away (${duration(away)}), ${happened[0].toLowerCase()}${happened.slice(1)}`;
+      const happened = now === "ended"
+        ? (ENDINGS[state.run.kind] ? t("ui.away.ended", { ending: ENDINGS[state.run.kind].title.toLowerCase() }) : t("ui.away.ended_plain"))
+        : t("ui.away.stage", { stage: stage });
+      note(`${t("ui.away.note", { time: duration(away) })}${before !== now ? ` ${happened}` : ""}`);
+      if (before !== now) state.banner = t("ui.away.banner", { time: duration(away), event: happened[0].toLowerCase() + happened.slice(1) });
     }
   } catch {}
 }
@@ -186,42 +210,44 @@ function paintFolded(id, foldId, items, render, label, empty) {
   if (d) d.addEventListener("toggle", () => { state.open[foldId] = d.open; });
 }
 function button(cls, text, on) { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = text; b.onclick = on; return b; }
-function stat(list) { return `<dl class="stats">${list.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`; }
+function stat(list) { return `<dl class="stats">${list.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`; }
 
 function goal() {
   const m = state.meta, seen = new Set(m.journal.map((j) => j.ending));
-  if (!m.supernovae) return "Goal: build a star massive enough to explode, so its heavy elements can seed the next generation.";
-  if (!seen.has("black_hole")) return "Goal: find out what happens to a star too massive to explode cleanly.";
-  if (!seen.has("white_dwarf")) return "Goal: find out what becomes of a much smaller star.";
-  return "Goal: map how each region shapes the stars born there.";
+  if (!m.supernovae) return t("notes.goals.first");
+  if (!seen.has("black_hole")) return t("notes.goals.black_hole");
+  if (!seen.has("white_dwarf")) return t("notes.goals.white_dwarf");
+  return t("notes.goals.explore");
 }
 function headline() {
   const { run, meta } = state;
-  if (run.phase === "gather") return ["Gather the gas", `Tap the sky to pull in gas. At ${mass(E.jeansMass(E.temperature(run, meta), run.density))}, gravity beats gas pressure and the patch collapses.`];
-  if (run.phase === "collapse") return ["Free fall", `Nothing is holding the cloud up now. In reality this fall takes about ${myr(E.freeFallTime(run.density) / 3.156e13)}.`];
-  if (run.phase === "accrete") return [run.ignited ? "Feed the star" : "Build a protostar", "Gas lands on the disk at the dashed ring and spirals in to the star. Brighter rings hold more gas; faint rings mark distance in AU (Earth to the Sun). Starlight will end the infall and boil away the disk."];
-  return ["The star shines", "Its final mass is set, and it will decide how this star ends. Until then, it burns hydrogen in its core."];
+  if (run.phase === "gather") return [t("notes.headlines.gather.title"), t("notes.headlines.gather.body", { mass_needed: mass(E.jeansMass(E.temperature(run, meta), run.density)) })];
+  if (run.phase === "collapse") return [t("notes.headlines.collapse.title"), t("notes.headlines.collapse.body", { fall_time: myr(E.freeFallTime(run.density) / 3.156e13) })];
+  if (run.phase === "accrete") return run.ignited
+    ? [t("notes.headlines.accrete_star.title"), t("notes.headlines.accrete.body")]
+    : [t("notes.headlines.accrete_protostar.title"), t("notes.headlines.accrete.body")];
+  return [t("notes.headlines.shine.title"), t("notes.headlines.shine.body")];
 }
 function progress() {
   const { run, meta } = state;
   if (run.phase === "gather") {
     const startLog = Math.log(1.5 / run.density ** (1 / 3)), limit = E.jeansLogReach(run, meta);
-    return [(run.logReach - startLog) / (limit - startLog), "Reach toward collapse", `${Math.round((run.logReach - startLog) / (limit - startLog) * 100)}%`];
+    return [(run.logReach - startLog) / (limit - startLog), t("ui.progress.gather"), t("ui.progress.percent", { percent: Math.round((run.logReach - startLog) / (limit - startLog) * 100) })];
   }
-  if (run.phase === "collapse") return [1 - run.collapseLeft / E.COLLAPSE_SECONDS, "Collapse", duration(run.collapseLeft / state.speed)];
-  if (run.phase === "accrete") { const gas = E.gas(run); return [1 - gas / run.collapseMass, "Gas used or blown away", `${sci(gas)} M☉ left`]; }
-  return [burned(run), "Core hydrogen burned", `${Math.floor(burned(run) * 100)}%`];
+  if (run.phase === "collapse") return [1 - run.collapseLeft / E.COLLAPSE_SECONDS, t("ui.phases.collapse"), duration(run.collapseLeft / state.speed)];
+  if (run.phase === "accrete") { const gas = E.gas(run); return [1 - gas / run.collapseMass, t("ui.progress.accrete"), t("ui.progress.gas_left", { amount: sci(gas) })]; }
+  return [burned(run), t("ui.progress.shine"), t("ui.progress.percent", { percent: Math.floor(burned(run) * 100) })];
 }
 function statsFor() {
   const { run, meta } = state;
-  if (run.phase === "gather") return [["Reach", length(Math.exp(run.logReach))], ["Patch mass", mass(E.patchMass(run))], ["Mass needed", mass(E.jeansMass(E.temperature(run, meta), run.density))], ["Temperature", `${E.temperature(run, meta).toFixed(0)} K`], ["Energy", `${sci(run.energy)} erg`]];
-  if (run.phase === "collapse") return [["Cloud mass", `${sci(run.collapseMass)} M☉`], ["Temperature", `${E.temperature(run, meta).toFixed(0)} K`], ["Energy", `${sci(run.energy)} erg`]];
+  if (run.phase === "gather") return [[t("ui.stats.reach"), length(Math.exp(run.logReach))], [t("ui.stats.patch_mass"), mass(E.patchMass(run))], [t("ui.stats.mass_needed"), mass(E.jeansMass(E.temperature(run, meta), run.density))], [t("ui.stats.temperature"), `${E.temperature(run, meta).toFixed(0)} K`], [t("ui.stats.energy"), `${sci(run.energy)} erg`]];
+  if (run.phase === "collapse") return [[t("ui.stats.cloud_mass"), `${sci(run.collapseMass)} M☉`], [t("ui.stats.temperature"), `${E.temperature(run, meta).toFixed(0)} K`], [t("ui.stats.energy"), `${sci(run.energy)} erg`]];
   if (run.phase === "accrete") {
     const disk = run.diskMasses.reduce((a, b) => a + b, 0);
-    return [["Star", `${sci(run.starMass)} M☉`], ["In the disk", `${sci(disk)} M☉`], ["Still to reach the disk", `${sci(run.envelope)} M☉`], ["Landing on the disk", `${sci(E.infallNow(run, meta))} M☉/yr`], ["Boiled off the disk", `${sci(E.diskLossRate(run.starMass, E.feedRadius(run)))} M☉/yr`], ["Companion stars", `${sci(run.companions)} M☉`], ["Energy", `${sci(run.energy)} erg`]];
+    return [[t("ui.stats.star"), `${sci(run.starMass)} M☉`], [t("ui.stats.in_the_disk"), `${sci(disk)} M☉`], [t("ui.stats.still_to_reach"), `${sci(run.envelope)} M☉`], [t("ui.stats.landing_rate"), `${sci(E.infallNow(run, meta))} M☉/yr`], [t("ui.stats.boiled_off"), `${sci(E.diskLossRate(run.starMass, E.feedRadius(run)))} M☉/yr`], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.energy"), `${sci(run.energy)} erg`]];
   }
   const b = bubble(run, meta);
-  return [["Star", `${sci(run.starMass)} M☉`], ["Brightness", `${sci(E.luminosity(run.starMass, run.metalLog10))} Suns`], ["Forecast life", myr(run.forecastMyr)], ["Age", myr(run.msElapsed / run.msDuration * run.lifetimeMyr)], ...(b ? [["Ionized bubble", `${length(b.now)} radius`]] : [])];
+  return [[t("ui.stats.star"), `${sci(run.starMass)} M☉`], [t("ui.stats.brightness"), `${sci(E.luminosity(run.starMass, run.metalLog10))} Suns`], [t("ui.stats.forecast_life"), myr(run.forecastMyr)], [t("ui.stats.age"), myr(run.msElapsed / run.msDuration * run.lifetimeMyr)], ...(b ? [[t("ui.stats.ionized_bubble"), t("ui.stats.ionized_bubble_value", { size: length(b.now) })]] : [])];
 }
 
 // Hints use what has actually happened in this save, and go one step deeper each time.
@@ -230,16 +256,16 @@ function hintSet() {
   // On the ended pane the run is not journaled yet, so read the ending from the run itself.
   const last = view === "play" && run.phase === "ended" ? { ending: run.kind } : meta.journal.at(-1);
   if (view === "play" && run.phase === "gather") {
-    if (!meta.unlocks.includes("reach")) return ["start", "The patch has to grow until gravity beats gas pressure.", "Keep tapping the sky. Each tap also releases energy.", "Gas falling together releases energy, and that energy is what you spend on controls."];
-    if (run.levels.reach === 0) return ["reach", "You can make gas gather without tapping.", "Spend energy on Gravitational reach.", "Reach compounds, so early levels save the most time."];
-    return ["gather", "The bar shows how close the patch is to collapse.", "Buy upgrades as soon as energy allows. Each level costs far more than the last, but energy rises quickly too.", "A patch's binding energy climbs steeply as it grows."];
+    if (!meta.unlocks.includes("reach")) return ["start", t("hints.start.tier1"), t("hints.start.tier2"), t("hints.start.tier3")];
+    if (run.levels.reach === 0) return ["reach", t("hints.reach.tier1"), t("hints.reach.tier2"), t("hints.reach.tier3")];
+    return ["gather", t("hints.gather.tier1"), t("hints.gather.tier2"), t("hints.gather.tier3")];
   }
-  if (view === "play" && run.phase === "accrete") return ["accrete", "Your star's mass depends on a race between feeding and clearing.", "Disk controls mainly change how quickly gas gets through. Final mass depends more on how fast gas falls in.", "Faster infall feeds the star for longer before its ionizing light shuts the supply off."];
-  if (view === "play" && run.phase === "main_sequence") return ["shine", "Nothing can change this star now.", "Use the wait to review your journal.", "A star's fuel lasts far less time as its mass rises."];
-  if (last && (last.ending === "white_dwarf" || last.ending === "brown_dwarf")) return ["small", "Your last star was too small to explode.", `Search for a hotter region${dense ? ", or a less dense one" : ""}.`, "Hotter gas falls inward faster, so the star gains mass before its light clears the gas."];
-  if (last?.ending === "black_hole") return ["big", "Your last star collapsed into a black hole, and most of its heavy elements went with it.", `Try a cooler${dense ? " or denser" : ""} region, or aim for a slightly different mass.`, "Explosions depend on core structure, so some masses fail even between masses that explode."];
-  if (last) return ["compare", "Most stars from about 9 to 25 solar masses explode, but not all of them.", "Change one search option, then compare the result in your journal.", "One change at a time shows which control caused the difference."];
-  return ["none", "Keep going. There is nothing to work out yet.", "", ""];
+  if (view === "play" && run.phase === "accrete") return ["accrete", t("hints.accrete.tier1"), t("hints.accrete.tier2"), t("hints.accrete.tier3")];
+  if (view === "play" && run.phase === "main_sequence") return ["shine", t("hints.shine.tier1"), t("hints.shine.tier2"), t("hints.shine.tier3")];
+  if (last && (last.ending === "white_dwarf" || last.ending === "brown_dwarf")) return ["small", t("hints.small.tier1"), dense ? t("hints.small.tier2_with_density") : t("hints.small.tier2"), t("hints.small.tier3")];
+  if (last?.ending === "black_hole") return ["big", t("hints.big.tier1"), dense ? t("hints.big.tier2_with_density") : t("hints.big.tier2"), t("hints.big.tier3")];
+  if (last) return ["compare", t("hints.compare.tier1"), t("hints.compare.tier2"), t("hints.compare.tier3")];
+  return ["none", t("hints.none.tier1"), t("hints.none.tier2"), t("hints.none.tier3")];
 }
 function stuck() {
   const m = state.meta, recent = m.journal.slice(-2);
@@ -255,7 +281,7 @@ function hintBlock() {
   const box = document.createElement("section");
   box.id = "hint-box";
   box.innerHTML = `<div id="hints"></div>`;
-  box.append(button("ghost", "Ask for a hint", askHint));
+  box.append(button("ghost", t("ui.hints.ask"), askHint));
   box.lastChild.id = "hint-button";
   return box;
 }
@@ -263,11 +289,11 @@ function paintHints() {
   const area = $("hints"); if (!area) return;
   const set = hintSet(), key = set[0], lines = set.slice(1).filter(Boolean);
   const tier = state.hint.key === key ? state.hint.tier : 0;
-  const html = lines.slice(0, tier).map((t) => `<p class="hint">${t}</p>`).join("");
+  const html = lines.slice(0, tier).map((line) => `<p class="hint">${esc(line)}</p>`).join("");
   if (area.dataset.html !== html) { area.dataset.html = html; area.innerHTML = html; }
   // Nudge only when the player can act on it: choosing a region or looking at an ending.
   const nudge = !tier && stuck() && (state.view === "search" || state.run.phase === "ended");
-  const b = $("hint-button"), label = tier ? "Show more" : nudge ? "A hint is available" : "Ask for a hint";
+  const b = $("hint-button"), label = tier ? t("ui.hints.more") : nudge ? t("ui.hints.available") : t("ui.hints.ask");
   b.hidden = tier >= lines.length;
   if (b.textContent !== label) b.textContent = label;
   b.classList.toggle("nudge", nudge);
@@ -290,7 +316,7 @@ function renderShell() {
     const banner = document.createElement("section");
     banner.className = "banner";
     banner.innerHTML = `<p>${esc(state.banner)}</p>`;
-    banner.append(button("ghost", "Dismiss", () => { state.banner = null; update(); }));
+    banner.append(button("ghost", t("ui.banner.dismiss"), () => { state.banner = null; update(); }));
     panel.appendChild(banner);
   }
   if (view === "ended") renderEnded(panel);
@@ -311,10 +337,10 @@ function renderPlay(panel) {
   panel.insertAdjacentHTML("beforeend", `<section><p class="goal" id="goal"></p><h2 id="head"></h2><p id="sub"></p></section>
     ${shine ? `<section class="countdown"><b id="count"></b><span id="count-note"></span></section>` : ""}
     <section><div class="meter"><i id="meter"></i></div><div class="meter-note"><span id="meter-a"></span><span id="meter-b"></span></div></section>
-    <section id="upgrade-box"><h3>Controls</h3><p class="fine">Energy comes from falling gas. Spend it here.</p><div class="upgrades" id="upgrades"></div></section>
+    <section id="upgrade-box"><h3>${esc(t("ui.play.controls_title"))}</h3><p class="fine">${esc(t("ui.play.controls_note"))}</p><div class="upgrades" id="upgrades"></div></section>
     <section><div id="stats"></div></section>
-    ${shine ? `<section><h3>Field notes</h3><div id="reading" class="reading"></div><div id="reading-earlier" class="earlier reading"></div></section>` : ""}
-    <section id="skip-box" hidden></section><section><h3>Observations</h3><div id="log"></div><div id="log-earlier" class="earlier"></div></section>`);
+    ${shine ? `<section><h3>${esc(t("ui.play.field_notes"))}</h3><div id="reading" class="reading"></div><div id="reading-earlier" class="earlier reading"></div></section>` : ""}
+    <section id="skip-box" hidden></section><section><h3>${esc(t("ui.play.observations"))}</h3><div id="log"></div><div id="log-earlier" class="earlier"></div></section>`);
   const list = $("upgrades");
   const names = Object.keys(E.UPGRADES).filter((n) => E.UPGRADES[n].phase === state.run.phase && state.meta.unlocks.includes(n));
   $("upgrade-box").hidden = !names.length;
@@ -325,12 +351,12 @@ function renderPlay(panel) {
     b.onclick = () => { if (E.buy(state.run, name, state.meta)) { update(); save(); } };
     list.appendChild(b);
   }
-  const skipLabel = "Move on to a new region";
+  const skipLabel = t("ui.skip.label");
   let armed = false, timer;
   const skip = button("ghost skip", skipLabel, () => {
     if (!armed) {
-      armed = true; skip.textContent = "Tap again to leave this star"; skip.classList.add("armed");
-      if ($("live")) $("live").textContent = "Tap again within three seconds to leave this star.";
+      armed = true; skip.textContent = t("ui.skip.confirm"); skip.classList.add("armed");
+      if ($("live")) $("live").textContent = t("ui.skip.live");
       timer = setTimeout(() => { armed = false; skip.textContent = skipLabel; skip.classList.remove("armed"); }, 3000);
       return;
     }
@@ -339,27 +365,27 @@ function renderPlay(panel) {
   skip.id = "skip";
   $("skip-box").append(skip, Object.assign(document.createElement("p"), { id: "skip-note" }));
 }
-const BANDS = [["brown_dwarf", "Brown dwarf", "below 0.08 M☉"], ["white_dwarf", "White dwarf", "up to about 9 M☉"], ["supernova", "Supernova", "about 9–25 M☉, with gaps"], ["black_hole", "Black hole", "some above 18 M☉, most above 27 M☉"]];
+const BANDS = [["brown_dwarf", t("endings.bands.brown_dwarf.label"), t("endings.bands.brown_dwarf.range")], ["white_dwarf", t("endings.bands.white_dwarf.label"), t("endings.bands.white_dwarf.range")], ["supernova", t("endings.bands.supernova.label"), t("endings.bands.supernova.range")], ["black_hole", t("endings.bands.black_hole.label"), t("endings.bands.black_hole.range")]];
 function outcomeBands(current) {
   const seen = new Set(state.meta.journal.map((j) => j.ending));
   if (current) seen.add(current);
-  return `<div class="bands">${BANDS.map(([kind, label, range]) => `<div class="band${kind === current ? " now" : ""}"><b>${seen.has(kind) ? label : "?"}</b><span>${seen.has(kind) ? range : "Not seen yet"}</span></div>`).join("")}</div>`;
+  return `<div class="bands">${BANDS.map(([kind, label, range]) => `<div class="band${kind === current ? " now" : ""}"><b>${esc(seen.has(kind) ? label : "?")}</b><span>${esc(seen.has(kind) ? range : t("ui.journal.not_seen"))}</span></div>`).join("")}</div>`;
 }
 function renderEnded(panel) {
   const { run, meta } = state;
-  const [title, text] = ENDINGS[run.kind];
+  const { title, description } = ENDINGS[run.kind];
   const gain = E.runGain(run), released = E.heavyYield(run.starMass, run.kind, run.metalLog10);
   const after = meta.regions * Math.exp(gain);
   const beyond = !state.skipped && run.lifetimeMyr > run.forecastMyr * 1.01;
-  if (beyond && !state.seen.anomaly) { state.seen.anomaly = 1; note(`Anomaly: this star lived ${Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100)}% longer than forecast.`); }
-  panel.insertAdjacentHTML("beforeend", `<section><h3>${state.skipped ? "Forecast ending" : "Ending"}</h3><h2>${title}</h2><p>${text}</p>
-    ${state.skipped ? `<p>You left before this happened. The universe aged only by the time you stayed.</p>` : ""}
-    ${beyond ? `<p class="tag">Anomaly: this star lived ${Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100)}% longer than forecast. The cause is not yet known.</p>` : ""}</section>
-    <section><h3>Final mass ${sci(run.starMass)} M☉</h3>${outcomeBands(run.kind)}</section>
-    <section>${stat([["Blown away", `${sci(run.ejected)} M☉`], ["Companion stars", `${sci(run.companions)} M☉`], ["Run time", duration(run.seconds)], ["Regions surveyed", `${sci(meta.regions)} → ${sci(after)}`], ["Probability", `${E.budget(meta).toFixed(2)} → ${Math.log(after).toFixed(2)}`], ...(released > 0 ? [["Heavy elements", `+${sci(released)} M☉`]] : [])])}<p class="fine">Probability lets you search for rarer regions. Your gas, energy and upgrades reset for the next run. Probability, unlocked controls and heavy elements stay.</p></section>`);
+  if (beyond && !state.seen.anomaly) { state.seen.anomaly = 1; note(t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })); }
+  panel.insertAdjacentHTML("beforeend", `<section><h3>${esc(state.skipped ? t("ui.ended.heading_forecast") : t("ui.ended.heading"))}</h3><h2>${esc(title)}</h2><p>${esc(description)}</p>
+    ${state.skipped ? `<p>${esc(t("ui.ended.left_early_note"))}</p>` : ""}
+    ${beyond ? `<p class="tag">${esc(`${t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })} ${t("ui.ended.anomaly_cause")}`)}</p>` : ""}</section>
+    <section><h3>${esc(t("ui.ended.final_mass_heading", { mass: sci(run.starMass) }))}</h3>${outcomeBands(run.kind)}</section>
+    <section>${stat([[t("ui.stats.blown_away"), `${sci(run.ejected)} M☉`], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.run_time"), duration(run.seconds)], [t("ui.stats.regions_surveyed"), `${sci(meta.regions)} → ${sci(after)}`], [t("ui.stats.probability"), `${E.budget(meta).toFixed(2)} → ${Math.log(after).toFixed(2)}`], ...(released > 0 ? [[t("ui.stats.heavy_elements"), `+${sci(released)} M☉`]] : [])])}<p class="fine">${esc(t("ui.ended.fine"))}</p></section>`);
   const box = document.createElement("section");
   box.className = "cta";
-  box.append(button("primary", "Survey new regions", () => {
+  box.append(button("primary", t("ui.ended.survey_button"), () => {
     const notes = state.log.map((n) => n.text);
     state.run = E.prestige(state.run, state.meta, state.skipped);
     state.meta.journal.at(-1).notes = notes;
@@ -371,7 +397,7 @@ function renderEnded(panel) {
 function fieldRow(id, label, key, text, [low, high]) {
   const wrap = document.createElement("label");
   wrap.className = "field";
-  wrap.innerHTML = `<span>${label}</span><output id="${id}-out"></output><small>${text}</small><input id="${id}" type="range" min="-3" max="3" step="0.1"><span class="scale" aria-hidden="true"><span>${low}</span><span>no cost</span><span>${high}</span></span>`;
+  wrap.innerHTML = `<span>${esc(label)}</span><output id="${id}-out"></output><small>${esc(text)}</small><input id="${id}" type="range" min="-3" max="3" step="0.1"><span class="scale" aria-hidden="true"><span>${esc(low)}</span><span>${esc(t("ui.search.no_cost"))}</span><span>${esc(high)}</span></span>`;
   const input = wrap.querySelector("input");
   input.value = state.meta[key];
   input.oninput = () => {
@@ -394,31 +420,31 @@ function refreshSearch() {
   if ($("density-out")) $("density-out").textContent = `${sci(run.density)} /cm³`;
   if ($("temperature-out")) $("temperature-out").textContent = `${run.baseTemperature.toFixed(0)} K`;
   if ($("metals-out")) $("metals-out").textContent = `10^${run.metalLog10.toFixed(1)} Z☉`;
-  $("spent").textContent = `${E.regionCost(m).toFixed(2)} of ${E.budget(m).toFixed(2)} spent`;
+  $("spent").textContent = t("ui.search.spent", { spent: E.regionCost(m).toFixed(2), budget: E.budget(m).toFixed(2) });
   $("spent-bar").style.width = `${Math.min(100, E.regionCost(m) / Math.max(E.budget(m), 1e-9) * 100)}%`;
-  $("preview").innerHTML = stat([["Odds of finding this", `1 in ${sci(Math.exp(E.regionCost(m)))}`], ["Mass needed to collapse", `${sci(E.jeansMass(T, run.density))} M☉`], ["Gas falling inward", `${sci(E.infallRate(T) * run.infallFactor)} M☉/yr`], ["Lowest temperature here", `${run.floorTemperature.toFixed(0)} K`], ["Metal content", `10^${run.metalLog10.toFixed(1)} Z☉`], ["Universe age", myr(120 + m.cosmicMyr)]]);
+  $("preview").innerHTML = stat([[t("ui.search.odds"), t("ui.search.odds_value", { odds: sci(Math.exp(E.regionCost(m))) })], [t("ui.search.mass_needed"), `${sci(E.jeansMass(T, run.density))} M☉`], [t("ui.search.infall"), `${sci(E.infallRate(T) * run.infallFactor)} M☉/yr`], [t("ui.search.floor_temperature"), `${run.floorTemperature.toFixed(0)} K`], [t("ui.search.metal_content"), `10^${run.metalLog10.toFixed(1)} Z☉`], [t("ui.search.universe_age"), myr(120 + m.cosmicMyr)]]);
 }
 function renderSearch(panel) {
   const m = state.meta, has = (n) => m.unlocks.includes(n);
-  panel.insertAdjacentHTML("beforeend", `<section><p class="goal">${goal()}</p><h2>Survey the region</h2><p>Spend probability to find a rarer starting point. Your full budget returns after every run, so experiments cost nothing.</p>
-    <div class="meter"><i id="spent-bar" style="background:var(--oiii)"></i></div><div class="meter-note"><span>Probability</span><span id="spent"></span></div><p class="fine tag" id="limit" hidden>Probability budget used up. Lower another slider to go further.</p></section>`);
+  panel.insertAdjacentHTML("beforeend", `<section><p class="goal">${esc(goal())}</p><h2>${esc(t("ui.search.title"))}</h2><p>${esc(t("ui.search.intro"))}</p>
+    <div class="meter"><i id="spent-bar" style="background:var(--oiii)"></i></div><div class="meter-note"><span>${esc(t("ui.stats.probability"))}</span><span id="spent"></span></div><p class="fine tag" id="limit" hidden>${esc(t("ui.search.limit"))}</p></section>`);
   const box = document.createElement("section");
-  if (has("temperature")) box.append(fieldRow("temperature", "Temperature", "zTemperature", "Hotter gas needs more mass to collapse, but falls inward faster and feeds a bigger star.", ["cooler", "hotter"]));
-  if (has("density")) box.append(fieldRow("density", "Density", "zDensity", "Denser gas collapses with less total mass.", ["sparser", "denser"]));
-  if (has("metals")) box.append(fieldRow("metals", "Metal content", "zMetal", "More metals let gas cool further.", ["fewer metals", "more metals"]));
+  if (has("temperature")) box.append(fieldRow("temperature", t("ui.search.temperature_label"), "zTemperature", t("ui.search.temperature_note"), [t("ui.search.temperature_low"), t("ui.search.temperature_high")]));
+  if (has("density")) box.append(fieldRow("density", t("ui.search.density_label"), "zDensity", t("ui.search.density_note"), [t("ui.search.density_low"), t("ui.search.density_high")]));
+  if (has("metals")) box.append(fieldRow("metals", t("ui.search.metal_content"), "zMetal", t("ui.search.metals_note"), [t("ui.search.metals_low"), t("ui.search.metals_high")]));
   if (m.blackHoleUnlocked) {
     const row = document.createElement("label"); row.className = "check";
-    row.innerHTML = `<input id="bh" type="checkbox"><span>Start near a black hole. Gas falls in 50% faster (cost 1.00).</span>`;
+    row.innerHTML = `<input id="bh" type="checkbox"><span>${esc(t("ui.search.bh"))}</span>`;
     const c = row.querySelector("input"); c.checked = m.blackHoleStart;
     c.onchange = () => { m.blackHoleStart = c.checked; if (E.regionCost(m) > E.budget(m) + 1e-9) { m.blackHoleStart = false; c.checked = false; } refreshSearch(); };
     box.append(row);
   }
   const preview = document.createElement("div"); preview.id = "preview"; box.append(preview);
   panel.appendChild(box);
-  const items = [["cooling", "Dust and metal cooling", "Permanently cools gas by 10% per level."], ["turbulence", "Seeded turbulence", "Permanently speeds the disk by 30% per level."]].filter(([n]) => has(n));
+  const items = [["cooling", t("ui.heavy.cooling"), t("ui.heavy.cooling_note")], ["turbulence", t("ui.heavy.turbulence"), t("ui.heavy.turbulence_note")]].filter(([n]) => has(n));
   if (m.heavy > 0 && items.length) {
     const shop = document.createElement("section");
-    shop.innerHTML = `<h3>Heavy elements: <span id="heavy">${sci(m.heavy)}</span> M☉</h3><div class="upgrades" id="heavy-list"></div>`;
+    shop.innerHTML = `<h3></h3><div class="upgrades" id="heavy-list"></div>`;
     panel.appendChild(shop);
     const buttons = [];
     for (const [name, label, text] of items) {
@@ -426,9 +452,9 @@ function renderSearch(panel) {
       b.type = "button"; b.className = "upgrade"; b.id = `heavy-${name}`;
       b.paint = () => {
         const cost = E.heavyCost(m, name), lvl = name === "cooling" ? m.heavyCooling : m.heavyTurbulence;
-        b.innerHTML = `<b>${label}, level ${lvl}</b><small>${text}</small><span class="cost">${sci(cost)} M☉</span>`;
+        b.innerHTML = `<b>${esc(t("ui.upgrades.level_label", { name: label, level: lvl }))}</b><small>${esc(text)}</small><span class="cost">${sci(cost)} M☉</span>`;
         b.disabled = m.heavy < cost;
-        $("heavy").textContent = sci(m.heavy);
+        shop.querySelector("h3").textContent = t("ui.heavy.heading", { mass: sci(m.heavy) });
       };
       b.onclick = () => { if (E.buyHeavy(m, name)) { buttons.forEach((x) => x.paint()); refreshSearch(); save(); } };
       buttons.push(b);
@@ -438,7 +464,7 @@ function renderSearch(panel) {
   }
   const go = document.createElement("section");
   go.className = "cta";
-  go.append(button("primary", "Begin run", () => { state.run = E.newRun(m); state.view = "play"; state.banner = null; shell = ""; note(`Run ${m.runs + 1} begins at ${sci(state.run.density)} atoms per cm³ and ${state.run.baseTemperature.toFixed(0)} K.`); update(); save(); }));
+  go.append(button("primary", t("ui.search.begin"), () => { state.run = E.newRun(m); state.view = "play"; state.banner = null; shell = ""; note(t("notes.observations.run_start", { number: m.runs + 1, density: sci(state.run.density), temperature: state.run.baseTemperature.toFixed(0) })); update(); save(); }));
   panel.appendChild(go);
   refreshSearch();
 }
@@ -449,30 +475,32 @@ function resultsPlot() {
   const left = two ? 40 : 12, right = W - 12, bottom = H - 34, top = two ? 10 : 8;
   const X = (t) => left + (Math.log10(t) - 1) / 2 * (right - left);
   const Y = (n) => two ? bottom - (Math.log10(n) - 2) / 4 * (bottom - top) : (top + bottom) / 2;
-  let out = `<svg class="plot" viewBox="0 0 ${W} ${H}" role="group" aria-label="Your completed runs by gas temperature${two ? " and density" : ""}. Bubble size shows final mass.">`;
+  let out = `<svg class="plot" viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(two ? t("ui.journal.plot_aria_density") : t("ui.journal.plot_aria"))}">`;
   for (const t of [10, 100, 1000]) out += `<line x1="${X(t)}" x2="${X(t)}" y1="${top}" y2="${bottom}" class="tick"/><text x="${X(t)}" y="${bottom + 14}" text-anchor="${t === 1000 ? "end" : t === 10 ? "start" : "middle"}">${t}</text>`;
   if (two) for (const e of [2, 3, 4, 5, 6]) out += `<line x1="${left}" x2="${right}" y1="${Y(10 ** e)}" y2="${Y(10 ** e)}" class="tick"/><text x="${left - 6}" y="${Y(10 ** e) + 4}" text-anchor="end">10${SUP[e]}</text>`;
-  out += `<text x="${(left + right) / 2}" y="${H - 4}" text-anchor="middle">Gas temperature (K)</text>`;
-  if (two) out += `<text x="10" y="${(top + bottom) / 2}" text-anchor="middle" transform="rotate(-90 10 ${(top + bottom) / 2})">Density (/cm³)</text>`;
+  out += `<text x="${(left + right) / 2}" y="${H - 4}" text-anchor="middle">${esc(t("ui.journal.axis_temperature"))}</text>`;
+  if (two) out += `<text x="10" y="${(top + bottom) / 2}" text-anchor="middle" transform="rotate(-90 10 ${(top + bottom) / 2})">${esc(t("ui.journal.axis_density"))}</text>`;
   const sel = state.selected ?? m.journal.length - 1;
   m.journal.forEach((j, i) => {
     // Area follows final mass, down to a minimum size so tiny stars stay visible.
     const r = Math.max(2, 2.1 * Math.sqrt(j.mass)), x = X(Math.min(1000, Math.max(10, j.temperature))), y = Y(j.density), color = ENDING_COLOR[j.ending];
-    const label = `Run ${j.run}: ${ENDINGS[j.ending][0]}, ${sci(j.mass)} solar masses, ${j.temperature.toFixed(0)} K${j.skipped ? ", left early" : ""}`;
+    const label = j.skipped
+      ? t("ui.journal.plot_label_early", { number: j.run, ending: ENDINGS[j.ending].title, mass: sci(j.mass), temperature: j.temperature.toFixed(0) })
+      : t("ui.journal.plot_label", { number: j.run, ending: ENDINGS[j.ending].title, mass: sci(j.mass), temperature: j.temperature.toFixed(0) });
     out += `<circle cx="${x}" cy="${y}" r="${r}" fill="${color}" fill-opacity="${i === sel ? 0.75 : 0.3}" stroke="${color}" stroke-width="${i === sel ? 2.5 : 1.25}"${j.skipped ? ' stroke-dasharray="3 2"' : ""} role="img" aria-label="${esc(label)}" data-i="${i}"/><text class="mark" x="${x}" y="${Math.max(top + 8, y - r - 3)}" text-anchor="middle">${ENDING_MARK[j.ending]}</text>`;
   });
   return `${out}</svg>`;
 }
 function entryCard(j) {
-  const rows = [["Ending", ENDINGS[j.ending][0]], ["Final mass", `${sci(j.mass)} M☉`], ["Gas temperature", `${j.temperature.toFixed(0)} K`], ["Density", `${sci(j.density)} /cm³`], ["Disk turbulence", `α ${j.alpha.toFixed(2)}`], ["Gas landed at", `${j.feedRadius.toFixed(0)} AU`], ["Run time", duration(j.seconds)], ["Reward", `+${j.gain.toFixed(2)} probability${j.heavy ? `, +${sci(j.heavy)} M☉ heavy` : ""}`]];
+  const rows = [[t("ui.journal.row_ending"), ENDINGS[j.ending].title], [t("ui.journal.row_final_mass"), `${sci(j.mass)} M☉`], [t("ui.journal.row_temperature"), `${j.temperature.toFixed(0)} K`], [t("ui.journal.row_density"), `${sci(j.density)} /cm³`], [t("ui.journal.row_turbulence"), t("ui.journal.alpha_value", { value: j.alpha.toFixed(2) })], [t("ui.journal.row_feed"), `${j.feedRadius.toFixed(0)} AU`], [t("ui.journal.row_run_time"), duration(j.seconds)], [t("ui.journal.row_reward"), t("ui.journal.reward", { gain: j.gain.toFixed(2) }) + (j.heavy ? t("ui.journal.reward_heavy", { heavy: sci(j.heavy) }) : "")]];
   const notes = (j.notes || []).filter((n) => !String(n).startsWith("New ")).slice(0, 5).reverse();
-  return `<section><h3>Run ${j.run}${j.skipped ? ", left early" : ""}</h3>${stat(rows)}${notes.length ? `<h3>Observations</h3><div id="log">${notes.map((t) => `<div>${esc(t)}</div>`).join("")}</div>` : ""}</section>`;
+  return `<section><h3>${esc(j.skipped ? t("ui.journal.run_card_title_early", { number: j.run }) : t("ui.journal.run_card_title", { number: j.run }))}</h3>${stat(rows)}${notes.length ? `<h3>${esc(t("ui.play.observations"))}</h3><div id="log">${notes.map((note) => `<div>${esc(note)}</div>`).join("")}</div>` : ""}</section>`;
 }
 function renderJournal(panel) {
   const m = state.meta, count = m.journal.length;
-  panel.insertAdjacentHTML("beforeend", `<section><h2>Journal</h2><p>${count ? "Bubble area is the star's final mass, and the letters name how it ended. Select a run to read it." : "Finished runs appear here as bubbles. Size is final mass, position is the region's gas, and letters name the ending."}</p></section>`);
+  panel.insertAdjacentHTML("beforeend", `<section><h2>${esc(t("ui.journal.title"))}</h2><p>${esc(count ? t("ui.journal.intro") : t("ui.journal.intro_empty"))}</p></section>`);
   if (count) {
-    panel.insertAdjacentHTML("beforeend", `<section>${resultsPlot()}<div class="legend">${[...new Set(m.journal.map((j) => j.ending))].map((k) => `<span><i style="background:${ENDING_COLOR[k]}"></i>${ENDING_MARK[k]} ${ENDINGS[k][0]}</span>`).join("")}${m.journal.some((j) => j.skipped) ? `<span><i class="dash"></i>Left early</span>` : ""}</div><div class="runs">${m.journal.map((j, i) => `<button type="button" class="run-chip" data-i="${i}" aria-pressed="${i === (state.selected ?? count - 1)}" aria-label="Run ${j.run}: ${ENDINGS[j.ending][0]}${j.skipped ? ", left early" : ""}">${j.run}<small>${ENDING_MARK[j.ending]}</small></button>`).join("")}</div></section>${entryCard(m.journal[state.selected ?? count - 1])}`);
+    panel.insertAdjacentHTML("beforeend", `<section>${resultsPlot()}<div class="legend">${[...new Set(m.journal.map((j) => j.ending))].map((k) => `<span><i style="background:${ENDING_COLOR[k]}"></i>${esc(`${ENDING_MARK[k]} ${ENDINGS[k].title}`)}</span>`).join("")}${m.journal.some((j) => j.skipped) ? `<span><i class="dash"></i>${esc(t("ui.journal.legend_left_early"))}</span>` : ""}</div><div class="runs">${m.journal.map((j, i) => `<button type="button" class="run-chip" data-i="${i}" aria-pressed="${i === (state.selected ?? count - 1)}" aria-label="${esc(j.skipped ? t("ui.journal.chip_label_early", { number: j.run, ending: ENDINGS[j.ending].title }) : t("ui.journal.chip_label", { number: j.run, ending: ENDINGS[j.ending].title }))}">${j.run}<small>${ENDING_MARK[j.ending]}</small></button>`).join("")}</div></section>${entryCard(m.journal[state.selected ?? count - 1])}`);
     const pick = (el) => { state.selected = Number(el.dataset.i); shell = `journal:keep`; update(); };
     panel.querySelectorAll(".run-chip").forEach((c) => { c.onclick = () => pick(c); });
     panel.querySelectorAll("circle").forEach((c) => { c.onclick = () => pick(c); });
@@ -482,17 +510,17 @@ function footer() {
   const box = document.createElement("section");
   box.className = "foot";
   const open = state.pane === "journal";
-  const journal = button("ghost", open ? "Close journal" : `Journal (${state.meta.journal.length})`, () => { state.pane = open ? "main" : "journal"; update(); });
+  const journal = button("ghost", open ? t("ui.footer.close_journal") : t("ui.footer.journal", { count: state.meta.journal.length }), () => { state.pane = open ? "main" : "journal"; update(); });
   journal.id = "journal-button";
   box.append(journal);
   const row = document.createElement("div"); row.className = "speed";
-  row.append("Test speed");
+  row.append(t("ui.footer.test_speed"));
   for (const s of [1, 10, 60]) {
     const b = button("", `×${s}`, () => { state.speed = s; row.querySelectorAll("button[data-s]").forEach((x) => x.setAttribute("aria-pressed", x.dataset.s == s)); });
     b.dataset.s = s; b.setAttribute("aria-pressed", state.speed === s); row.append(b);
   }
-  const reset = button("reset", "Reset", () => {
-    if (!state.resetArm) { state.resetArm = true; reset.textContent = "Tap again to erase"; setTimeout(() => { state.resetArm = false; reset.textContent = "Reset"; }, 3000); return; }
+  const reset = button("reset", t("ui.footer.reset"), () => {
+    if (!state.resetArm) { state.resetArm = true; reset.textContent = t("ui.footer.reset_confirm"); setTimeout(() => { state.resetArm = false; reset.textContent = t("ui.footer.reset"); }, 3000); return; }
     try { localStorage.removeItem(SAVE_KEY); } catch {}
     Object.assign(state, { meta: E.newMeta(), view: "play", pane: "main", log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {}, banner: null });
     state.run = E.newRun(state.meta); shell = ""; update();
@@ -509,10 +537,11 @@ function update() {
   const sky = $("sky"), mode = run.phase === "gather" && state.view === "play" ? "tap" : `${state.view}:${run.phase}`;
   if (sky.dataset.mode !== mode) {
     sky.dataset.mode = mode;
-    if (mode === "tap") { sky.setAttribute("role", "button"); sky.tabIndex = 0; sky.setAttribute("aria-label", "Telescope view. Tap to gather gas."); }
+    if (mode === "tap") { sky.setAttribute("role", "button"); sky.tabIndex = 0; sky.setAttribute("aria-label", t("ui.aria.sky_tap")); }
     else {
       if (document.activeElement === sky) { const h = $("panel").querySelector("h2"); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); } }
-      sky.setAttribute("role", "img"); sky.removeAttribute("tabindex"); sky.setAttribute("aria-label", state.view === "search" ? "Telescope view of the region you are surveying." : `Telescope view, ${PHASES[track][1]} phase.`);
+      sky.setAttribute("role", "img"); sky.removeAttribute("tabindex");
+      sky.setAttribute("aria-label", state.view === "search" ? t("ui.aria.sky_search") : t("ui.aria.sky_phase", { phase: PHASES[track][1] }));
     }
   }
   $("scale").hidden = run.phase === "accrete";
@@ -527,31 +556,31 @@ function update() {
   $("meter").style.width = `${Math.max(0, Math.min(1, value)) * 100}%`;
   $("meter-a").textContent = a; $("meter-b").textContent = b;
   $("stats").innerHTML = stat(statsFor());
-  paintFolded("log", "log-earlier", state.log.map((n) => ({ ...n, expired: noteExpired(n, run) })), (n) => `<div>${esc(n.text)}</div>`, "Earlier observations", "Nothing new right now.");
+  paintFolded("log", "log-earlier", state.log.map((n) => ({ ...n, expired: noteExpired(n, run) })), (n) => `<div>${esc(n.text)}</div>`, t("ui.play.earlier_observations"), t("ui.play.nothing_new"));
   for (const name of Object.keys(E.UPGRADES)) {
     const el = $(`up-${name}`); if (!el) continue;
     const [title, text] = UPGRADE_TEXT[name], ok = E.canBuy(run, name, meta), maxed = run.levels[name] >= E.UPGRADES[name].max;
-    el.querySelector("b").textContent = `${title}, level ${run.levels[name]}`;
+    el.querySelector("b").textContent = t("ui.upgrades.level_label", { name: title, level: run.levels[name] });
     el.querySelector("small").textContent = text(run, meta);
     const cost = E.upgradeCost(run, name), fill = maxed ? 0 : Math.min(1, run.energy / cost);
-    el.querySelector(".cost").textContent = maxed ? "Maxed" : ok ? `${sci(cost)} erg` : `${Math.floor(fill * 100)}% of ${sci(cost)} erg`;
+    el.querySelector(".cost").textContent = maxed ? t("ui.upgrades.maxed") : ok ? t("ui.upgrades.cost", { cost: sci(cost) }) : t("ui.upgrades.cost_progress", { percent: Math.floor(fill * 100), cost: sci(cost) });
     el.style.setProperty("--fill", fill.toFixed(3));
     el.disabled = !ok; el.classList.toggle("ready", ok);
   }
   if ($("count")) {
     const left = (run.msDuration - run.msElapsed) / state.speed, years = run.lifetimeMyr * 1e6 / run.msDuration * state.speed;
     $("count").textContent = clock(left);
-    $("count-note").textContent = `until the core's hydrogen runs out. Each second here is about ${sci(years)} years.`;
+    $("count-note").textContent = t("ui.shine.count_note", { years_per_second: sci(years) });
   }
   if ($("reading")) {
     // Newest first. Only the newest note stays open; earlier ones fold away but can be reopened.
     const shown = shineNotes(run, meta).filter(([at]) => burned(run) >= at).reverse();
     const items = shown.map(([, title, text], i) => ({ title, text, expired: i > 0 }));
-    paintFolded("reading", "reading-earlier", items, (n) => `<article${n.expired ? "" : ' class="new"'}><b>${n.title}</b><p>${n.text}</p></article>`, "Earlier field notes", "");
+    paintFolded("reading", "reading-earlier", items, (n) => `<article${n.expired ? "" : ' class="new"'}><b>${esc(n.title)}</b><p>${esc(n.text)}</p></article>`, t("ui.play.earlier_field_notes"), "");
   }
   const skippable = E.canSkip(run);
   $("skip-box").hidden = !skippable;
-  if (skippable) $("skip-note").textContent = `Nothing you do can change this star for another ${duration(run.msDuration - run.msElapsed)}. Moving on ages the universe only by the time you stayed.`;
+  if (skippable) $("skip-note").textContent = t("ui.skip.note", { time: duration(run.msDuration - run.msElapsed) });
 }
 
 // Telescope view.
@@ -608,7 +637,7 @@ function shineScene(run, meta, cx, cy, R, t) {
       ctx.beginPath(); ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 1.3, 0, 6.283); ctx.fill();
     }
     ctx.globalAlpha = 1; ctx.fillStyle = "#ffb86b"; ctx.font = "12px 'IBM Plex Mono', monospace"; ctx.textAlign = "center";
-    const label = b.stalled ? "Ionization front (stalled)" : "Ionization front";
+    const label = b.stalled ? SKY_TEXT.ionizationFrontStalled : SKY_TEXT.ionizationFront;
     ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.strokeText(label, cx, cy + edge(1.571) + 18); ctx.fillText(label, cx, cy + edge(1.571) + 18);
   } else {
     glow(cx, cy, R * 0.3, "#ffb86b", 0.12);
@@ -626,8 +655,8 @@ function coreGauge(run, f) {
   const text = (s, yy, font, color) => { ctx.font = font; ctx.fillStyle = color; ctx.strokeText(s, tx, yy); ctx.fillText(s, tx, yy); };
   ctx.textAlign = "right"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
   text(clock((run.msDuration - run.msElapsed) / state.speed), y + cr + 24, "600 20px 'IBM Plex Mono', monospace", "#5fe6cf");
-  text("● core hydrogen", y + cr + 40, "11px 'IBM Plex Mono', monospace", "#ffb86b");
-  text("● helium ash", y + cr + 54, "11px 'IBM Plex Mono', monospace", "#cfc8ff");
+  text(SKY_TEXT.coreHydrogen, y + cr + 40, "11px 'IBM Plex Mono', monospace", "#ffb86b");
+  text(SKY_TEXT.heliumAsh, y + cr + 54, "11px 'IBM Plex Mono', monospace", "#cfc8ff");
   ctx.textAlign = "center";
 }
 function glow(x, y, radius, color, alpha) {
@@ -711,7 +740,9 @@ function diskScene(run, cx, cy, R, t, meta) {
   ctx.strokeStyle = "#ffb86b"; ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]); ctx.globalAlpha = 0.9;
   ctx.beginPath(); ctx.ellipse(cx, cy, landing, landing * tilt, tipAngle, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
   ctx.globalAlpha = 1; ctx.fillStyle = "#ffb86b"; ctx.font = "12px 'IBM Plex Mono', monospace"; ctx.textAlign = "center";
-  ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.strokeText("Gas lands here", cx, cy + landing * tilt + 22); ctx.fillText("Gas lands here", cx, cy + landing * tilt + 22);
+  ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
+  const landingLabel = SKY_TEXT.gasLands;
+  ctx.strokeText(landingLabel, cx, cy + landing * tilt + 22); ctx.fillText(landingLabel, cx, cy + landing * tilt + 22);
   const flow = E.alpha(run, meta) * 2.4;
   for (let i = 0; i < 46; i++) {
     const a = hash(i, 13) * 6.283, f = ((hash(i, 14) - (calm ? 0 : t * flow)) % 1 + 1) % 1, rad = R * 0.1 + (landing - R * 0.1) * f, turn = a + (calm ? 0 : t * (0.7 + 0.5 / (0.3 + f)));
@@ -775,7 +806,9 @@ function draw(t) {
     ctx.beginPath(); ctx.arc(cx, cy, R * 0.92, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
     ctx.strokeStyle = "#ff5f7e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, Math.max(4, R * 0.92 * done), 0, 6.283); ctx.stroke();
     ctx.globalAlpha = 1; ctx.fillStyle = "#ffb86b"; ctx.font = "12px 'IBM Plex Mono', monospace"; ctx.textAlign = "center";
-    ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.strokeText("Collapse limit", cx, cy + R * 0.92 + 16); ctx.fillText("Collapse limit", cx, cy + R * 0.92 + 16);
+    ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
+    const limitLabel = SKY_TEXT.collapseLimit;
+    ctx.strokeText(limitLabel, cx, cy + R * 0.92 + 16); ctx.fillText(limitLabel, cx, cy + R * 0.92 + 16);
     glow(cx, cy, R * (0.25 + 0.75 * Math.min(1, Math.max(0, lr / 19))), "#ff5f7e", 0.1 + 0.3 * Math.min(1, Math.max(0, lr / 19)));
   } else if (run.phase === "collapse") {
     const f = 1 - run.collapseLeft / E.COLLAPSE_SECONDS;
