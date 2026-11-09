@@ -201,8 +201,7 @@ def test_no_banned_words(pattern, reason):
 def test_length_report(capsys):
     """Report word counts against each tier's range, without failing.
 
-    The report is informational: the text was moved, not rewritten. Read it with
-    ``uv run --locked pytest tests/test_text.py::test_length_report -s``.
+    Read it with ``uv run --locked pytest tests/test_text.py::test_length_report -s``.
     """
     ranges = {
         "hook": "5-12",
@@ -230,9 +229,8 @@ def test_length_report(capsys):
 def test_leftover_text_report():
     """Warn about string literals in app.js that look like English sentences.
 
-    A warning, not a failure: the heuristic needs human judgment. This test
-    stayed a warning because markup, fonts, and identifiers are near the
-    player-facing strings and would make a hard version noisy.
+    This heuristic is advisory: app.js contains markup, fonts, and identifiers
+    near the player-facing strings, so a hard failure would be noisy.
     """
     suspects = []
     for literal in _string_literals(APP_JS):
