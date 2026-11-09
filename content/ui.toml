@@ -44,6 +44,10 @@ text = "Nothing you do can change this star for another {time}. Moving on ages t
 
 [upgrades.level_label]
 text = "{name}, level {level}"
+[upgrades.level]
+text = "level {level}"
+[upgrades.buy]
+text = "Buy {name}, {cost}."
 [upgrades.maxed]
 text = "Maxed"
 [upgrades.cost]
