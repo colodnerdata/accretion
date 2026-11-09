@@ -48,6 +48,8 @@ text = "{name}, level {level}"
 text = "level {level}"
 [upgrades.buy]
 text = "Buy {name}, {cost}."
+[upgrades.unavailable]
+text = "{name}, {cost}."
 [upgrades.maxed]
 text = "Maxed"
 [upgrades.cost]

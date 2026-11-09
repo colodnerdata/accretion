@@ -580,7 +580,10 @@ function update() {
     row.querySelector(".level").textContent = t("ui.upgrades.level", { level: run.levels[name] });
     row.querySelector("small").textContent = text(run, meta);
     el.querySelector(".cost").textContent = maxed ? t("ui.upgrades.maxed") : ok || floorBlocked ? t("ui.upgrades.cost", { cost: sci(cost) }) : t("ui.upgrades.cost_progress", { percent: Math.floor(fill * 100), cost: sci(cost) });
-    el.setAttribute("aria-label", t("ui.upgrades.buy", { name: title, cost: `${sci(cost)} erg` }));
+    // The accessible name must not offer a purchase the button cannot make.
+    el.setAttribute("aria-label", ok || floorBlocked
+      ? t("ui.upgrades.buy", { name: title, cost: `${sci(cost)} erg` })
+      : t("ui.upgrades.unavailable", { name: title, cost: maxed ? t("ui.upgrades.maxed") : `${sci(cost)} erg` }));
     row.classList.toggle("ready", ok);
     el.classList.toggle("ready", ok);
     el.disabled = !ok;
