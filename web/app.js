@@ -424,6 +424,8 @@ function fieldRow(id, label, key, text, [low, high]) {
 }
 function refreshSearch() {
   const m = state.meta, run = E.newRun(m), T = E.temperature(run, m);
+  // Composition changes re-judge the shop's cooling bound, so repaint it.
+  document.querySelectorAll("#heavy-list button").forEach((b) => b.paint && b.paint());
   if ($("density-out")) $("density-out").textContent = `${sci(run.density)} /cm³`;
   if ($("temperature-out")) $("temperature-out").textContent = `${run.baseTemperature.toFixed(0)} K`;
   if ($("metals-out")) $("metals-out").textContent = `10^${run.metalLog10.toFixed(1)} Z☉`;
