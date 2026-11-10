@@ -463,7 +463,8 @@ function renderSearch(panel) {
         const cost = E.heavyCost(m, name), lvl = name === "cooling" ? m.heavyCooling : m.heavyTurbulence;
         // Cooling deepens the bound of every future region until the
         // cosmic background clamps it; the button then says so itself.
-        const blocked = name === "cooling" && !E.coolingBoundHelps(m, E.newRun(m).metalLog10);
+        const metalLog10 = E.backgroundMetal(m) + E.SIGMA_LOG10_METAL * m.zMetal;
+        const blocked = name === "cooling" && !E.coolingBoundHelps(m, metalLog10);
         b.innerHTML = `<b>${esc(t("ui.upgrades.level_label", { name: label, level: lvl }))}</b><small>${esc(blocked ? t("notes.upgrades.cooling_background") : text)}</small><span class="cost">${sci(cost)} M☉</span>`;
         b.disabled = m.heavy < cost || blocked;
         shop.querySelector("h3").textContent = t("ui.heavy.heading", { mass: sci(m.heavy) });
