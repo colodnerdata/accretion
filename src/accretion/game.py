@@ -105,6 +105,7 @@ class Run:
     forecast_myr: float = 0.0
     kind: str = ""
     seconds: float = 0.0
+    skipped: bool = False
 
 
 def update_unlocks(run: Run, meta: Meta) -> None:
@@ -136,10 +137,30 @@ def heavy_cost(meta: Meta, name: str) -> float:
     return 1.0 * 2.0**meta.heavy_turbulence
 
 
-def buy_heavy(meta: Meta, name: str) -> bool:
-    """Buy a permanent upgrade with heavy elements."""
+def floor_purchase_helps(meta: Meta, metal_log10: float) -> bool:
+    """Return whether one more cooling level lowers the region bound.
+
+    Purchased levels multiply the composition-limited bound by 0.9 until
+    the cosmic background clamps it; past that point another level costs
+    mass and changes nothing.
+    """
+    background = physics.cmb_temperature(cosmic_age_gyr(meta))
+    composition = physics.cooling_temperature(metal_log10)
+    return max(background, composition * 0.9 ** (meta.heavy_cooling + 1)) < max(
+        background, composition * 0.9**meta.heavy_cooling
+    )
+
+
+def buy_heavy(meta: Meta, name: str, run: Run) -> bool:
+    """Buy a permanent upgrade with heavy elements.
+
+    Dust and metal cooling is refused once the region bound rests on the
+    cosmic background: another level would cost mass and do nothing.
+    """
     cost = heavy_cost(meta, name)
     if meta.heavy < cost or name not in meta.unlocks:
+        return False
+    if name == "cooling" and not floor_purchase_helps(meta, run.metal_log10):
         return False
     meta.heavy -= cost
     if name == "cooling":
@@ -176,7 +197,7 @@ def new_run(meta: Meta) -> Run:
     """Create a run from the current region settings."""
     density = BASE_DENSITY * math.exp(SIGMA_LN_DENSITY * meta.z_density)
     metal = background_metal_log10(meta) + SIGMA_LOG10_METAL * meta.z_metal
-    floor = physics.temperature_floor(metal, cosmic_age_gyr(meta))
+    floor = region_floor(meta, metal, cosmic_age_gyr(meta))
     if metal < physics.PRIMORDIAL_METAL_LOG10:
         centre = max(BASE_TEMPERATURE, floor)
         sigma = SIGMA_LN_TEMPERATURE_PRIMORDIAL
@@ -190,10 +211,36 @@ def new_run(meta: Meta) -> Run:
     return run
 
 
+def region_floor(meta: Meta, metal_log10: float, age_gyr: float) -> float:
+    """Return the coldest gas a new region can start at, in K.
+
+    Each purchased level of dust and metal cooling multiplies the
+    composition-limited bound by 0.9; the cosmic background stays the hard
+    bound and falls as the universal clock advances.
+    """
+    composition = physics.cooling_temperature(metal_log10)
+    return max(physics.cmb_temperature(age_gyr), composition * 0.9**meta.heavy_cooling)
+
+
+def temperature_at(run: Run, meta: Meta, level: int) -> float:
+    """Return gas temperature at a cooling level, floored by composition.
+
+    Each level multiplies the region's starting temperature by 0.9, but the
+    gas never cools below the floor set by its metallicity, cosmic age, and
+    purchased cooling.
+    """
+    return max(run.floor_temperature, run.base_temperature * 0.9**level)
+
+
+def cooling_helps(run: Run, meta: Meta) -> bool:
+    """Return whether one more cooling level would lower the temperature."""
+    level = run.levels["cooling"] + meta.heavy_cooling
+    return temperature_at(run, meta, level + 1) < temperature_at(run, meta, level)
+
+
 def temperature(run: Run, meta: Meta) -> float:
     """Return gas temperature after cooling and the composition floor."""
-    level = run.levels["cooling"] + meta.heavy_cooling
-    return max(run.floor_temperature, run.base_temperature * 0.9**level)
+    return temperature_at(run, meta, run.levels["cooling"] + meta.heavy_cooling)
 
 
 def alpha(run: Run, meta: Meta) -> float:
@@ -245,12 +292,17 @@ def upgrade_cost(run: Run, name: str) -> float:
 
 
 def can_buy(run: Run, name: str, meta: Meta) -> bool:
-    """Return whether an upgrade is available and affordable."""
+    """Return whether an upgrade is available and affordable.
+
+    Radiative cooling is refused once the gas already sits at its
+    composition floor, since another level would cost energy for nothing.
+    """
     spec = UPGRADES[name]
     return (
         name in meta.unlocks
         and run.phase == spec["phase"]
         and run.levels[name] < spec["max"]
+        and (name != "cooling" or cooling_helps(run, meta))
         and run.energy >= upgrade_cost(run, name)
     )
 
@@ -465,13 +517,13 @@ def _accrete_step(run: Run, meta: Meta) -> None:
         run.envelope = 0.0
         run.disk_masses = [0.0] * disk.CELLS
         _settle_fragments(run)
-        _start_main_sequence(run)
+        _start_main_sequence(run, meta)
 
 
-def _start_main_sequence(run: Run) -> None:
+def _start_main_sequence(run: Run, meta: Meta) -> None:
     run.kind = physics.ending(run.star_mass, run.metal_log10)
     if run.kind == "brown_dwarf":
-        run.phase = "ended"
+        _end_run(run, meta)
         return
     run.phase = "main_sequence"
     run.forecast_myr = physics.lifetime_myr(run.star_mass, run.metal_log10)
@@ -528,7 +580,7 @@ def step(run: Run, meta: Meta, seconds: float) -> None:
             used = min(left, run.ms_duration - run.ms_elapsed)
             run.ms_elapsed += used
             if run.ms_elapsed >= run.ms_duration - 1e-9:
-                run.phase = "ended"
+                _end_run(run, meta)
         left -= used
         run.seconds += used
     update_unlocks(run, meta)
@@ -546,8 +598,13 @@ def run_gain(run: Run) -> float:
     return gains[run.kind]
 
 
-def journal_entry(run: Run, meta: Meta, skipped: bool) -> dict:
-    """Return the permanent record of a finished run."""
+def journal_entry(run: Run, meta: Meta, skipped: bool | None = None) -> dict:
+    """Return the permanent record of a finished run.
+
+    ``skipped`` overrides the run's own flag; call sites pass it only for
+    runs that never went through the engine's end path (old saves, direct
+    calls in tests).
+    """
     return {
         "run": meta.runs + 1,
         "temperature": temperature(run, meta),
@@ -562,22 +619,53 @@ def journal_entry(run: Run, meta: Meta, skipped: bool) -> dict:
         "forecast_myr": run.forecast_myr,
         "alpha": alpha(run, meta),
         "feed_radius": feed_radius(run),
-        "skipped": skipped,
+        "skipped": run.skipped if skipped is None else skipped,
         "companions": [dict(c) for c in run.companion_records],
     }
+
+
+def _end_run(run: Run, meta: Meta) -> None:
+    """Set the ended phase and record the run in the journal.
+
+    The entry exists as soon as the run ends, so the ending screen and the
+    journal agree even before the player surveys new regions.
+    """
+    run.phase = "ended"
+    meta.journal.append(journal_entry(run, meta))
+
+
+def skip(run: Run, meta: Meta) -> None:
+    """Leave a run early and record it as left.
+
+    The caller checks ``can_skip``; a run can only be left from the main
+    sequence. Moving on is movement to a new region, so the universal clock
+    later advances only by the time that actually passed.
+    """
+    if run.phase != "main_sequence":
+        return
+    run.skipped = True
+    _end_run(run, meta)
 
 
 def prestige(run: Run, meta: Meta, skipped: bool = False) -> Run:
     """Apply a run's result and start the next run.
 
+    The journal entry was recorded when the run ended; reuse it so the
+    journal keeps exactly one entry per run. Runs that never went through
+    the engine's end path (old saves, direct calls) get their entry here.
     A skipped run moves the player to a new region, so the universal clock
     advances only by the time that passed in that run.
     """
+    left_early = skipped or run.skipped
     meta.regions *= math.exp(run_gain(run))
     released = physics.heavy_yield(run.star_mass, run.kind, run.metal_log10)
     meta.heavy += released
     meta.local_metals += released
-    meta.journal.append(journal_entry(run, meta, skipped))
+    if meta.journal and meta.journal[-1]["run"] == meta.runs + 1:
+        if left_early:
+            meta.journal[-1]["skipped"] = True
+    else:
+        meta.journal.append(journal_entry(run, meta, skipped=left_early))
     if run.kind == "supernova":
         meta.supernovae += 1
     if run.kind == "black_hole":
@@ -586,7 +674,7 @@ def prestige(run: Run, meta: Meta, skipped: bool = False) -> Run:
         meta.pair_instability_seen = True
     if run.lifetime_myr:
         passed = run.ms_elapsed / run.ms_duration * run.lifetime_myr
-        meta.cosmic_myr += passed if skipped else run.lifetime_myr
+        meta.cosmic_myr += passed if left_early else run.lifetime_myr
     meta.runs += 1
     next_run = new_run(meta)
     update_unlocks(next_run, meta)

@@ -1,0 +1,102 @@
+# Tiered hints, one table per situation. tier1 points a direction, tier2 names
+# a lever, tier3 explains the science behind it, matching hintSet() in app.js.
+# tier1's tier is hook, tier2's tooltip, tier3's panel.
+# "tier2_with_density" is the fuller sentence shown once the density search
+# option has unlocked; the code picks one, so each is a complete sentence.
+# Keep the empty tier2 and tier3 under [none]: the code still asks for them.
+# Placeholders such as {brightness} are filled in by the game; see
+# docs/DEVELOPMENT.md under "Editing game text".
+
+[start.tier1]
+kind = "hook"
+text = "The patch has to grow until gravity beats gas pressure."
+[start.tier2]
+kind = "tooltip"
+text = "Keep tapping the sky. Each tap also releases energy."
+[start.tier3]
+kind = "panel"
+text = "Gas falling together releases energy, and that energy is what you spend on controls."
+
+[reach.tier1]
+kind = "hook"
+text = "You can make gas gather without tapping."
+[reach.tier2]
+kind = "tooltip"
+text = "Spend energy on Gravitational reach."
+[reach.tier3]
+kind = "panel"
+text = "Reach compounds, so early levels save the most time."
+
+[gather.tier1]
+kind = "hook"
+text = "The bar shows how close the patch is to collapse."
+[gather.tier2]
+kind = "tooltip"
+text = "Buy upgrades as soon as energy allows. Each level costs far more than the last, but energy rises quickly too."
+[gather.tier3]
+kind = "panel"
+text = "A patch's binding energy climbs steeply as it grows."
+
+[accrete.tier1]
+kind = "hook"
+text = "Your star's mass depends on a race between feeding and clearing."
+[accrete.tier2]
+kind = "tooltip"
+text = "Disk controls mainly change how quickly gas gets through. Final mass depends more on how fast gas falls in."
+[accrete.tier3]
+kind = "panel"
+text = "Faster infall feeds the star for longer before its ionizing light shuts the supply off."
+
+[shine.tier1]
+kind = "hook"
+text = "Nothing can change this star now."
+[shine.tier2]
+kind = "tooltip"
+text = "Use the wait to review your journal."
+[shine.tier3]
+kind = "panel"
+text = "A star's fuel lasts far less time as its mass rises."
+
+[small.tier1]
+kind = "hook"
+text = "Your last star was too small to explode."
+[small.tier2]
+kind = "tooltip"
+text = "Search for a hotter region."
+[small.tier2_with_density]
+kind = "tooltip"
+text = "Search for a hotter region, or a less dense one."
+[small.tier3]
+kind = "panel"
+text = "Hotter gas falls inward faster, so the star gains mass before its light clears the gas."
+
+[big.tier1]
+kind = "hook"
+text = "Your last star collapsed into a black hole, and most of its heavy elements went with it."
+[big.tier2]
+kind = "tooltip"
+text = "Try a cooler region, or aim for a slightly different mass."
+[big.tier2_with_density]
+kind = "tooltip"
+text = "Try a cooler or denser region, or aim for a slightly different mass."
+[big.tier3]
+kind = "panel"
+text = "Explosions depend on core structure, so some masses fail even between masses that explode."
+
+[compare.tier1]
+kind = "hook"
+text = "Most stars from about 9 to 25 solar masses explode, but not all of them."
+[compare.tier2]
+kind = "tooltip"
+text = "Change one search option, then compare the result in your journal."
+[compare.tier3]
+kind = "panel"
+text = "One change at a time shows which control caused the difference."
+
+[none.tier1]
+kind = "hook"
+text = "Keep going. There is nothing to work out yet."
+[none.tier2]
+text = ""
+[none.tier3]
+text = ""

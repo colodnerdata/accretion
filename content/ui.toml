@@ -1,0 +1,305 @@
+# Interface text: phase names, buttons, headings, labels, stat names, progress
+# labels, confirmations, banners, screen-reader text, and the static page text
+# from web/body.html (the {{key}} substitutions).
+# No "kind" metadata here: these are labels, not the tiered explanations.
+# Placeholders such as {brightness} are filled in by the game; see
+# docs/DEVELOPMENT.md under "Editing game text".
+
+brand = "ACCRETION"
+gather_hint = "Tap the sky to gather"
+
+[phases]
+gather = "Gather"
+collapse = "Collapse"
+accrete = "Accrete"
+main_sequence = "Shine"
+ended = "Death"
+
+[play.controls_title]
+text = "Controls"
+[play.controls_note]
+text = "Energy comes from falling gas. Spend it here."
+[play.field_notes]
+text = "Field notes"
+[play.earlier_field_notes]
+text = "Earlier field notes"
+[play.observations]
+text = "Observations"
+[play.earlier_observations]
+text = "Earlier observations"
+[play.nothing_new]
+text = "Nothing new right now."
+
+[shine.count_note]
+text = "until the core's hydrogen runs out. Each second here is about {years_per_second} years."
+
+[skip.label]
+text = "Move on to a new region"
+[skip.confirm]
+text = "Tap again to leave this star"
+[skip.live]
+text = "Tap again within three seconds to leave this star."
+[skip.note]
+text = "Nothing you do can change this star for another {time}. Moving on ages the universe only by the time you stayed."
+
+[upgrades.level_label]
+text = "{name}, level {level}"
+[upgrades.level]
+text = "level {level}"
+[upgrades.buy]
+text = "Buy {name}, {cost}."
+[upgrades.unavailable]
+text = "{name}, {cost}."
+[upgrades.maxed]
+text = "Maxed"
+[upgrades.cost]
+text = "{cost} erg"
+[upgrades.cost_progress]
+text = "{percent}% of {cost} erg"
+[upgrades.reach]
+text = "Gravitational reach"
+[upgrades.tap]
+text = "Stronger pull"
+[upgrades.cooling]
+text = "Radiative cooling"
+[upgrades.turbulence]
+text = "Disk turbulence"
+[upgrades.braking]
+text = "Magnetic braking"
+
+[search.title]
+text = "Survey the region"
+[search.intro]
+text = "Spend probability to find a rarer starting point. Your full budget returns after every run, so experiments cost nothing."
+[search.limit]
+text = "Probability budget used up. Lower another slider to go further."
+[search.bh]
+text = "Start near a black hole. Gas falls in 50% faster (cost 1.00)."
+[search.begin]
+text = "Begin run"
+[search.no_cost]
+text = "no cost"
+[search.temperature_label]
+text = "Temperature"
+[search.temperature_note]
+text = "Hotter gas needs more mass to collapse, but falls inward faster and feeds a bigger star."
+[search.temperature_low]
+text = "cooler"
+[search.temperature_high]
+text = "hotter"
+[search.density_label]
+text = "Density"
+[search.density_note]
+text = "Denser gas collapses with less total mass."
+[search.density_low]
+text = "sparser"
+[search.density_high]
+text = "denser"
+[search.metal_content]
+text = "Metal content"
+[search.metals_note]
+text = "More metals let gas cool further."
+[search.metals_low]
+text = "fewer metals"
+[search.metals_high]
+text = "more metals"
+[search.odds]
+text = "Odds of finding this"
+[search.odds_value]
+text = "1 in {odds}"
+[search.spent]
+text = "{spent} of {budget} spent"
+[search.mass_needed]
+text = "Mass needed to collapse"
+[search.infall]
+text = "Gas falling inward"
+[search.floor_temperature]
+text = "Lowest temperature here"
+[search.universe_age]
+text = "Universe age"
+
+[heavy.heading]
+text = "Heavy elements: {mass} M☉"
+[heavy.cooling]
+text = "Dust and metal cooling"
+[heavy.cooling_note]
+text = "Permanently cools gas by 10% per level."
+[heavy.turbulence]
+text = "Seeded turbulence"
+[heavy.turbulence_note]
+text = "Permanently speeds the disk by 30% per level."
+
+[journal.title]
+text = "Journal"
+[journal.intro]
+text = "Bubble area is the star's final mass, and the letters name how it ended. Select a run to read it."
+[journal.intro_empty]
+text = "Finished runs appear here as bubbles. Size is final mass, position is the region's gas, and letters name the ending."
+[journal.plot_aria]
+text = "Your completed runs by gas temperature. Bubble size shows final mass."
+[journal.plot_aria_density]
+text = "Your completed runs by gas temperature and density. Bubble size shows final mass."
+[journal.axis_temperature]
+text = "Gas temperature (K)"
+[journal.axis_density]
+text = "Density (/cm³)"
+[journal.legend_left_early]
+text = "Left early"
+[journal.not_seen]
+text = "Not seen yet"
+[journal.run_card_title]
+text = "Run {number}"
+[journal.run_card_title_early]
+text = "Run {number}, left early"
+[journal.plot_label]
+text = "Run {number}: {ending}, {mass} solar masses, {temperature} K"
+[journal.plot_label_early]
+text = "Run {number}: {ending}, {mass} solar masses, {temperature} K, left early"
+[journal.chip_label]
+text = "Run {number}: {ending}"
+[journal.chip_label_early]
+text = "Run {number}: {ending}, left early"
+[journal.row_ending]
+text = "Ending"
+[journal.row_final_mass]
+text = "Final mass"
+[journal.row_temperature]
+text = "Gas temperature"
+[journal.row_density]
+text = "Density"
+[journal.row_turbulence]
+text = "Disk turbulence"
+[journal.row_feed]
+text = "Gas landed at"
+[journal.row_run_time]
+text = "Run time"
+[journal.row_reward]
+text = "Reward"
+[journal.reward]
+text = "+{gain} probability"
+[journal.reward_heavy]
+text = ", +{heavy} M☉ heavy"
+[journal.alpha_value]
+text = "α {value}"
+
+[ended.heading]
+text = "Ending"
+[ended.heading_forecast]
+text = "Forecast ending"
+[ended.left_early_note]
+text = "You left before this happened. The universe aged only by the time you stayed."
+[ended.anomaly_cause]
+text = "The cause is not yet known."
+[ended.final_mass_heading]
+text = "Final mass {mass} M☉"
+[ended.fine]
+text = "Probability lets you search for rarer regions. Your gas, energy and upgrades reset for the next run. Probability, unlocked controls and heavy elements stay."
+[ended.survey_button]
+text = "Survey new regions"
+
+[away.note]
+text = "You were away for {time}."
+[away.ended]
+text = "Your star ended as a {ending}."
+[away.ended_plain]
+text = "Your star ended."
+[away.stage]
+text = "Your star moved on to the {stage} stage."
+[away.banner]
+text = "While you were away ({time}), {event}"
+[banner.dismiss]
+text = "Dismiss"
+
+[hints.ask]
+text = "Ask for a hint"
+[hints.more]
+text = "Show more"
+[hints.available]
+text = "A hint is available"
+
+[footer.close_journal]
+text = "Close journal"
+[footer.journal]
+text = "Journal ({count})"
+[footer.test_speed]
+text = "Test speed"
+[footer.reset]
+text = "Reset"
+[footer.reset_confirm]
+text = "Tap again to erase"
+
+[canvas.ionization_front]
+text = "Ionization front"
+[canvas.ionization_front_stalled]
+text = "Ionization front (stalled)"
+[canvas.gas_lands]
+text = "Gas lands here"
+[canvas.collapse_limit]
+text = "Collapse limit"
+[canvas.core_hydrogen]
+text = "● core hydrogen"
+[canvas.helium_ash]
+text = "● helium ash"
+
+[aria.sky_tap]
+text = "Telescope view. Tap to gather gas."
+[aria.sky_search]
+text = "Telescope view of the region you are surveying."
+[aria.sky_phase]
+text = "Telescope view, {phase} phase."
+
+[stats.reach]
+text = "Reach"
+[stats.patch_mass]
+text = "Patch mass"
+[stats.mass_needed]
+text = "Mass needed"
+[stats.temperature]
+text = "Temperature"
+[stats.energy]
+text = "Energy"
+[stats.cloud_mass]
+text = "Cloud mass"
+[stats.star]
+text = "Star"
+[stats.in_the_disk]
+text = "In the disk"
+[stats.still_to_reach]
+text = "Still to reach the disk"
+[stats.landing_rate]
+text = "Landing on the disk"
+[stats.boiled_off]
+text = "Boiled off the disk"
+[stats.companion_stars]
+text = "Companion stars"
+[stats.brightness]
+text = "Brightness"
+[stats.forecast_life]
+text = "Forecast life"
+[stats.age]
+text = "Age"
+[stats.ionized_bubble]
+text = "Ionized bubble"
+[stats.ionized_bubble_value]
+text = "{size} radius"
+[stats.blown_away]
+text = "Blown away"
+[stats.run_time]
+text = "Run time"
+[stats.regions_surveyed]
+text = "Regions surveyed"
+[stats.probability]
+text = "Probability"
+[stats.heavy_elements]
+text = "Heavy elements"
+
+[progress.gather]
+text = "Reach toward collapse"
+[progress.percent]
+text = "{percent}%"
+[progress.accrete]
+text = "Gas used or blown away"
+[progress.gas_left]
+text = "{amount} M☉ left"
+[progress.shine]
+text = "Core hydrogen fused"

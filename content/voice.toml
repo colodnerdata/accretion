@@ -1,0 +1,5 @@
+# Reserved for the tutorial narrator's voice, planned for later work.
+# This file is intentionally empty of entries; nothing loads or checks it yet.
+# Entries take the same shape as the other content files; placeholder names
+# such as {brightness} are filled in by the game; see docs/DEVELOPMENT.md
+# under "Editing game text".

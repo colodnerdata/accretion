@@ -81,8 +81,18 @@ const Engine = (() => {
     if (x < logs[0]) return 21 * (AGE_GYR[0] / age) ** (2 / 3) - 1;
     return 10 ** interpolate(logs, AGE_REDSHIFT.map((z) => Math.log10(1 + z)), x) - 1;
   }
-  const temperatureFloor = (z, age) => Math.max(2.725 * (1 + redshift(age)), coolingTemperature(z));
+  const cmbTemperature = (age) => 2.725 * (1 + redshift(age));
   const cosmicFit = (age) => { const x = age / 3.82; return Math.log10(0.108 * x ** 3.42 / (1 + x ** 3.20)); };
+  // The coldest gas a new region can start at: each purchased level of dust
+  // and metal cooling multiplies the composition-limited bound by 0.9; the
+  // cosmic background stays the hard bound and falls as the clock advances.
+  const regionFloor = (meta, z, age) => Math.max(cmbTemperature(age), coolingTemperature(z) * 0.9 ** meta.heavyCooling);
+  // Purchased cooling is refused once the bound rests on the background:
+  // another level would cost mass and change nothing.
+  const coolingBoundHelps = (meta, z) => {
+    const background = cmbTemperature(cosmicAgeGyr(meta)), composition = coolingTemperature(z);
+    return Math.max(background, composition * 0.9 ** (meta.heavyCooling + 1)) < Math.max(background, composition * 0.9 ** meta.heavyCooling);
+  };
   const cosmicMetal = (age) => age >= 0.2 ? cosmicFit(age) : interpolate([0.12, 0.2], [-8, cosmicFit(0.2)], age);
   const hydrogenLimit = (z) => z >= -0.5 ? 0.075 : z >= -4 ? 0.083 : 0.09;
   const explodes = (m) => EXPLOSION_ISLANDS.some(([low, high]) => low <= m && m < high);
@@ -166,9 +176,10 @@ const Engine = (() => {
     for (const [name, met] of Object.entries(rules)) if (met && !meta.unlocks.includes(name)) meta.unlocks.push(name);
   }
   const heavyCost = (meta, name) => name === "cooling" ? 0.5 * 2 ** meta.heavyCooling : 2 ** meta.heavyTurbulence;
-  function buyHeavy(meta, name) {
+  function buyHeavy(meta, name, run) {
     const cost = heavyCost(meta, name);
     if (meta.heavy < cost || !meta.unlocks.includes(name)) return false;
+    if (name === "cooling" && !coolingBoundHelps(meta, run.metalLog10)) return false;
     meta.heavy -= cost;
     if (name === "cooling") meta.heavyCooling += 1; else meta.heavyTurbulence += 1;
     return true;
@@ -176,7 +187,7 @@ const Engine = (() => {
   function newRun(meta) {
     const density = BASE_DENSITY * Math.exp(SIGMA_LN_DENSITY * meta.zDensity);
     const metalLog10 = backgroundMetal(meta) + SIGMA_LOG10_METAL * meta.zMetal;
-    const floorTemperature = temperatureFloor(metalLog10, cosmicAgeGyr(meta));
+    const floorTemperature = regionFloor(meta, metalLog10, cosmicAgeGyr(meta));
     const primordial = metalLog10 < PRIMORDIAL_METAL_LOG10;
     const centre = primordial ? Math.max(BASE_TEMPERATURE, floorTemperature) : Math.max(floorTemperature, ENRICHED_ENVIRONMENT) * ENRICHED_TEMPERATURE_MARGIN;
     const sigma = primordial ? SIGMA_LN_TEMPERATURE_PRIMORDIAL : SIGMA_LN_TEMPERATURE_ENRICHED;
@@ -187,10 +198,18 @@ const Engine = (() => {
       levels: { reach: 0, tap: 0, cooling: 0, turbulence: 0, braking: 0 },
       collapseLeft: COLLAPSE_SECONDS, envelope: 0, diskMasses: new Array(CELLS).fill(0),
       starMass: 0, ejected: 0, companions: 0, fragments: [], fragmentsFormed: 0, companionRecords: [], accreteYears: 0, collapseMass: 0, ignited: false, yearDebt: 0, msElapsed: 0,
-      msDuration: 0, lifetimeMyr: 0, forecastMyr: 0, kind: "", seconds: 0,
+      msDuration: 0, lifetimeMyr: 0, forecastMyr: 0, kind: "", seconds: 0, skipped: false,
     };
   }
-  const temperature = (run, meta) => Math.max(run.floorTemperature, run.baseTemperature * 0.9 ** (run.levels.cooling + meta.heavyCooling));
+  // Gas temperature at a cooling level: each level multiplies the region's
+  // starting temperature by 0.9, but the gas never cools below the floor set
+  // by its metallicity, cosmic age, and purchased cooling.
+  const temperatureAt = (run, meta, level) => Math.max(run.floorTemperature, run.baseTemperature * 0.9 ** level);
+  const coolingHelps = (run, meta) => {
+    const level = run.levels.cooling + meta.heavyCooling;
+    return temperatureAt(run, meta, level + 1) < temperatureAt(run, meta, level);
+  };
+  const temperature = (run, meta) => temperatureAt(run, meta, run.levels.cooling + meta.heavyCooling);
   const alpha = (run, meta) => Math.min(1, BASE_ALPHA * 1.3 ** (run.levels.turbulence + meta.heavyTurbulence));
   const feedRadius = (run) => Math.min(3000, Math.max(50, 400 * (Math.max(run.starMass, SEED_MASS) / 10) ** 0.6)) * 0.75 ** run.levels.braking;
   const reachRate = (run) => BASE_REACH_RATE * 1.25 ** run.levels.reach;
@@ -205,7 +224,9 @@ const Engine = (() => {
     return Math.log(3 * mass / (4 * Math.PI * massDensity(run.density))) / 3;
   };
   const upgradeCost = (run, name) => UPGRADES[name].base * UPGRADES[name].ratio ** run.levels[name];
-  const canBuy = (run, name, meta) => meta.unlocks.includes(name) && run.phase === UPGRADES[name].phase && run.levels[name] < UPGRADES[name].max && run.energy >= upgradeCost(run, name);
+  // Radiative cooling is refused once the gas already sits at its composition
+  // floor, since another level would cost energy for nothing.
+  const canBuy = (run, name, meta) => meta.unlocks.includes(name) && run.phase === UPGRADES[name].phase && run.levels[name] < UPGRADES[name].max && (name !== "cooling" || coolingHelps(run, meta)) && run.energy >= upgradeCost(run, name);
   function checkCollapse(run, meta) {
     if (run.phase === "gather" && run.logReach >= jeansLogReach(run, meta) - 1e-12) {
       run.phase = "collapse";
@@ -234,9 +255,9 @@ const Engine = (() => {
     updateUnlocks(run, meta);
   }
   const gas = (run) => run.envelope + run.diskMasses.reduce((a, b) => a + b, 0);
-  function startMainSequence(run) {
+  function startMainSequence(run, meta) {
     run.kind = ending(run.starMass, run.metalLog10);
-    if (run.kind === "brown_dwarf") { run.phase = "ended"; return; }
+    if (run.kind === "brown_dwarf") { endRun(run, meta); return; }
     run.phase = "main_sequence";
     run.forecastMyr = lifetimeMyr(run.starMass, run.metalLog10);
     const bonus = run.starMass >= ROTATION_MIN_MASS && run.levels.braking === 0 ? rotationBonus(run.starMass, run.metalLog10) : 0;
@@ -336,7 +357,7 @@ const Engine = (() => {
       run.envelope = 0;
       run.diskMasses = new Array(CELLS).fill(0);
       settleFragments(run);
-      startMainSequence(run);
+      startMainSequence(run, meta);
     }
   }
   const canSkip = (run) => (run.phase === "ended" && run.kind === "brown_dwarf")
@@ -369,7 +390,7 @@ const Engine = (() => {
       } else {
         used = Math.min(left, run.msDuration - run.msElapsed);
         run.msElapsed += used;
-        if (run.msElapsed >= run.msDuration - 1e-9) run.phase = "ended";
+        if (run.msElapsed >= run.msDuration - 1e-9) endRun(run, meta);
       }
       left -= used;
       run.seconds += used;
@@ -382,21 +403,45 @@ const Engine = (() => {
       supernova: 1 + 0.05 * run.starMass, black_hole: 1.5, pair_instability: 3,
     }[run.kind];
   }
+  function journalEntry(run, meta, skipped) {
+    return {
+      run: meta.runs + 1, temperature: temperature(run, meta), density: run.density, metalLog10: run.metalLog10,
+      mass: run.starMass, ending: run.kind, gain: runGain(run), heavy: heavyYield(run.starMass, run.kind, run.metalLog10),
+      seconds: run.seconds, lifetimeMyr: run.lifetimeMyr, forecastMyr: run.forecastMyr, alpha: alpha(run, meta),
+      feedRadius: feedRadius(run), skipped: skipped ?? run.skipped, notes: [], companions: run.companionRecords.map((c) => ({ ...c })),
+    };
+  }
+  // The entry exists as soon as the run ends, so the ending screen and the
+  // journal agree even before the player surveys new regions.
+  function endRun(run, meta) {
+    run.phase = "ended";
+    meta.journal.push(journalEntry(run, meta));
+  }
+  function skip(run, meta) {
+    // Leave a run early; the caller checks canSkip. Moving on is movement to
+    // a new region, so the universal clock later advances only by the time
+    // that actually passed.
+    if (run.phase !== "main_sequence") return;
+    run.skipped = true;
+    endRun(run, meta);
+  }
   function prestige(run, meta, skipped = false) {
+    // The journal entry was recorded when the run ended; reuse it so the
+    // journal keeps exactly one entry per run. Runs that never went through
+    // the engine's end path (old saves, direct calls) get their entry here.
+    const leftEarly = skipped || run.skipped;
     meta.regions *= Math.exp(runGain(run));
     const released = heavyYield(run.starMass, run.kind, run.metalLog10);
     meta.heavy += released;
     meta.localMetals += released;
-    meta.journal.push({
-      run: meta.runs + 1, temperature: temperature(run, meta), density: run.density, metalLog10: run.metalLog10,
-      mass: run.starMass, ending: run.kind, gain: runGain(run), heavy: released, seconds: run.seconds,
-      lifetimeMyr: run.lifetimeMyr, forecastMyr: run.forecastMyr, alpha: alpha(run, meta),
-      feedRadius: feedRadius(run), skipped, notes: [], companions: run.companionRecords.map((c) => ({ ...c })),
-    });
+    const recorded = meta.journal.length && meta.journal[meta.journal.length - 1].run === meta.runs + 1;
+    if (recorded) {
+      if (leftEarly) meta.journal[meta.journal.length - 1].skipped = true;
+    } else meta.journal.push(journalEntry(run, meta, leftEarly));
     if (run.kind === "supernova") meta.supernovae += 1;
     if (run.kind === "black_hole") meta.blackHoleUnlocked = true;
     if (run.kind === "pair_instability") meta.pairInstabilitySeen = true;
-    if (run.lifetimeMyr) meta.cosmicMyr += skipped ? run.msElapsed / run.msDuration * run.lifetimeMyr : run.lifetimeMyr;
+    if (run.lifetimeMyr) meta.cosmicMyr += leftEarly ? run.msElapsed / run.msDuration * run.lifetimeMyr : run.lifetimeMyr;
     meta.runs += 1;
     const next = newRun(meta);
     updateUnlocks(next, meta);
@@ -405,8 +450,8 @@ const Engine = (() => {
   return {
     UPGRADES, RADII, CELLS, SIGMA_LN_DENSITY, SIGMA_LOG10_METAL, BLACK_HOLE_START_COST,
     newMeta, newRun, step, tap, buy, canBuy, upgradeCost, budget, regionCost, backgroundMetal, heavyCost, buyHeavy,
-    temperature, alpha, feedRadius, reachRate, tapPower, patchMass, jeansLogReach, jeansMass, infallRate,
-    diskLossRate, infallNow, diskGas, stability, criticalSurfaceDensity, fragmentMass, companionMass, luminosity, lifetimeMyr, canSkip, runGain, prestige, heavyYield, gas, BASE_DENSITY, BASE_TEMPERATURE,
+    temperature, temperatureAt, coolingHelps, regionFloor, coolingBoundHelps, cosmicAgeGyr, alpha, feedRadius, reachRate, tapPower, patchMass, jeansLogReach, jeansMass, infallRate,
+    diskLossRate, infallNow, diskGas, stability, criticalSurfaceDensity, fragmentMass, companionMass, luminosity, lifetimeMyr, canSkip, runGain, skip, prestige, heavyYield, gas, BASE_DENSITY, BASE_TEMPERATURE,
     freeFallTime, updateUnlocks, COLLAPSE_SECONDS, ionizingRate, stromgrenRadius, hiiRadius, soundSpeed, YR, PRIMORDIAL_METAL_LOG10, HII_SOUND_SPEED,
   };
 })();

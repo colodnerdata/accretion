@@ -3,31 +3,25 @@
 Keep this page short and current. Replace obsolete notes instead of appending
 a diary. Link to an issue when it owns the detail.
 
-- **Current goal:** simulate disk fragmentation and companion stars, replacing
-  the rule that moves disk mass above the star's mass into a companion total.
-  Decisions: the gas grid stays 1D rings; fragments carry mass, radius, and
-  orbital phase; spiral arms are drawn from ring Q and affect no rule; a ring
-  forms at most one fragment per step, only when its mass above Toomre Q = 1
-  is at least one fragment mass; a full companion list coalesces new fragments
-  into the nearest; merging fragments add mass and energy to the star;
-  companions are recorded in the journal.
-- **Working state:** stages 1 and 2 are merged (PRs 5 and 6). The data model is in
-  both engines,
-  and the fragment simulation replaces the old mass cap: Toomre Q per ring,
-  fragment formation, accretion, migration, phase, merging, coalescing at 4,
-  and end-of-run companions. Unit tests cover each rule; parity compares the
-  three scripted regions, which form fragments that all merge before the end,
-  plus a stress scenario that loads an unstable disk and four seeded fragments
-  at the start of accretion. It forces about 120 formations, coalescing at the
-  four-fragment limit, merges, and three end-of-run companions. A guard test
-  fails if the scenario stops reaching coalescing or companions.
-- **Pacing:** accretion playback slowed from 1000 to 700 years per second, which
-  restores the first run to about 13.4 minutes (it was 13.2 before fragments,
-  12.4 after). That is still under the "about 15 to 20 minutes" design target,
-  as before; 500 years per second would give about 14.6. The main sequence is
-  unchanged. The first-run test passes again.
-- **Next action:** decide whether to lengthen early runs toward 15 minutes, and
-  whether 16 rings is enough (32 would cost about 2x). Then the angular-momentum
+- **Working state:** both small-fix batches are merged (PR #13 string tables,
+  PR #14 cooling floor gate / journal at run end / control rows). The metals
+  redesign decided on 2026-11-09 is implemented on
+  `feature/metals-lowers-floor-bound`: `heavy_cooling` keeps the in-run
+  multiplier and additionally lowers what future regions can reach
+  (`max(CMB, coolingTemperature x 0.9^heavy_cooling)`); the heavy purchase is
+  refused only at the background clamp, with its own refusal text
+  (`notes.upgrades.cooling_background`). Boundary tests in both engines
+  (tests/test_game.py, tools/engine_checks.js); parity re-run; bot pacing
+  unchanged (collapse 2.4 / accrete 2.7 / main_sequence 5.9 / ended 13.4).
+  poe check 77 tests pass. The PR #14 per-region heavy gate was removed
+  (the bound is never region-specific); the refreshSearch heavy-shop repaint
+  stays, since the bound still re-judges with the sliders (verified in the
+  browser).
+- **Pacing:** unchanged by both batches (bot identical). Early runs
+  ~13.4 min vs the 15-20 target — still open (see below).
+- **Next action:** merge the branch after review; then the still-open items
+  from before: whether to lengthen early runs toward 15 minutes, and whether
+  16 rings is enough (32 would cost about 2x). Then the angular-momentum
   ledger.
 - **Stages after that:** angular-momentum ledger; DATA_REPORT.md note that its
   cap tables are superseded; visuals last.

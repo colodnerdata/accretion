@@ -17,6 +17,7 @@ source of truth. The development Python version is in `.python-version`.
 | Add a runtime dependency | `uv add PACKAGE` |
 | Add a development dependency | `uv add --dev PACKAGE` |
 | Deliberately refresh dependencies | `uv lock --upgrade` |
+| Capture screenshots of a full run | `uv run python tools/shoot.py` (see also `--phase`, `--out`) |
 
 Commit dependency metadata and `uv.lock` together, and rerun `check` after
 updates. `--locked` detects stale dependency metadata instead of silently
@@ -31,6 +32,57 @@ that warning.
 
 `uv run poe launch` builds `web/accretion.html` and, in WSL, opens it in
 Windows Chrome through PowerShell.
+
+## Editing game text
+
+All player-facing wording lives in `content/*.toml`, not in code. The build
+validates the tables and embeds them into `web/accretion.html`; `web/app.js`
+reads them through `t(key, values)`. Edit, then run `python tools/build.py`
+and commit the rebuilt page together with the content change (the same rule
+as any web source edit; `build.py --check` fails when the page is stale).
+
+| File | Holds |
+| --- | --- |
+| `content/ui.toml` | Phase names, buttons, labels, stat names, progress labels, confirmations, banners, screen-reader text, static page text |
+| `content/hints.toml` | Tiered hints: `tier1` (direction), `tier2` (lever), `tier3` (explanation) |
+| `content/notes.toml` | Shine field notes, distance milestones, new-control announcements, upgrade descriptions, headlines, goals |
+| `content/endings.toml` | Ending titles, descriptions, and band labels |
+| `content/voice.toml` | Reserved for a future narrator voice; no entries yet |
+
+Keys are dotted and file-scoped — `ui.phases.accrete`, `hints.small.tier2`,
+`endings.supernova.title`. Build fails on duplicate keys. Wording that differs
+by situation gets its own entry with a full sentence
+(`hints.small.tier2_with_density`); code picks the branch and the branches
+never share a sentence.
+
+Entries are either a plain string or a table with `text` plus optional `kind`
+metadata. `kind` is one of `hook` (5–12 words), `tooltip` (25–50), `panel`
+(60–150), or `reference` (unlimited), matching the text tiers in
+`docs/planning/teaching-principles.md`. To add a new metadata field, extend
+`ALLOWED_FIELDS` in `tools/text.py` and the tests. Only text is embedded into
+the page — metadata is for authors and checks.
+
+Computed values are named placeholders, filled by the call site:
+`"Core hydrogen fused: {percent}% of the way"`. Names describe the meaning
+(`{brightness}`, `{distance_old}`), not the formatting — the code keeps all
+formatting choices (scientific notation, units, rounding) and passes finished
+strings. A missing key or placeholder renders as `[missing: key]` in the
+interface and logs a console warning; it never throws.
+
+`tests/test_text.py` guards the tables:
+
+- Files load and validate; unknown metadata, bad kinds, and malformed
+  placeholders fail there.
+- Every `t("...")` key and `{{ui...}}` body placeholder exists; every entry is
+  used (voice.toml is exempt).
+- Each call site supplies exactly the placeholders its entry names.
+- No banned words in any entry — "burn" and its forms, "dying", "zero
+  gravity", "gravity cancels". Extend the list in the `BANNED` tuple at the
+  top of the test.
+- Two reports, neither failing: word counts per `kind`
+  (`uv run --locked pytest tests/test_text.py::test_length_report -s`) and a
+  leftover-English-literal warning for `web/app.js`
+  (`tests/test_text.py::test_leftover_text_report`).
 
 ## A small development loop
 

@@ -40,17 +40,28 @@ p { margin: 0; color: var(--quiet); }
 .upgrades { display: flex; flex-direction: column; gap: 6px; }
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--oiii); outline-offset: 2px; }
+/* One row per control in the play panel: name and level outside the button,
+   effect text, and a buy button carrying the cost. */
+.control { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 12px; align-items: center;
+  background: var(--raise); border: 1px solid var(--line); padding: 8px 10px; }
+.control .u-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; grid-column: 1; }
+.control .u-head b { font-weight: 600; }
+.control.ready .u-head b { color: var(--oiii); }
+.control .level { color: var(--quiet); font: 12px var(--data); white-space: nowrap; }
+.control small { color: var(--ink); font-size: 12.5px; grid-column: 1; }
+.control .buy { grid-column: 2; grid-row: 1 / span 2; align-self: center; justify-self: end; min-width: 9em;
+  text-align: right; font: 12px var(--data); padding: 6px 10px; background: var(--raise); border: 1px solid var(--line);
+  background-image: linear-gradient(90deg, rgba(95, 230, 207, .2) calc(var(--fill, 0) * 100%), transparent 0); }
+.control .buy.ready { background-image: linear-gradient(rgba(95, 230, 207, .38), rgba(95, 230, 207, .38));
+  border-color: var(--oiii); }
+.control .buy:disabled { cursor: default; }
+/* The heavy-element shop on the survey screen keeps the full-button layout. */
 .upgrade { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 12px; width: 100%; text-align: left;
   background: var(--raise); border: 1px solid var(--line); padding: 8px 10px; }
 .upgrade b { font-weight: 600; }
-.upgrade small { color: var(--quiet); font-size: 12.5px; grid-column: 1; }
+.upgrade small { color: var(--ink); font-size: 12.5px; grid-column: 1; }
 .upgrade .cost { grid-column: 2; grid-row: 1 / span 2; align-self: center; text-align: right; font: 12px var(--data); }
-.upgrade { background-image: linear-gradient(90deg, rgba(95, 230, 207, .2) calc(var(--fill, 0) * 100%), transparent 0); }
 .upgrade:disabled { cursor: default; }
-.upgrade small { color: var(--ink); }
-.upgrade.ready { background-image: linear-gradient(rgba(95, 230, 207, .38), rgba(95, 230, 207, .38)); }
-.upgrade.ready b { color: var(--oiii); }
-.upgrade.ready { border-color: var(--oiii); }
 .primary { background: var(--oiii); color: #081b1a; border: 0; padding: 12px 14px; font-weight: 700; width: 100%; }
 .primary:disabled { opacity: .5; cursor: default; }
 .ghost { background: none; border: 1px solid var(--line); color: var(--ink); padding: 8px 10px; width: 100%; }
