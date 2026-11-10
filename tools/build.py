@@ -53,7 +53,7 @@ def build_page() -> str:
         HEAD
         + f"<style>\n{read('style.css')}</style>\n"
         + fill_static_keys(read("body.html"), texts)
-        + f"<script>\n{read('engine.js')}\n"
+        + f"<script>\n{read('visuals.js')}\n{read('engine.js')}\n"
         + f"const TEXT = {text_json(texts)};\n{read('app.js')}</script>\n"
     )
 
