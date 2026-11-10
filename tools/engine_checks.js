@@ -37,7 +37,7 @@ function approx(a, b) { return Math.abs(a - b) <= Math.abs(b) * 1e-9; }
   // The level still doubles as the in-run multiplier.
   const inRun = E.newRun(meta);
   inRun.baseTemperature = 100.0; inRun.floorTemperature = 50.0;
-  inRun.energy = 1e60; meta.unlocks.push("cooling"); meta.heavyCooling = 2;
+  inRun.energy = 1e60; meta.heavyCooling = 2;
   check("the multiplier applies in-run", approx(E.temperature(inRun, meta), 81.0) && E.canBuy(inRun, "cooling", meta));
 }
 
