@@ -73,7 +73,7 @@ def buy_affordable(page: Page) -> None:
     )
 
 
-def screenshot(page: Page, name: str, folder: Path, written: list) -> None:
+def screenshot(page: Page, name: str, folder: Path, written: list[Path]) -> None:
     """Save one step screenshot and record it."""
     path = folder / f"{name}.png"
     page.screenshot(path=path)
@@ -100,7 +100,7 @@ def tap_until_collapse(page: Page, deadline: float) -> None:
 
 def shoot_run(
     browser: Browser, width: int, motion: str, out_dir: Path, through: str
-) -> list:
+) -> list[Path]:
     """Drive one full run at one width and reduced-motion setting.
 
     Parameters
@@ -118,7 +118,7 @@ def shoot_run(
 
     Returns
     -------
-    list
+    list[Path]
         Paths of the screenshots written, in capture order.
     """
     folder = out_dir / f"{width}-{motion}"
@@ -132,9 +132,12 @@ def shoot_run(
         page.emulate_media(reduced_motion="reduce")
     page.goto(PAGE.as_uri())
     page.wait_for_selector("#track span.now")
-    written = []
+    written: list[Path] = []
     names = [name for name, _ in STEPS]
     screenshot(page, "gather", folder, written)
+    if through == "gather":
+        context.close()
+        return written
     page.click('button[data-s="10"]')
     tap_until_collapse(page, time.monotonic() + SPEED_TIMEOUT_MS / 1000)
     for name, track_index in STEPS[1 : names.index(through) + 1]:
@@ -159,10 +162,9 @@ def shoot_run(
                     arg=track_index,
                     timeout=SPEED_TIMEOUT_MS,
                 )
-            except PlaywrightTimeoutError:
-                print(f"the {name} phase never became active")
-                context.close()
-                return written
+            except PlaywrightTimeoutError as exc:
+                message = f"the {name} phase never became active"
+                raise TimeoutError(message) from exc
         screenshot(page, name, folder, written)
     context.close()
     return written
