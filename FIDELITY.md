@@ -28,7 +28,7 @@ Values come from the research report "Accretion prototype stellar data". Most pa
 | White dwarf and black hole yields | Simplified | Karakas 2010 and Limongi & Chieffi 2018 values, blended by metallicity. Black-hole yields at solar metallicity disagree strongly between models |
 | Pair-instability yield | Established within models | 0.45 of initial mass, Heger & Woosley 2002 |
 | Metal yields paid to the region | Simplified | Uses total metals, not net new metals |
-| Temperature floor | Debated between 10^-3 and 0.1 Z☉ | Plateau and CMB term are Established; the -0.47 slope and 0.076 Z☉ end are constructed |
+| Temperature floor | Debated between 10^-3 and 0.1 Z☉ | Plateau and CMB term are Established; the -0.47 slope and 0.076 Z☉ end are constructed. Purchased dust-and-metal cooling multiplies the composition bound by 0.9 per level toward the CMB — a Game rule on a constructed quantity |
 | Cosmic metal clock | Simplified | Fit to integrated Madau & Fragos 2017, starting at 0.12 Gyr and blended from 10^-8 Z☉ before 0.2 Gyr |
 | Local gas mass | Game rule | 10^6 M☉, tuned so one supernova enriches but does not end the primordial era |
 | Density distribution | Established | Log-normal with width 1.5, near Mach 7 to 9 |

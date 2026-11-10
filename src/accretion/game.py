@@ -137,16 +137,30 @@ def heavy_cost(meta: Meta, name: str) -> float:
     return 1.0 * 2.0**meta.heavy_turbulence
 
 
+def floor_purchase_helps(meta: Meta, metal_log10: float) -> bool:
+    """Return whether one more cooling level lowers the region bound.
+
+    Purchased levels multiply the composition-limited bound by 0.9 until
+    the cosmic background clamps it; past that point another level costs
+    mass and changes nothing.
+    """
+    background = physics.cmb_temperature(cosmic_age_gyr(meta))
+    composition = physics.cooling_temperature(metal_log10)
+    return max(background, composition * 0.9 ** (meta.heavy_cooling + 1)) < max(
+        background, composition * 0.9**meta.heavy_cooling
+    )
+
+
 def buy_heavy(meta: Meta, name: str, run: Run) -> bool:
     """Buy a permanent upgrade with heavy elements.
 
-    Dust and metal cooling is refused once the current gas already sits at
-    its composition floor: another level would cost mass and do nothing.
+    Dust and metal cooling is refused once the region bound rests on the
+    cosmic background: another level would cost mass and do nothing.
     """
     cost = heavy_cost(meta, name)
     if meta.heavy < cost or name not in meta.unlocks:
         return False
-    if name == "cooling" and not cooling_helps(run, meta):
+    if name == "cooling" and not floor_purchase_helps(meta, run.metal_log10):
         return False
     meta.heavy -= cost
     if name == "cooling":
@@ -183,7 +197,7 @@ def new_run(meta: Meta) -> Run:
     """Create a run from the current region settings."""
     density = BASE_DENSITY * math.exp(SIGMA_LN_DENSITY * meta.z_density)
     metal = background_metal_log10(meta) + SIGMA_LOG10_METAL * meta.z_metal
-    floor = physics.temperature_floor(metal, cosmic_age_gyr(meta))
+    floor = region_floor(meta, metal, cosmic_age_gyr(meta))
     if metal < physics.PRIMORDIAL_METAL_LOG10:
         centre = max(BASE_TEMPERATURE, floor)
         sigma = SIGMA_LN_TEMPERATURE_PRIMORDIAL
@@ -197,11 +211,23 @@ def new_run(meta: Meta) -> Run:
     return run
 
 
+def region_floor(meta: Meta, metal_log10: float, age_gyr: float) -> float:
+    """Return the coldest gas a new region can start at, in K.
+
+    Each purchased level of dust and metal cooling multiplies the
+    composition-limited bound by 0.9; the cosmic background stays the hard
+    bound and falls as the universal clock advances.
+    """
+    composition = physics.cooling_temperature(metal_log10)
+    return max(physics.cmb_temperature(age_gyr), composition * 0.9**meta.heavy_cooling)
+
+
 def temperature_at(run: Run, meta: Meta, level: int) -> float:
     """Return gas temperature at a cooling level, floored by composition.
 
     Each level multiplies the region's starting temperature by 0.9, but the
-    gas never cools below the floor set by its metallicity and cosmic age.
+    gas never cools below the floor set by its metallicity, cosmic age, and
+    purchased cooling.
     """
     return max(run.floor_temperature, run.base_temperature * 0.9**level)
 

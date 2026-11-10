@@ -25,11 +25,20 @@ function approx(a, b) { return Math.abs(a - b) <= Math.abs(b) * 1e-9; }
 // The heavy-element purchase has the same boundary.
 {
   const meta = E.newMeta(), run = E.newRun(meta);
-  run.baseTemperature = 100.0; run.floorTemperature = 81.0;
   meta.unlocks.push("cooling"); meta.heavy = 100.0;
-  check("heavy cooling buys 100 -> 90 K", E.buyHeavy(meta, "cooling", run) && meta.heavyCooling === 1);
-  check("heavy cooling buys 90 -> 81 K", E.buyHeavy(meta, "cooling", run) && meta.heavyCooling === 2);
-  check("the next heavy level is blocked", !E.buyHeavy(meta, "cooling", run) && meta.heavyCooling === 2);
+  // Each purchase permanently lowers what new regions can reach.
+  check("the starting bound is the primordial floor", approx(E.newRun(meta).floorTemperature, 200.0));
+  check("the first purchase lowers bound to 180 K", E.buyHeavy(meta, "cooling", run) && approx(E.newRun(meta).floorTemperature, 180.0));
+  check("the bound helper agrees", approx(E.regionFloor(meta, run.metalLog10, E.cosmicAgeGyr(meta)), 180.0));
+  // Purchases stop when the cosmic background clamps the bound.
+  meta.heavy = 1e9; meta.heavyCooling = 9;
+  check("the level that reaches the background can be bought", E.buyHeavy(meta, "cooling", run) && meta.heavyCooling === 10);
+  check("the next level is refused", !E.buyHeavy(meta, "cooling", run) && meta.heavyCooling === 10);
+  // The level still doubles as the in-run multiplier.
+  const inRun = E.newRun(meta);
+  inRun.baseTemperature = 100.0; inRun.floorTemperature = 50.0;
+  inRun.energy = 1e60; meta.heavyCooling = 2;
+  check("the multiplier applies in-run", approx(E.temperature(inRun, meta), 81.0) && E.canBuy(inRun, "cooling", meta));
 }
 
 // The journal entry exists as soon as the run ends; prestige reuses it.
