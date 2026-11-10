@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git checkout *)",
+      "Bash(git switch *)",
+      "Bash(git branch *)",
+      "Bash(git fetch *)",
+      "Bash(git pull)",
+      "Bash(git pull --ff-only)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git stash *)",
+      "Bash(git push)",
+      "Bash(git push -u origin *)",
+      "Bash(uv sync --locked)",
+      "Bash(uv run poe check)",
+      "Bash(uv run --locked poe check)",
+      "Bash(uv run poe test)",
+      "Bash(uv run poe lint)",
+      "Bash(uv run poe format)",
+      "Bash(uv run poe format-check)",
+      "Bash(uv run poe launch)",
+      "Bash(python tools/build.py)",
+      "Bash(python tools/build.py --check)",
+      "Bash(uv run python tools/bot.py)",
+      "Bash(uv run python tools/shoot.py)",
+      "Bash(node tools/parity_runner.js)"
+    ]
+  }
+}
