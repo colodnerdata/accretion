@@ -1,8 +1,9 @@
 const E = Engine;
 const SAVE_KEY = "accretion-prototype-v4";
 const $ = (id) => document.getElementById(id);
-const state = { meta: E.newMeta(), run: null, view: "play", pane: "main", speed: 1, log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {} };
+const state = { meta: E.newMeta(), run: null, view: "play", pane: "main", speed: 1, log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {}, prospective: null, zoom: 1 };
 state.run = E.newRun(state.meta);
+state.prospective = E.newRun(state.meta);
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
@@ -66,6 +67,13 @@ const SKY_TEXT = {
   collapseLimit: t("ui.canvas.collapse_limit"),
   coreHydrogen: t("ui.canvas.core_hydrogen"),
   heliumAsh: t("ui.canvas.helium_ash"),
+  keyHydrogen: t("ui.canvas.key_hydrogen"),
+  keyHelium: t("ui.canvas.key_helium"),
+  keyMetals: t("ui.canvas.key_metals"),
+  metalsNote: t("ui.canvas.metals_note"),
+  gauge: t("ui.canvas.gauge"),
+  gaugeFloor: t("ui.canvas.gauge_floor"),
+  blackHolePull: t("ui.canvas.black_hole_pull"),
 };
 
 // Shine phase. The HII region is display only: Stromgren sphere, Spitzer expansion, then stall.
@@ -108,7 +116,7 @@ function shineNotes(run, meta) {
   return notes.sort((x, y) => x[0] - y[0]);
 }
 
-const PHASES = [["gather", t("ui.phases.gather")], ["collapse", t("ui.phases.collapse")], ["accrete", t("ui.phases.accrete")], ["main_sequence", t("ui.phases.main_sequence")], ["ended", t("ui.phases.ended")]];
+const PHASES = [["survey", t("ui.phases.survey")], ["gather", t("ui.phases.gather")], ["collapse", t("ui.phases.collapse")], ["accrete", t("ui.phases.accrete")], ["main_sequence", t("ui.phases.main_sequence")], ["ended", t("ui.phases.ended")]];
 const ENDINGS = {
   brown_dwarf: { title: t("endings.brown_dwarf.title"), description: t("endings.brown_dwarf.description") },
   white_dwarf: { title: t("endings.white_dwarf.title"), description: t("endings.white_dwarf.description") },
@@ -182,6 +190,7 @@ function load() {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
     if (!saved?.run) return;
     Object.assign(state, { meta: saved.meta, run: saved.run, view: saved.view, seen: saved.seen || {}, log: (saved.log || []).map(asNote), skipped: !!saved.skipped, noted: saved.noted || 0 });
+    state.prospective = E.newRun(state.meta);
     const away = (Date.now() - saved.savedAt) / 1000;
     if (away > 60 && state.view === "play") {
       const before = state.run.phase;
@@ -424,6 +433,7 @@ function fieldRow(id, label, key, text, [low, high]) {
 }
 function refreshSearch() {
   const m = state.meta, run = E.newRun(m), T = E.temperature(run, m);
+  state.prospective = run;
   // Composition changes re-judge the shop's cooling bound, so repaint it.
   document.querySelectorAll("#heavy-list button").forEach((b) => b.paint && b.paint());
   if ($("density-out")) $("density-out").textContent = `${sci(run.density)} /cm³`;
@@ -549,7 +559,9 @@ function update() {
   checkMilestones();
   renderShell();
   const { run, meta } = state;
-  const track = PHASES.findIndex(([p]) => p === run.phase);
+  // The survey is a display-only first step: it reads as the current step on
+  // the search screen, and as completed once a run is underway.
+  const track = state.view === "search" ? 0 : PHASES.findIndex(([p]) => p === run.phase);
   $("track").innerHTML = PHASES.map(([, label], i) => `<span class="${i === track ? "now" : i < track ? "done" : ""}">${label}</span>`).join("");
   const sky = $("sky"), mode = run.phase === "gather" && state.view === "play" ? "tap" : `${state.view}:${run.phase}`;
   if (sky.dataset.mode !== mode) {
@@ -562,7 +574,8 @@ function update() {
     }
   }
   $("scale").hidden = run.phase === "accrete";
-  $("scale-label").textContent = length(viewRadius() * 0.5);
+  const zoomShown = state.view === "search" || run.phase === "gather" || run.phase === "collapse" ? state.zoom : 1;
+  $("scale-label").textContent = length(viewRadius() * 0.5 * zoomShown);
   $("hint").hidden = !(run.phase === "gather" && state.view === "play" && run.seconds < 30 && !meta.runs);
   paintHints();
   if (!$("head")) return;
@@ -621,6 +634,41 @@ function resize() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 addEventListener("resize", resize);
+// The temperature gauge: current gas temperature and the composition floor
+// on one log scale, shown through the gather phase. The floor is the lowest
+// temperature this gas can reach; radiative cooling slides the marker down
+// toward it.
+function temperatureGauge(run, meta) {
+  const lo = 10, hi = 1000, x1 = W - 24, x0 = x1 - Math.min(150, W * 0.4), y = H - 40;
+  const mark = (kelvin) => x0 + Math.log10(Math.min(hi, Math.max(lo, kelvin)) / lo) / Math.log10(hi / lo) * (x1 - x0);
+  ctx.font = "10px 'IBM Plex Mono', monospace"; ctx.textAlign = "center"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
+  ctx.globalAlpha = 0.85; ctx.strokeStyle = "#8d84d6"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+  for (const k of [lo, 100, hi]) {
+    const x = mark(k);
+    ctx.strokeStyle = "#8d84d6";
+    ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4); ctx.stroke();
+    ctx.fillStyle = "#8d84d6"; ctx.fillText(`${k} K`, x, y + 15);
+  }
+  const fx = mark(run.floorTemperature);
+  ctx.globalAlpha = 1; ctx.strokeStyle = "#5fe6cf"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(fx, y - 7); ctx.lineTo(fx, y + 7); ctx.stroke();
+  // Caption and current readout above the bar, the floor meaning below it.
+  ctx.font = "10px 'IBM Plex Mono', monospace"; ctx.textAlign = "left";
+  ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.fillStyle = "#cfc8ff";
+  const readout = `${SKY_TEXT.gauge}: ${Math.round(E.temperature(run, meta))} K`;
+  ctx.strokeText(readout, x0, y - 10); ctx.fillText(readout, x0, y - 10);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ff5f7e";
+  const tx = mark(E.temperature(run, meta));
+  ctx.beginPath(); ctx.arc(tx, y, 4, 0, 6.283); ctx.fill();
+  // One row down from the ticks, so the floor's meaning never collides.
+  ctx.fillStyle = "#5fe6cf"; ctx.font = "9px 'IBM Plex Mono', monospace"; ctx.textAlign = "right";
+  ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
+  const floorLabel = SKY_TEXT.gaugeFloor;
+  ctx.strokeText(floorLabel, x1, y + 27); ctx.fillText(floorLabel, x1, y + 27);
+  ctx.globalAlpha = 1;
+}
 function viewRadius() {
   const r = state.run;
   if (r.phase === "gather" || r.phase === "collapse") return Math.exp(r.logReach) * 1.15 * (r.phase === "collapse" ? Math.max(0.03, r.collapseLeft / E.COLLAPSE_SECONDS) : 1);
@@ -724,17 +772,62 @@ function atomScene(run, cx, cy, R, t) {
   }
   ctx.globalAlpha = 1;
 }
-function hazeScene(run, cx, cy, R, t, amount, pull) {
-  const zoom = run.logReach * 0.34;
-  for (const [a, u, s] of HAZE) {
-    const flow = ((u - zoom - (calm ? 0 : t * 0.004)) % 1 + 1) % 1, rad = R * 1.5 * flow ** 1.4 * pull;
-    const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
-    ctx.globalAlpha = amount * Math.min(1, flow * 6) * Math.min(1, (1 - flow) * 5) * 0.75;
-    ctx.fillStyle = hashColor(a); ctx.beginPath(); ctx.arc(x, y, s, 0, 6.283); ctx.fill();
+// One consistent drawing of the gas, shared by the survey, gather and
+// collapse scenes. Species colors carry composition (hydrogen/helium/metals
+// with a canvas key), thermal motion carries temperature through the
+// sqrt(T/m) law, and the drawn scale carries density through the cube-root
+// zoom; the mappings and their concepts live in web/visuals.js.
+const GAS_COUNT = 120;
+const GAS = Array.from({ length: GAS_COUNT }, (_, i) => ({ a: hash(i, 21) * 6.283, u: hash(i, 22), w: hash(i, 23) * 6.283 }));
+function gasScene(run, cx, cy, R, t, zoom, crowd = 1) {
+  const mix = VISUALS.speciesMix(run.metalLog10, E.PRIMORDIAL_METAL_LOG10);
+  const species = (i) => {
+    const roll = hash(i, 24);
+    return roll < mix.helium ? "helium" : roll < mix.helium + mix.metals ? "metals" : "hydrogen";
+  };
+  // Thermal speed in px/s on the shared sqrt(T/m) scale: the base constant
+  // sets hydrogen at 10 K, every species and temperature carries the true
+  // ratio, and the cap keeps the hottest settings readable.
+  const base = Math.min(VISUALS.SPEED_CAP_PX, VISUALS.SPEED_BASE_PX * VISUALS.speedForTemperature(E.temperature(run, meta)));
+  const speedOf = (species_) => base * VISUALS.speedForMass(
+    species_ === "helium" ? VISUALS.HELIUM_MASS : species_ === "metals" ? VISUALS.METAL_MASS : VISUALS.HYDROGEN_MASS
+  );
+  for (let i = 0; i < GAS.length; i++) {
+    const g = GAS[i], kind = species(i), speed = speedOf(kind);
+    // Fixed hashed layout: the same particles everywhere; the crowd factor
+    // pulls the whole layout inward as the cloud falls.
+    const rad = R * (0.16 + 0.86 * g.u) * zoom * crowd;
+    const x = cx + Math.cos(g.a) * rad, y = cy + Math.sin(g.a) * rad * 0.96;
+    if (x < -20 || y < -20 || x > W + 20 || y > H + 20) continue;
+    ctx.globalAlpha = 0.92; ctx.fillStyle = VISUALS.SPECIES_COLORS[kind];
+    if (calm) {
+      // A still streak whose length carries this particle's thermal speed.
+      const len = 1.5 + speed * 0.06 * zoom;
+      ctx.strokeStyle = VISUALS.SPECIES_COLORS[kind]; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(g.w) * len, y + Math.sin(g.w) * len * 0.96); ctx.stroke();
+    } else {
+      // The wobble advances at the particle's thermal speed, so hotter gas
+      // shivers faster and heavier species slower.
+      const ph = t * (speed / 2.4) + g.w;
+      ctx.beginPath(); ctx.arc(x + Math.cos(ph) * 2.4, y + Math.sin(ph * 0.9) * 2.4, kind === "metals" ? 1.5 : 1.8, 0, 6.283); ctx.fill();
+    }
   }
   ctx.globalAlpha = 1;
 }
-function hashColor(a) { return a % 1 < 0.72 ? "#ff5f7e" : "#5fe6cf"; }
+// The composition key: one marked dot per species, and the honesty label
+// whenever any metal particle is drawn.
+function gasKey(cx, low) {
+  if (low === undefined) low = H - 30;
+  ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.textAlign = "left"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
+  const runs = [[VISUALS.SPECIES_COLORS.hydrogen, SKY_TEXT.keyHydrogen], [VISUALS.SPECIES_COLORS.helium, SKY_TEXT.keyHelium], [VISUALS.SPECIES_COLORS.metals, SKY_TEXT.keyMetals]];
+  let x = cx - 108, y = low;
+  for (const [color, word] of runs) {
+    ctx.globalAlpha = 0.95; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 3, 0, 6.283); ctx.fill();
+    ctx.globalAlpha = 0.85; ctx.fillStyle = "#cfc8ff"; ctx.fillText(word, x + 8, y + 4);
+    x += 8 + ctx.measureText(word).width + 12;
+  }
+  ctx.globalAlpha = 1;
+}
 function starColor(m) { return m > 16 ? "#9fc4ff" : m > 2 ? "#e9eeff" : m > 0.8 ? "#ffe2a0" : "#ff9a5c"; }
 function star(cx, cy, size, m, t) {
   glow(cx, cy, size * 5, starColor(m), 0.28);
@@ -818,12 +911,29 @@ function draw(t) {
   for (const [x, y, b] of BACK) { ctx.globalAlpha = b * 0.5; ctx.fillStyle = "#cfc8ff"; ctx.fillRect(x * W, y * H, 1.3, 1.3); }
   ctx.globalAlpha = 1;
   const lr = run.logReach / Math.LN10;
-  if (state.view === "search") { drawGrid(cx, cy, R, 0.16, 0); hazeScene(run, cx, cy, R, t, 0.5, 1); return; }
+  if (state.view === "search") {
+    const p = state.prospective || (state.prospective = E.newRun(meta)), zt = VISUALS.zoomScale(p.density);
+    state.zoom = calm ? zt : state.zoom + (zt - state.zoom) * 0.12;
+    if (meta.blackHoleStart) {
+      // Warp the grid around a centre off to one side, so the map says the
+      // hole is near, not here.
+      drawGrid(cx + 2.4 * R, cy - 1.5 * R, R, 0.3, 0.55);
+      ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.textAlign = "left"; ctx.globalAlpha = 0.9;
+      ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.fillStyle = "#ffb86b";
+      ctx.strokeText(SKY_TEXT.blackHolePull, 16, 96); ctx.fillText(SKY_TEXT.blackHolePull, 16, 96);
+      ctx.globalAlpha = 1;
+    } else drawGrid(cx, cy, R, 0.16, 0);
+    gasScene(p, cx, cy, R, t, state.zoom);
+    gasKey(cx);
+    return;
+  }
   if (run.phase !== "ended") lastDeath = 0;
   if (run.phase === "gather") {
+    const zt = VISUALS.zoomScale(run.density);
+    state.zoom = calm ? zt : state.zoom + (zt - state.zoom) * 0.12;
     drawGrid(cx, cy, R, Math.min(0.2, Math.max(0, (lr - 16.5) / 4)), Math.min(0.22, Math.max(0, (lr - 16.5) * 0.06)));
     const N = E.patchMass(run) * 1.989e33 / 2.04e-24, haze = Math.min(1, Math.max(0, (Math.log10(N) - 2.5) / 2));
-    hazeScene(run, cx, cy, R, t, haze, 1);
+    gasScene(run, cx, cy, R, t, state.zoom);
     atomScene(run, cx, cy, R, t);
     const startLog = Math.log(1.5 / run.density ** (1 / 3)), limit = E.jeansLogReach(run, meta);
     const done = Math.min(1, (run.logReach - startLog) / (limit - startLog));
@@ -835,11 +945,18 @@ function draw(t) {
     const limitLabel = SKY_TEXT.collapseLimit;
     ctx.strokeText(limitLabel, cx, cy + R * 0.92 + 16); ctx.fillText(limitLabel, cx, cy + R * 0.92 + 16);
     glow(cx, cy, R * (0.25 + 0.75 * Math.min(1, Math.max(0, lr / 19))), "#ff5f7e", 0.1 + 0.3 * Math.min(1, Math.max(0, lr / 19)));
+    gasKey(cx);
+    temperatureGauge(run, meta);
   } else if (run.phase === "collapse") {
     const f = 1 - run.collapseLeft / E.COLLAPSE_SECONDS;
+    const zt = VISUALS.zoomScale(run.density);
+    state.zoom = calm ? zt : state.zoom + (zt - state.zoom) * 0.12;
     drawGrid(cx, cy, R, 0.2, 0.22 + f * 0.3);
-    hazeScene(run, cx, cy, R, t, 1, 1 - f * 0.85);
+    // The cloud falls inward: the whole layout crowds toward the centre while
+    // the thermal channel reads the same engine temperature as everywhere.
+    gasScene(run, cx, cy, R, t, state.zoom, 1 - 0.55 * f);
     glow(cx, cy, R * (1 - f * 0.55), "#ff5f7e", 0.3 + f * 0.5);
+    gasKey(cx);
   } else if (run.phase === "accrete") {
     drawGrid(cx, cy, R * 1.4, 0.18, 0.5);
     diskScene(run, cx, cy, R, t, meta);
