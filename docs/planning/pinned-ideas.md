@@ -1,6 +1,6 @@
 # Pinned ideas
 
-> Planning note; last updated 2026-11-08. Parked ideas; nothing here is decided.
+> Planning note; last updated 2026-11-11. Parked ideas; nothing here is decided.
 
 Ideas parked for later. Nothing here is decided.
 
@@ -17,7 +17,7 @@ Show how much of the space of setting combinations the player has explored. A si
 
 ## Insight rewards
 
-Payout amounts, conditions, and what Insight buys are deferred. Insight may unlock new observation modes.
+Moved to `prediction-system.md`: Insight pays for board milestones only. Payout amounts are still deferred.
 
 ## Skill update
 

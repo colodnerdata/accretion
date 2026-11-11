@@ -20,6 +20,51 @@ design change.
 
 ## Entries
 
+- **Date and title:** 2026-11-11 — Players may predict; the game never forecasts.
+- **Status:** accepted
+- **Context:** `CLAUDE.md` rejects previews, forecasts, ghost markers and model
+  runs. Teaching principles 3 and 4
+  (`docs/planning/teaching-principles.md`) call for predict-observe-explain and
+  a prestige debrief that invites a prediction. `docs/NEXT.md` had queued an
+  owner ruling on whether the two can coexist.
+- **Decision:** The game never forecasts; the player may. Full rules are in
+  `docs/planning/prediction-system.md`.
+  1. Player predictions are allowed. They are made blind and resolve only
+     against runs the player has played. The audit tool's true bins inform
+     debrief explanations and developer testing only.
+  2. Insight pays for board milestones only, once per relationship per
+     milestone. Amounts stay deferred.
+  3. A test compares a run with a baseline that differs in one effective
+     input; in-run purchase levels count. The baseline defaults to the
+     previous run, and the player may pick another.
+  4. v1 covers relationship predictions only, with no rewards.
+  5. Predictions live on the in-run stats rows with a test-status line, as a
+     persistent overlay.
+  6. "Hold to baseline" is an unlockable control that appears only after the
+     player's first run confounded by in-run purchases. The baseline picker
+     unlocks after the first run confounded at the survey, so the two never
+     arrive together.
+  7. The baseline run's value may be shown beside a live stat, faintly or in
+     a different color. It is a historical record, not a projection or
+     forecast, so it is not a ghost marker.
+  8. The inputs the universal clock drives (composition, background
+     temperature) are divided into epochs. Runs in one epoch count as
+     sharing those inputs. When the epoch changes, predictions reset and the
+     journal's notes start a new page: a carbon copy of the prior epoch's
+     page, with a header stating the main differences in composition and
+     background temperature.
+- **Why:** Asking learners to predict carries strong evidence (d = 0.36), and
+  a blind player prediction reveals nothing the game knows. Rejected:
+  per-prediction rewards, because a free guess with a positive payout is
+  always worth making; and a confidence stake, as an extra control for v1.
+  Epochs exist because the universal clock and enrichment change every
+  region between runs, so a strict "one input differs" rule would leave
+  almost no clean tests.
+- **Revisit when:** v1 playtests show predicting is not engaging without
+  rewards, or event and ending predictions are added. Decision 8 is the
+  rule "for now": revisit it once the audit tool shows how far composition
+  drifts inside an epoch, and when the epoch boundaries are chosen.
+
 - **Date and title:** 2026-11-11 — The accrete disk is made readable by display-side reading of existing engine state.
 - **Status:** accepted
 - **Context:** Ring colors alternated by index, fragments were simulated but not
