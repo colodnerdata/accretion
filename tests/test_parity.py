@@ -160,6 +160,19 @@ def test_python_and_browser_engines_agree():
                 len(entry["companions"]),
             ]
         )
+    # The read-only inner-flux accessor on a fixed accreting state.
+    fixed_meta = game.Meta()
+    fixed = game.new_run(fixed_meta)
+    fixed.phase = "accrete"
+    fixed.star_mass = 1.5
+    fixed.levels["turbulence"] = 3
+    fixed.disk_masses[0], fixed.disk_masses[1] = 0.02, 0.05
+    rows.append(
+        [
+            game.inner_accretion_rate(fixed, fixed_meta),
+            game.alpha(fixed, fixed_meta),
+        ]
+    )
     assert len(rows) == len(browser)
     for ours, theirs in zip(rows, browser, strict=True):
         if isinstance(ours[0], str):

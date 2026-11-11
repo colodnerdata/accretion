@@ -93,6 +93,40 @@ def torque_rates(
     ]
 
 
+def inner_accretion_rate(
+    masses: list[float],
+    star_mass: float,
+    alpha: float,
+    floor_temperature: float = 0.0,
+) -> float:
+    """Return the mass flux through the disk's inner edge, in M_sun/yr.
+
+    This is the same inner-boundary term ``step`` uses, ``dt * inner *
+    solved[0]``, evaluated explicitly at the current cell masses. It is a
+    read-only value for display; ``step`` stays the source of truth.
+
+    Parameters
+    ----------
+    masses : list of float
+        Cell masses in solar masses.
+    star_mass : float
+        Central mass in solar masses.
+    alpha : float
+        Viscosity parameter.
+    floor_temperature : float, optional
+        Lowest disk temperature in K.
+
+    Returns
+    -------
+    float
+        Mass flux onto the star in solar masses per year.
+
+    """
+    rate0 = torque_rates(star_mass, alpha, floor_temperature)[0]
+    inner = rate0 / (math.sqrt(RADII[0]) - math.sqrt(R_IN))
+    return inner * masses[0]
+
+
 def step(
     masses: list[float],
     star_mass: float,

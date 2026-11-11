@@ -494,6 +494,19 @@ def _settle_fragments(run: Run) -> None:
     run.companions = companion_mass(run)
 
 
+def inner_accretion_rate(run: Run, meta: Meta) -> float:
+    """Return the rate gas reaches the star from the disk, in M_sun/yr.
+
+    Read-only display helper; see ``disk.inner_accretion_rate``.
+    """
+    return disk.inner_accretion_rate(
+        run.disk_masses,
+        max(run.star_mass, SEED_MASS),
+        alpha(run, meta),
+        temperature(run, meta),
+    )
+
+
 def _accrete_step(run: Run, meta: Meta) -> None:
     dt = SIM_STEP_YEARS
     rate = infall_now(run, meta)

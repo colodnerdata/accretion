@@ -64,4 +64,11 @@ rows.push([E.stromgrenRadius(E.ionizingRate(22), 1e4), E.hiiRadius(E.ionizingRat
     rows.push([j.run, j.temperature, j.density, j.mass, j.ending, j.gain, j.heavy, j.seconds, j.lifetimeMyr, j.forecastMyr, j.alpha, j.feedRadius, j.skipped, j.companions.length]);
   }
 }
+{
+  // The read-only inner-flux accessor on a fixed accreting state.
+  const run = E.newRun(E.newMeta());
+  run.phase = "accrete"; run.starMass = 1.5; run.levels.turbulence = 3;
+  run.diskMasses[0] = 0.02; run.diskMasses[1] = 0.05;
+  rows.push([E.innerAccretionRate(run, E.newMeta()), E.alpha(run, E.newMeta())]);
+}
 console.log(JSON.stringify(rows));

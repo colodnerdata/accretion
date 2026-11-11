@@ -20,6 +20,36 @@ design change.
 
 ## Entries
 
+- **Date and title:** 2026-11-11 — The accrete disk is made readable by display-side reading of existing engine state.
+- **Status:** accepted
+- **Context:** Ring colors alternated by index, fragments were simulated but not
+  drawn, turbulence was hard to see, and the player's pre-run choices were
+  invisible during the run. Fragment rules, disk physics and pacing had to stay
+  as they were, and previews and forecasts stay rejected.
+- **Decision:** (1) Ring color is the engine's Toomre Q on one log scale
+  (Q_CALM = 10 to Q = 1) with an on-canvas key; brightness keeps gas mass.
+  (2) Fragments are drawn as clumps; merges and coalescing are recovered by a
+  display-side tracker that diffs `run.fragments` between frames, instead of
+  adding ids or events to the engine. (3) A read-only `innerAccretionRate` is
+  mirrored in both engines (with a parity row) for the "Gas reaching the star"
+  stat; drift speed is driven by alpha directly (v_r ~ alpha). (4) A surviving
+  companion settles onto its orbit with a label for a few seconds and then stays
+  as a faint dot in the shine scene, a small extension beyond the accrete scene,
+  because the phase flip clears the fragment list at once. (5) The "This run's
+  setup" strip is built from the pure `setupItems` in `web/visuals.js` and is
+  shown in the play and ended panes, not on the search screen, where the sliders
+  already show the same values. Items for ideas the player has not met are left
+  out. (6) Spiral arms drawn from ring Q were tried and removed: short arcs on
+  separate rings read as blotches, not arms. `docs/NEXT.md` did not in fact plan
+  them; only the galactic spiral arms in `docs/planning/feature-backlog.md`
+  exist.
+- **Why:** The tracker keeps the engines unchanged and in parity; the cost is
+  that an unreadable frame (a fragment forming and reaching the star together, or a long frame) resyncs without an animation, so a clump can lose its animation; identities are paired in order and checked for continuity, which a contrived frame could in principle still fool.
+  Alternative considered: engine-side fragment ids and an event log (a state and
+  parity change for a display need).
+- **Revisit when:** A prediction system needs the same setup data (reuse
+  `setupItems`), or fragments gain ids or events in the engine for other reasons.
+
 - **Date and title:** 2026-11-08 — Game text lives in content TOML tables, embedded at build time.
 - **Status:** accepted
 - **Context:** All player-facing text was string literals scattered through

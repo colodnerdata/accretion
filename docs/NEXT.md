@@ -19,6 +19,13 @@ a diary. Link to an issue when it owns the detail.
       reduced-motion streaks carry temperature only, gauge narrow layout
       follows the 760 px breakpoint, neutral gauge marker colors, honesty
       note gated on actual drawn metals.
+- **Readable accrete disk (this branch):** ring color = Toomre Q with a key,
+  fragments drawn as clumps (merge, join, companion settle), turbulence drift
+  and jitter, a "Gas reaching the star" stat, and the reusable setup strip
+  (`setupItems` in `web/visuals.js`). Human check: play a run past the first
+  supernova and confirm the strip highlights turbulence and braking in the
+  accrete phase. Spiral arms from ring Q were tried and dropped (see
+  DECISIONS 2026-11-11).
 - **Review leftovers (minor, accepted or deferred):** brown-dwarf runs
   ending inside the accrete branch still omit at most one solver chunk
   (~0.08 s) from the journal's seconds (pre-existing, pre-#19 bug class,
