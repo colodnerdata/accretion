@@ -86,7 +86,7 @@ def page(browser, request):
     tab.goto(PAGE.as_uri())
     tab.wait_for_selector("#track span.now")
     tab.evaluate(SEED_STRESS, [STRESS_MASSES, STRESS_RADII])
-    tab.wait_for_function("window.accretion.scene?.clumps?.length > 0")
+    tab.wait_for_function("window.accretion.scene?.clumps?.length > 0", timeout=5000)
     yield tab
     context.close()
     assert not errors, errors
@@ -131,7 +131,29 @@ def test_a_clump_that_reaches_the_star_is_shown_merging(page):
     page.wait_for_function(
         "clumpTrack.events.some((e) => e.kind === 'merge')", timeout=15000
     )
+    merge = page.evaluate("clumpTrack.events.find((e) => e.kind === 'merge')")
+    assert merge["radius"] < 5, "the clump nearest the star is the one that merged"
     assert page.evaluate("window.accretion.run.fragments.length") == 3
+
+
+def test_a_busy_frame_resyncs_instead_of_crashing(page):
+    """A fragment that forms and reaches the star in one frame is unreadable.
+
+    The tracker must resync (no animation) and the frame loop must survive;
+    the fixture fails the test on any page error.
+    """
+    page.evaluate("() => { window.accretion.run.fragments = []; }")
+    page.wait_for_function("window.accretion.scene.clumps.length === 0")
+    page.evaluate("() => { clumpTrack.events = []; }")
+    page.evaluate("() => { window.accretion.run.fragmentsFormed += 1; }")
+    page.wait_for_timeout(300)
+    page.evaluate(
+        """() => { const r = window.accretion.run;
+          r.fragments = [{ mass: 0.05, radius: 400, phase: 1 }];
+          r.fragmentsFormed += 3; }"""
+    )
+    page.wait_for_function("window.accretion.scene.clumps.length === 1")
+    assert page.evaluate("clumpTrack.events.length") == 0
 
 
 def test_coalescing_at_the_limit_is_shown_as_two_clumps_joining(page):
@@ -177,7 +199,7 @@ def test_the_gas_reaching_the_star_rate_is_in_the_stats(page):
     assert "Gas reaching the star" in rows
 
 
-def test_the_ring_scale_rates_unstable_rings_roser_than_stable_ones(page):
+def test_the_ring_scale_rates_unstable_rings_redder_than_stable_ones(page):
     rings = page.evaluate("window.accretion.scene.rings")
     shades = [r["shade"] for r in rings if r["q"] != float("inf")]
     assert shades, "stress disk has gas"

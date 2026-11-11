@@ -78,6 +78,7 @@ const SKY_TEXT = {
   stabilityCalm: t("ui.canvas.stability_calm"),
   stabilityUnstable: t("ui.canvas.stability_unstable"),
   clumpKey: t("ui.canvas.clump_key"),
+  brightnessKey: t("ui.canvas.brightness_key"),
   companion: t("ui.canvas.companion"),
 };
 
@@ -177,6 +178,7 @@ function checkMilestones() {
     if (run.logReach >= lr && !seen[key]) { seen[key] = 1; note(text(run)); }
   }
   if (run.phase === "gather" && E.patchMass(run) >= 1 && !seen.sun) { seen.sun = 1; note(t("notes.observations.sun_mass")); }
+  if (run.phase === "accrete" && run.fragmentsFormed > 0 && !seen.clump) { seen.clump = 1; note(t("notes.observations.first_clump")); }
   if (run.phase === "collapse" && !seen.collapse) { seen.collapse = 1; note(t("notes.observations.collapse")); }
   if (run.ignited && !seen.ignite) { seen.ignite = 1; note(t("notes.observations.ignite")); }
   if (run.phase === "main_sequence" && !seen.ms) { seen.ms = 1; note(t("notes.observations.final_mass", { mass: sci(run.starMass) })); }
@@ -264,7 +266,7 @@ function statsFor() {
   if (run.phase === "collapse") return [[t("ui.stats.cloud_mass"), `${sci(run.collapseMass)} M☉`], [t("ui.stats.temperature"), `${E.temperature(run, meta).toFixed(0)} K`], [t("ui.stats.energy"), `${sci(run.energy)} erg`]];
   if (run.phase === "accrete") {
     const disk = run.diskMasses.reduce((a, b) => a + b, 0);
-    return [[t("ui.stats.star"), `${sci(run.starMass)} M☉`], [t("ui.stats.in_the_disk"), `${sci(disk)} M☉`], [t("ui.stats.still_to_reach"), `${sci(run.envelope)} M☉`], [t("ui.stats.landing_rate"), `${sci(E.infallNow(run, meta))} M☉/yr`], [t("ui.stats.boiled_off"), `${sci(E.diskLossRate(run.starMass, E.feedRadius(run)))} M☉/yr`], [t("ui.stats.gas_reaching_star"), `${sci(E.innerAccretionRate(run, meta))} M☉/yr`], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.energy"), `${sci(run.energy)} erg`]];
+    return [[t("ui.stats.star"), `${sci(run.starMass)} M☉`], [t("ui.stats.in_the_disk"), `${sci(disk)} M☉`], [t("ui.stats.still_to_reach"), `${sci(run.envelope)} M☉`], [t("ui.stats.landing_rate"), `${sci(E.infallNow(run, meta))} M☉/yr`], [t("ui.stats.boiled_off"), `${sci(E.diskLossRate(run.starMass, E.feedRadius(run)))} M☉/yr`], [t("ui.stats.gas_reaching_star"), `${sci(E.innerAccretionRate(run, meta))} M☉/yr`], [t("ui.stats.clumps"), t("ui.stats.clumps_value", { count: run.fragments.length, mass: sci(E.fragmentMass(run)) })], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.energy"), `${sci(run.energy)} erg`]];
   }
   const b = bubble(run, meta);
   return [[t("ui.stats.star"), `${sci(run.starMass)} M☉`], [t("ui.stats.brightness"), `${sci(E.luminosity(run.starMass, run.metalLog10))} Suns`], [t("ui.stats.forecast_life"), myr(run.forecastMyr)], [t("ui.stats.age"), myr(run.msElapsed / run.msDuration * run.lifetimeMyr)], ...(b ? [[t("ui.stats.ionized_bubble"), t("ui.stats.ionized_bubble_value", { size: length(b.now) })]] : [])];
@@ -377,9 +379,10 @@ function setupStripHTML(items) {
   let groups = "";
   for (const [group, label] of SETUP_GROUPS) {
     const chips = items.filter((i) => i.group === group).map(setupChip).join("");
-    if (chips) groups += `<div class="setup-group"><span class="setup-label">${esc(label)}</span><ul>${chips}</ul></div>`;
+    if (chips) groups += `<div class="setup-group"><span class="setup-label">${esc(label)}</span><ul role="list">${chips}</ul></div>`;
   }
-  return `<h3>${esc(t("ui.setup.title"))}</h3>${groups}`;
+  const legend = items.some((i) => i.active) ? `<p class="fine"><span aria-hidden="true">\u25CF</span> ${esc(t("ui.setup.matters"))}</p>` : "";
+  return `<h3>${esc(t("ui.setup.title"))}</h3>${legend}${groups}`;
 }
 // Repaints only when the markup changes, so it is cheap to call every update.
 function paintSetupStrip(el, items) {
@@ -389,17 +392,19 @@ function paintSetupStrip(el, items) {
 function currentSetup(run, meta) {
   return {
     temperature: run.baseTemperature, density: run.density, metalLog10: run.metalLog10, blackHole: run.infallFactor > 1, blackHoleUnlocked: meta.blackHoleUnlocked,
+    heavyKnown: meta.heavy > 0 || meta.supernovae > 0 || meta.heavyTurbulence > 0 || meta.heavyCooling > 0,
     heavyTurbulence: meta.heavyTurbulence, heavyCooling: meta.heavyCooling, levels: run.levels, unlocks: meta.unlocks,
   };
 }
 function setupSection() { return `<section class="setup" id="setup"></section>`; }
 function renderPlay(panel) {
   const shine = state.run.phase === "main_sequence";
-  panel.insertAdjacentHTML("beforeend", `<section><p class="goal" id="goal"></p><h2 id="head"></h2><p id="sub"></p></section>${setupSection()}
+  panel.insertAdjacentHTML("beforeend", `<section><p class="goal" id="goal"></p><h2 id="head"></h2><p id="sub"></p></section>
     ${shine ? `<section class="countdown"><b id="count"></b><span id="count-note"></span></section>` : ""}
     <section><div class="meter"><i id="meter"></i></div><div class="meter-note"><span id="meter-a"></span><span id="meter-b"></span></div></section>
     <section id="upgrade-box"><h3>${esc(t("ui.play.controls_title"))}</h3><p class="fine">${esc(t("ui.play.controls_note"))}</p><div class="upgrades" id="upgrades"></div></section>
     <section><div id="stats"></div></section>
+    ${setupSection()}
     ${shine ? `<section><h3>${esc(t("ui.play.field_notes"))}</h3><div id="reading" class="reading"></div><div id="reading-earlier" class="earlier reading"></div></section>` : ""}
     <section id="skip-box" hidden></section><section><h3>${esc(t("ui.play.observations"))}</h3><div id="log"></div><div id="log-earlier" class="earlier"></div></section>`);
   const list = $("upgrades");
@@ -447,9 +452,9 @@ function renderEnded(panel) {
   if (beyond && !state.seen.anomaly) { state.seen.anomaly = 1; note(t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })); }
   panel.insertAdjacentHTML("beforeend", `<section><h3>${esc(state.skipped ? t("ui.ended.heading_forecast") : t("ui.ended.heading"))}</h3><h2>${esc(title)}</h2><p>${esc(description)}</p>
     ${state.skipped || run.skipped ? `<p>${esc(t("ui.ended.left_early_note"))}</p>` : ""}
-    ${beyond ? `<p class="tag">${esc(`${t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })} ${t("ui.ended.anomaly_cause")}`)}</p>` : ""}</section>${setupSection()}
+    ${beyond ? `<p class="tag">${esc(`${t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })} ${t("ui.ended.anomaly_cause")}`)}</p>` : ""}</section>
     <section><h3>${esc(t("ui.ended.final_mass_heading", { mass: sci(run.starMass) }))}</h3>${outcomeBands(run.kind)}</section>
-    <section>${stat([[t("ui.stats.blown_away"), `${sci(run.ejected)} M☉`], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.run_time"), duration(run.seconds)], [t("ui.stats.regions_surveyed"), `${sci(meta.regions)} → ${sci(after)}`], [t("ui.stats.probability"), `${E.budget(meta).toFixed(2)} → ${Math.log(after).toFixed(2)}`], ...(released > 0 ? [[t("ui.stats.heavy_elements"), `+${sci(released)} M☉`]] : [])])}<p class="fine">${esc(t("ui.ended.fine"))}</p></section>`);
+    <section>${stat([[t("ui.stats.blown_away"), `${sci(run.ejected)} M☉`], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.run_time"), duration(run.seconds)], [t("ui.stats.regions_surveyed"), `${sci(meta.regions)} → ${sci(after)}`], [t("ui.stats.probability"), `${E.budget(meta).toFixed(2)} → ${Math.log(after).toFixed(2)}`], ...(released > 0 ? [[t("ui.stats.heavy_elements"), `+${sci(released)} M☉`]] : [])])}<p class="fine">${esc(t("ui.ended.fine"))}</p></section>${setupSection()}`);
   const box = document.createElement("section");
   box.className = "cta";
   box.append(button("primary", t("ui.ended.survey_button"), () => {
@@ -925,26 +930,21 @@ const easeInOut = (x) => x * x * (3 - 2 * x);
 
 // Fragment tracker (display only). The engine keeps fragments as a plain list
 // with no identities and no events, and the rules stay as they are, so the
-// display follows the list from frame to frame: the engine appends new
-// fragments at the end, filters merged ones out in place, and coalesces by
-// editing the nearest one. From those facts a frame-to-frame diff recovers
-// what happened, enough to draw merges and joins:
-//  - the list shrank: the smallest-radius fragments reached the star;
-//  - the list grew: the extra entries at the end are new;
-//  - fragmentsFormed rose by more than the list grew: a new fragment was
-//    absorbed (coalesced) by the one whose mass jumped most. Its birth radius
-//    follows from conserving sqrt(r) * mass, the momentum rule the engine uses.
-// A frame that spans many engine steps can miss an event; that only costs an
-// animation, never a wrong clump.
+// display follows the list from frame to frame with VISUALS.diffFragments,
+// which recovers merges (a clump reaches the star), new clumps, and a new
+// fragment absorbed at the four-fragment limit. A frame it cannot read with
+// confidence resyncs: the clumps are paired afresh with no animation. That
+// can cost an animation, never a clump drawn with another clump's identity.
 const diskAlpha = { run: null, value: 0, at: -9 };
 const CLUMP_EVENT_SECONDS = 0.8, CLUMP_SETTLE_SECONDS = 3;
-const clumpTrack = { run: null, phase: "", items: [], formed: 0, events: [], settleAt: null, lastT: 0 };
+const clumpTrack = { run: null, phase: "", items: [], formed: 0, events: [], settleAt: null, lastT: 0, nextId: 0 };
 function trackClumps(run, t) {
   const tr = clumpTrack, dt = clamp01((t - tr.lastT) / 0.1) * 0.1;
   tr.lastT = t;
-  const fresh = (b, born) => ({ id: tr.nextId = (tr.nextId ?? 0) + 1, mass: b.mass, radius: b.radius, phase: b.phase, ang: b.phase, born, pulse: -9 });
+  const fresh = (b, born) => ({ id: ++tr.nextId, mass: b.mass, radius: b.radius, phase: b.phase, ang: b.phase, born, pulse: -9 });
+  const formedNow = run.fragmentsFormed ?? 0;
   if (tr.run !== run) {
-    Object.assign(tr, { run, phase: run.phase, formed: run.fragmentsFormed ?? 0, events: [], settleAt: null });
+    Object.assign(tr, { run, phase: run.phase, formed: formedNow, events: [], settleAt: null });
     tr.items = run.fragments.map((b) => fresh(b, -9));
     return;
   }
@@ -952,32 +952,29 @@ function trackClumps(run, t) {
   tr.phase = run.phase;
   if (run.phase !== "accrete") {
     if (phaseBefore === "accrete" && run.phase === "main_sequence" && run.companionRecords.length && !calm) tr.settleAt = t;
-    tr.items = []; tr.formed = run.fragmentsFormed ?? 0;
+    tr.items = []; tr.formed = formedNow;
     return;
   }
-  const next = run.fragments, prev = tr.items, appended = Math.max(0, next.length - prev.length);
-  let kept;
-  if (next.length >= prev.length) kept = prev.map((_, i) => i);
-  else {
-    // The d smallest-radius fragments are the ones that reached the star.
-    const gone = new Set(prev.map((b, i) => [b.radius, i]).sort((a, b) => a[0] - b[0]).slice(0, prev.length - next.length).map(([, i]) => i));
-    kept = prev.map((_, i) => i).filter((i) => !gone.has(i));
-    if (!calm) for (const i of gone) tr.events.push({ kind: "merge", t0: t, radius: prev[i].radius, ang: prev[i].ang, mass: prev[i].mass });
+  const next = run.fragments, prev = tr.items;
+  const diff = VISUALS.diffFragments(prev, next, formedNow - tr.formed, E.FRAGMENT_LIMIT, E.R_IN);
+  tr.formed = formedNow;
+  if (diff.resync) {
+    tr.items = next.map((b) => fresh(b, -9));
+    return;
   }
-  const items = kept.map((pi, j) => ({ ...prev[pi], mass: next[j].mass, radius: next[j].radius, phase: next[j].phase }));
-  const coalesced = Math.max(0, (run.fragmentsFormed ?? 0) - tr.formed - appended);
-  if (coalesced > 0 && next.length === prev.length && !calm) {
-    let host = 0, best = 0;
-    items.forEach((b, i) => { const jump = (b.mass - prev[kept[i]].mass) / prev[kept[i]].mass; if (jump > best) { best = jump; host = i; } });
-    const old = prev[kept[host]], now = items[host], extra = now.mass - old.mass;
-    const incoming = extra > 0 ? (((now.mass * Math.sqrt(now.radius) - old.mass * Math.sqrt(old.radius)) / extra) ** 2) : old.radius;
-    tr.events.push({ kind: "join", t0: t, radius: Math.min(3000, Math.max(E.R_IN, Number.isFinite(incoming) ? incoming : old.radius)), ang: old.ang + 0.9, mass: Math.max(extra, 1e-6), host: items[host].id });
-    items[host].pulse = t;
+  const items = diff.kept.map((pi, j) => ({ ...prev[pi], mass: next[j].mass, radius: next[j].radius, phase: next[j].phase }));
+  if (!calm) {
+    for (const i of diff.gone) tr.events.push({ kind: "merge", t0: t, radius: prev[i].radius, ang: prev[i].ang, mass: prev[i].mass });
+    if (diff.host >= 0) {
+      const extra = next[diff.host].mass - prev[diff.kept[diff.host]].mass;
+      tr.events.push({ kind: "join", t0: t, radius: diff.incoming, ang: items[diff.host].ang + 0.9, mass: Math.max(extra, 1e-6), host: items[diff.host].id });
+      items[diff.host].pulse = t;
+    }
   }
-  for (let j = next.length - appended; j < next.length; j++) items.push(fresh(next[j], calm ? -9 : t));
-  tr.formed = run.fragmentsFormed ?? 0;
-  // Advance the drawn angle of each clump: the true orbital rate where slow, capped
-  // where it would strobe. Reduced motion keeps the angle the engine gave it.
+  for (let j = next.length - diff.appended; j < next.length; j++) items.push(fresh(next[j], calm ? -9 : t));
+  // Advance the drawn angle of each clump: the true orbital rate where slow,
+  // capped where it would strobe. Reduced motion keeps the angle a clump was
+  // first drawn at, so it stays still.
   const star = Math.max(run.starMass, E.SEED_MASS);
   if (!calm) for (const b of items) b.ang += VISUALS.clumpAngularRate(E.orbitalFrequency(b.radius, star), E.ACCRETE_YEARS_PER_SECOND * state.speed) * dt;
   tr.items = items;
@@ -1026,9 +1023,10 @@ function stabilityKey(cx, withClumps) {
   ctx.textAlign = "right"; ctx.strokeText(SKY_TEXT.stabilityCalm, cx - bar / 2 - 7, low + 4); ctx.fillText(SKY_TEXT.stabilityCalm, cx - bar / 2 - 7, low + 4);
   ctx.textAlign = "left"; ctx.strokeText(SKY_TEXT.stabilityUnstable, cx + bar / 2 + 7, low + 4); ctx.fillText(SKY_TEXT.stabilityUnstable, cx + bar / 2 + 7, low + 4);
   if (withClumps) {
-    ctx.textAlign = "center"; ctx.globalAlpha = 0.85;
-    ctx.strokeText(SKY_TEXT.clumpKey, cx, low + 22); ctx.fillText(SKY_TEXT.clumpKey, cx, low + 22);
   }
+  const gasKeyText = withClumps ? `${SKY_TEXT.brightnessKey} \u00b7 ${SKY_TEXT.clumpKey}` : SKY_TEXT.brightnessKey;
+  ctx.textAlign = "center"; ctx.globalAlpha = 0.85;
+  ctx.strokeText(gasKeyText, cx, low + 22); ctx.fillText(gasKeyText, cx, low + 22);
   ctx.globalAlpha = 1;
 }
 function diskScene(run, cx, cy, R, t, meta) {
@@ -1047,7 +1045,7 @@ function diskScene(run, cx, cy, R, t, meta) {
   if (run.envelope > 0) glow(cx, cy, R * 1.4, "#ff5f7e", 0.14 + 0.2 * run.envelope / total);
   // Ring color is the Toomre Q of the engine on one log scale (see visuals.js);
   // ring brightness and weight stay with the gas mass.
-  const q = E.stability(run.diskMasses, Math.max(run.starMass, 0.01), E.temperature(run, meta));
+  const q = E.stability(run.diskMasses, Math.max(run.starMass, E.SEED_MASS), E.temperature(run, meta));
   run.diskMasses.forEach((m, i) => {
     const rad = ringAt(E.RADII[i]), look = VISUALS.stabilityColor(q[i]);
     const bright = Math.max(0, Math.min(1, (Math.log10(m + 1e-9) + 3.5) / 3.5));
@@ -1105,21 +1103,33 @@ function diskScene(run, cx, cy, R, t, meta) {
   ctx.globalAlpha = 1;
   // Fragments: one clump each, at its radius and orbital phase.
   const items = clumpTrack.items, drawnClumps = [];
-  const label = W >= 500;
   ctx.font = "10px 'IBM Plex Mono', monospace"; ctx.textAlign = "left"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
   items.forEach((b, i) => {
     const born = calm ? 1 : clamp01((t - b.born) / 0.6), [x, y, r] = clumpAt(cx, cy, R, b, born);
     drawnClumps.push({ id: b.id, x, y, r, mass: b.mass, radius: b.radius });
     if (!calm && t - b.pulse < 0.6) { ctx.globalAlpha = 0.8 * (1 - (t - b.pulse) / 0.6); ctx.strokeStyle = "#fff3dc"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r * (1.4 + 1.2 * (t - b.pulse) / 0.6), 0, 6.283); ctx.stroke(); ctx.globalAlpha = 1; ctx.strokeStyle = "#0c0a1c"; ctx.lineWidth = 3; }
-    if (label) { const text = `${sci(b.mass)} M☉`; ctx.globalAlpha = 0.9 * born; ctx.fillStyle = "#fff3dc"; ctx.strokeText(text, x + r + 4, y + 3); ctx.fillText(text, x + r + 4, y + 3); ctx.globalAlpha = 1; }
   });
   state.scene.clumps = drawnClumps;
   drawClumpEvents(cx, cy, R, t, (id) => items.find((b) => b.id === id));
-  // Distance labels last, so the disk rings never cover them.
+  // Distance labels, then clump mass labels on top; a mass label skips any
+  // spot that would land on another label. On a narrow canvas only the
+  // heaviest clump is labelled; the stats list carries the rest.
   ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.textAlign = "left"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.fillStyle = "#cfc8ff";
+  const taken = [[cx - ctx.measureText(landingLabel).width * 0.55, cy + landing * tilt + 8, ctx.measureText(landingLabel).width * 1.1, 18]];
   for (const au of W < 500 ? [100, 1000] : [1, 10, 100, 1000]) {
     const x = cx + ringAt(au) * Math.cos(tipAngle) + 4, y = cy + ringAt(au) * Math.sin(tipAngle) - 3;
     ctx.globalAlpha = 0.9; ctx.strokeText(`${au} AU`, x, y); ctx.fillText(`${au} AU`, x, y);
+    taken.push([x, y - 11, ctx.measureText(`${au} AU`).width, 14]);
+  }
+  ctx.globalAlpha = 1;
+  ctx.font = "10px 'IBM Plex Mono', monospace";
+  const heaviest = drawnClumps.reduce((m, c) => (m && m.mass >= c.mass ? m : c), null);
+  for (const c of drawnClumps) {
+    if (W < 500 && c !== heaviest) continue;
+    const text = `${sci(c.mass)} M☉`, w = ctx.measureText(text).width, x = c.x + c.r + 4, y = c.y + 3;
+    if (taken.some(([bx, by, bw, bh]) => x < bx + bw && x + w > bx && y - 9 < by + bh && y + 3 > by)) continue;
+    ctx.globalAlpha = 0.9; ctx.fillStyle = "#fff3dc"; ctx.strokeStyle = "#0c0a1c"; ctx.lineWidth = 3;
+    ctx.strokeText(text, x, y); ctx.fillText(text, x, y);
   }
   ctx.globalAlpha = 1;
   stabilityKey(cx, items.length > 0);

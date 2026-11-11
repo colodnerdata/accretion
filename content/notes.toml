@@ -68,6 +68,8 @@ text = "New search option: Metal content. Enriched gas cools better."
 text = "You have gathered one solar mass of gas, but its pressure still holds it apart."
 [observations.collapse]
 text = "Gravity has beaten pressure. The patch passed the Jeans mass and is collapsing."
+[observations.first_clump]
+text = "A ring grew too heavy to hold itself up and collapsed into a clump. A clump drifts inward and joins the star, or stays behind as a companion star."
 [observations.ignite]
 text = "Hydrogen fusion has begun. Starlight will now start clearing the disk."
 [observations.final_mass]

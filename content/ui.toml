@@ -36,8 +36,10 @@ text = "ring color: how close to clumping"
 text = "holds together"
 [canvas.stability_unstable]
 text = "about to clump"
+[canvas.brightness_key]
+text = "brighter ring = more gas"
 [canvas.clump_key]
-text = "clump size shows mass (log scale)"
+text = "bigger clump = more mass"
 [canvas.companion]
 text = "companion star"
 
@@ -296,6 +298,10 @@ text = "Still to reach the disk"
 text = "Landing on the disk"
 [stats.boiled_off]
 text = "Boiled off the disk"
+[stats.clumps]
+text = "Clumps in the disk"
+[stats.clumps_value]
+text = "{count} ({mass} M☉)"
 [stats.gas_reaching_star]
 text = "Gas reaching the star"
 [setup.title]

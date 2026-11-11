@@ -157,6 +157,50 @@ const jitterAmplitude = (alpha, R) => {
 const CLUMP_SPIN_CAP = 4;
 const clumpAngularRate = (omegaPerYear, yearsPerSecond) => Math.min(CLUMP_SPIN_CAP, omegaPerYear * yearsPerSecond);
 
+// Reading the fragment list between two frames. The engine keeps fragments as
+// a plain list: new ones are appended at the end (while below the limit), ones
+// that reach the star are filtered out in place, and at the limit a new one is
+// absorbed by the nearest. `formedUp` is how many fragments formed in the
+// frame. Only unambiguous frames are interpreted:
+//  - nothing formed, the list shrank or stayed: the smallest-radius ones left;
+//  - the list grew by exactly what formed: the extras at the end are new;
+//  - at the limit, the list stayed the same and something formed: the host
+//    (largest relative mass jump) absorbed it, and its birth radius follows
+//    from conserving sqrt(r) * mass, approximately, since gas take and drift
+//    in the same steps also change the host.
+// Anything else (a fragment formed and another left in the same frame, a list
+// that jumps) resyncs: the clumps are paired afresh with no animation, so a
+// busy frame costs an animation, never a clump drawn with the wrong identity.
+const CLUMP_CONTINUITY = 0.5;
+const diffFragments = (prev, next, formedUp, limit, rIn = 1) => {
+  const resync = { resync: true, kept: [], gone: [], appended: 0, host: -1, incoming: 0 };
+  const grew = next.length - prev.length;
+  const near = (a, b) => a.radius > 0 && b.radius > 0 && Math.abs(Math.log(a.radius / b.radius)) < CLUMP_CONTINUITY;
+  let kept, gone = [], appended = 0, host = -1, incoming = 0;
+  if (formedUp === 0 && grew <= 0) {
+    const order = prev.map((b, i) => [b.radius, i]).sort((a, b) => a[0] - b[0]);
+    gone = order.slice(0, -grew).map(([, i]) => i);
+    kept = prev.map((_, i) => i).filter((i) => !gone.includes(i));
+  } else if (formedUp > 0 && grew === formedUp) {
+    kept = prev.map((_, i) => i);
+    appended = grew;
+  } else if (formedUp > 0 && grew === 0 && prev.length === limit && prev.length > 0) {
+    kept = prev.map((_, i) => i);
+    let best = 0;
+    kept.forEach((pi, j) => {
+      const jump = (next[j].mass - prev[pi].mass) / prev[pi].mass;
+      if (jump > best) { best = jump; host = j; }
+    });
+    if (host < 0) return resync;
+    const extra = next[host].mass - prev[host].mass;
+    const moment = next[host].mass * Math.sqrt(next[host].radius) - prev[host].mass * Math.sqrt(prev[host].radius);
+    incoming = (moment / extra) ** 2;
+    incoming = Number.isFinite(incoming) ? Math.min(3000, Math.max(rIn, incoming)) : prev[host].radius;
+  } else return resync;
+  if (!kept.every((pi, j) => j === host || near(prev[pi], next[j]))) return resync;
+  return { resync: false, kept, gone, appended, host, incoming };
+};
+
 // Which setup items matter in each phase. The accrete phase is the one the
 // turbulence choices act in; the rest follow the engine's rules.
 const PHASE_RELEVANT = {
@@ -174,7 +218,7 @@ const CONTROL_ORDER = ["reach", "tap", "cooling", "turbulence", "braking"];
 // a hypothetical run through the same function. Items whose idea the player
 // has not met yet are left out.
 //   setup: { temperature, density, metalLog10, blackHole, blackHoleUnlocked,
-//            heavyTurbulence, heavyCooling, levels, unlocks }
+//            heavyKnown, heavyTurbulence, heavyCooling, levels, unlocks }
 const setupItems = (setup, phase) => {
   const relevant = PHASE_RELEVANT[phase] ?? [];
   const has = (name) => setup.unlocks.includes(name);
@@ -185,8 +229,9 @@ const setupItems = (setup, phase) => {
   ];
   if (has("metals")) items.push(item("metals", "region", setup.metalLog10));
   if (setup.blackHole || setup.blackHoleUnlocked) items.push(item("blackHole", "region", Boolean(setup.blackHole)));
-  if (has("cooling")) items.push(item("heavyCooling", "heavy", setup.heavyCooling));
-  if (has("turbulence")) items.push(item("heavyTurbulence", "heavy", setup.heavyTurbulence));
+  // Heavy-element levels appear once the player has met heavy elements.
+  if (setup.heavyKnown && has("cooling")) items.push(item("heavyCooling", "heavy", setup.heavyCooling));
+  if (setup.heavyKnown && has("turbulence")) items.push(item("heavyTurbulence", "heavy", setup.heavyTurbulence));
   for (const name of CONTROL_ORDER) if (has(name)) items.push(item(name, "controls", setup.levels[name] ?? 0));
   return items;
 };
@@ -196,7 +241,7 @@ const VISUALS = {
   HYDROGEN_MASS, HELIUM_MASS, METAL_MASS, SPECIES_COLORS,
   speedForTemperature, speedForMass, metalShare, metalDisplayShare, speciesMix, zoomScale,
   Q_CALM, Q_UNSTABLE, stabilityShade, stabilityColor,
-  FRAGMENT_MASS_REF, fragmentRadiusPx, CLUMP_SPIN_CAP, clumpAngularRate, JITTER_BASE_ALPHA, jitterAmplitude,
+  FRAGMENT_MASS_REF, fragmentRadiusPx, CLUMP_SPIN_CAP, clumpAngularRate, CLUMP_CONTINUITY, diffFragments, JITTER_BASE_ALPHA, jitterAmplitude,
   PHASE_RELEVANT, CONTROL_ORDER, setupItems,
 };
 if (typeof module !== "undefined") module.exports = VISUALS;

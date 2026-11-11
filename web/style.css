@@ -38,10 +38,10 @@ p { margin: 0; color: var(--quiet); }
 .setup-group { display: flex; flex-direction: column; gap: 3px; }
 .setup-label { font: 11px var(--data); color: var(--quiet); }
 .setup ul { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.setup li { font: 11.5px var(--data); color: var(--quiet); padding: 1px 7px; border: 1px solid var(--line); border-radius: 3px; white-space: nowrap; }
+.setup li { font: 12px var(--data); color: var(--quiet); padding: 1px 7px; border: 1px solid var(--line); border-radius: 3px; white-space: nowrap; }
 .setup li b { font-weight: 500; color: var(--ink); }
 .setup li.on { border-color: var(--sii); color: var(--ink); background: rgba(255, 184, 107, .12); }
-.setup li.on::before { content: "\25CF"; color: var(--sii); margin-right: 5px; font-size: 9px; }
+.setup li.on::before { content: "\25CF" / ""; color: var(--sii); margin-right: 5px; font-size: 9px; }
 .meter { height: 8px; background: var(--raise); }
 .meter i { display: block; height: 100%; width: 0; background: var(--halpha); }
 .meter-note { display: flex; justify-content: space-between; gap: 8px; font: 12px var(--data); color: var(--quiet); }

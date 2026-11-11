@@ -85,6 +85,30 @@ check("a slow outer orbit keeps its true rate", close(V.clumpAngularRate(0.001, 
 check("a fast inner orbit is capped", V.clumpAngularRate(2, 700) === V.CLUMP_SPIN_CAP);
 check("spin rate is monotone in orbital frequency", [1e-4, 1e-3, 1e-2, 1e-1].map((w) => V.clumpAngularRate(w, 700)).every((x, i, a) => i === 0 || x >= a[i - 1]));
 
+// Fragment list diff between frames.
+{
+  const B = (radius, mass = 0.05) => ({ radius, mass, phase: 0 });
+  const LIMIT = 4;
+  const d = (prev, next, formed) => V.diffFragments(prev, next, formed, LIMIT);
+  check("an empty list with nothing formed is steady", (() => { const r = d([], [], 0); return !r.resync && r.kept.length === 0; })());
+  check("a fragment forming and reaching the star in one frame resyncs, not throws", d([], [], 1).resync === true);
+  check("a new fragment at the end is read as appended", (() => { const r = d([B(300)], [B(299), B(500)], 1); return !r.resync && r.appended === 1 && r.kept.length === 1; })());
+  check("a shrinking list drops the smallest radius", (() => { const r = d([B(300), B(2), B(800)], [B(299), B(790)], 0); return !r.resync && r.gone.length === 1 && r.gone[0] === 1 && r.kept.join() === "0,2"; })());
+  check("a removal plus an append in one frame resyncs", d([B(300), B(2)], [B(299), B(500)], 1).resync === true);
+  check("a growing list with nothing formed resyncs", d([B(300)], [B(300), B(500)], 0).resync === true);
+  {
+    // At the limit a formed fragment is absorbed by the nearest: momentum rule.
+    const prev = [B(100), B(200), B(400), B(800)], extra = 0.03, host = 1;
+    const mass = prev[host].mass + extra, moment = prev[host].mass * Math.sqrt(prev[host].radius) + extra * Math.sqrt(900);
+    const next = prev.map((b, i) => (i === host ? { ...b, mass, radius: (moment / mass) ** 2 } : { ...b }));
+    const r = d(prev, next, 1);
+    check("a coalesce at the limit finds its host", !r.resync && r.host === host && r.appended === 0, r);
+    check("the birth radius follows from conserving momentum", close(r.incoming, 900, 1e-6), r.incoming);
+    check("a same-size list below the limit with something formed resyncs", V.diffFragments(prev.slice(0, 3), next.slice(0, 3), 1, LIMIT).resync === true);
+  }
+  check("a pairing that jumps far in radius resyncs", d([B(300), B(500)], [B(30), B(500)], 0).resync === true);
+}
+
 // Turbulence jitter: zero without turbulence, rising with alpha, capped.
 {
   const R = 300, base = V.jitterAmplitude(V.JITTER_BASE_ALPHA, R);
@@ -99,7 +123,7 @@ check("spin rate is monotone in orbital frequency", [1e-4, 1e-3, 1e-2, 1e-1].map
 {
   const setup = {
     temperature: 120, density: 1e4, metalLog10: -2, blackHole: false, blackHoleUnlocked: false,
-    heavyTurbulence: 2, heavyCooling: 1, levels: { reach: 3, tap: 1, cooling: 0, turbulence: 2, braking: 1 },
+    heavyKnown: true, heavyTurbulence: 2, heavyCooling: 1, levels: { reach: 3, tap: 1, cooling: 0, turbulence: 2, braking: 1 },
     unlocks: ["reach", "tap", "turbulence", "temperature", "density", "braking", "cooling", "metals"],
   };
   const active = (phase, s = setup) => V.setupItems(s, phase).filter((i) => i.active).map((i) => i.id).sort();
@@ -116,7 +140,8 @@ check("spin rate is monotone in orbital frequency", [1e-4, 1e-3, 1e-2, 1e-1].map
   check("the black hole item hides until it matters", !ids("accrete").includes("blackHole"));
   check("a black hole start is listed", ids("accrete", { ...setup, blackHole: true }).includes("blackHole"));
   check("an unlocked black hole option lists a no", V.setupItems({ ...setup, blackHoleUnlocked: true }, "accrete").find((i) => i.id === "blackHole").value === false);
-  const early = { ...setup, unlocks: ["reach"], heavyTurbulence: 0, heavyCooling: 0 };
+  check("heavy items stay hidden until heavy elements are met", !ids("accrete", { ...setup, heavyKnown: false }).some((id) => id.startsWith("heavy")));
+  const early = { ...setup, heavyKnown: false, unlocks: ["reach"], heavyTurbulence: 0, heavyCooling: 0 };
   check("a first run lists only what the player has met", JSON.stringify(ids("gather", early)) === JSON.stringify(["temperature", "density", "reach"]), ids("gather", early));
   check("seeded turbulence carries its level", V.setupItems(setup, "accrete").find((i) => i.id === "heavyTurbulence").value === 2);
   check("control levels come from the run", V.setupItems(setup, "accrete").find((i) => i.id === "braking").value === 1);

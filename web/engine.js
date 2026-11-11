@@ -126,8 +126,9 @@ const Engine = (() => {
     for (let i = 0; i < CELLS; i++) if (r < EDGES[i + 1]) return i;
     return CELLS - 1;
   };
+  const torqueRates = (star, a, floor) => RADII.map((r, i) => 3 * Math.PI * viscosity(r, star, a, floor) * Math.sqrt(r) / AREAS[i]);
   function diskStep(masses, star, a, dt, source, cell, floor) {
-    const rates = RADII.map((r, i) => 3 * Math.PI * viscosity(r, star, a, floor) * Math.sqrt(r) / AREAS[i]);
+    const rates = torqueRates(star, a, floor);
     const roots = RADII.map(Math.sqrt);
     const lower = new Array(CELLS).fill(0), diagonal = new Array(CELLS).fill(1), upper = new Array(CELLS).fill(0);
     for (let i = 0; i < CELLS - 1; i++) {
@@ -335,9 +336,9 @@ const Engine = (() => {
   // Read-only display value: mass flux through the inner edge (M_sun/yr), the
   // same boundary term diskStep uses, evaluated at the current cell masses.
   function innerAccretionRate(run, meta) {
-    const star = Math.max(run.starMass, SEED_MASS), r = RADII[0];
-    const rate0 = 3 * Math.PI * viscosity(r, star, alpha(run, meta), temperature(run, meta)) * Math.sqrt(r) / AREAS[0];
-    return rate0 / (Math.sqrt(r) - Math.sqrt(R_IN)) * run.diskMasses[0];
+    const star = Math.max(run.starMass, SEED_MASS);
+    const rate0 = torqueRates(star, alpha(run, meta), temperature(run, meta))[0];
+    return rate0 / (Math.sqrt(RADII[0]) - Math.sqrt(R_IN)) * run.diskMasses[0];
   }
   function accreteStep(run, meta) {
     const dt = SIM_STEP_YEARS, rate = infallNow(run, meta), infall = Math.min(run.envelope, rate * dt);
