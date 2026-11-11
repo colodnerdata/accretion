@@ -885,13 +885,18 @@ function checkMilestones() {
 }
 
 function save() {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ meta: state.meta, run: state.run, view: state.view, seen: state.seen, log: state.log, skipped: state.skipped, noted: state.noted, savedAt: Date.now() })); } catch {}
+  // logShape 2: note phase indices include the display-only Survey step.
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ meta: state.meta, run: state.run, view: state.view, seen: state.seen, log: state.log, skipped: state.skipped, noted: state.noted, logShape: 2, savedAt: Date.now() })); } catch {}
 }
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
     if (!saved?.run) return;
-    Object.assign(state, { meta: saved.meta, run: saved.run, view: saved.view, seen: saved.seen || {}, log: (saved.log || []).map(asNote), skipped: !!saved.skipped, noted: saved.noted || 0 });
+    // Notes saved before Survey joined PHASES carry indices one lower than
+    // today's; re-stamp them so nothing old expires a phase early. Saves
+    // written after (logShape 2) already carry the new indices.
+    const bump = saved.logShape ? 0 : 1;
+    Object.assign(state, { meta: saved.meta, run: saved.run, view: saved.view, seen: saved.seen || {}, log: (saved.log || []).map((n) => { const m = asNote(n); return m.p < 0 ? m : { ...m, p: m.p + bump }; }), skipped: !!saved.skipped, noted: saved.noted || 0 });
     state.prospective = E.newRun(state.meta);
     const away = (Date.now() - saved.savedAt) / 1000;
     if (away > 60 && state.view === "play") {
