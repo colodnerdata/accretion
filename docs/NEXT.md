@@ -16,13 +16,9 @@ a diary. Link to an issue when it owns the detail.
   above). Also ruled there: a played run's value beside a live stat is a
   historical record, not a ghost marker; and clock-driven inputs are
   divided into epochs, with predictions resetting at each change.
+  The design spec's Decisions section carries the same three rulings
+  (edited 2026-11-11).
 - **Owner actions:**
-    - Edit the design spec (the Claude Docs "Accretion Idle Game Design
-      Spec", linked from `CLAUDE.md`). It could not be reached from the
-      coding session, which has no Claude Docs connector. Change "without
-      predictions or previews" to "without game previews or forecasts;
-      players may make their own predictions", and add a pointer to
-      `docs/planning/prediction-system.md`.
     - Choose the epoch boundaries for the prediction system (candidates
       in "Epochs" in `docs/planning/prediction-system.md`), and confirm the
       proposed reading of "predictions reset" there.
