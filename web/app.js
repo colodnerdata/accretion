@@ -74,6 +74,11 @@ const SKY_TEXT = {
   gauge: t("ui.canvas.gauge"),
   gaugeFloor: t("ui.canvas.gauge_floor"),
   blackHolePull: t("ui.canvas.black_hole_pull"),
+  stabilityKey: t("ui.canvas.stability_key"),
+  stabilityCalm: t("ui.canvas.stability_calm"),
+  stabilityUnstable: t("ui.canvas.stability_unstable"),
+  clumpKey: t("ui.canvas.clump_key"),
+  companion: t("ui.canvas.companion"),
 };
 
 // Shine phase. The HII region is display only: Stromgren sphere, Spitzer expansion, then stall.
@@ -259,7 +264,7 @@ function statsFor() {
   if (run.phase === "collapse") return [[t("ui.stats.cloud_mass"), `${sci(run.collapseMass)} M☉`], [t("ui.stats.temperature"), `${E.temperature(run, meta).toFixed(0)} K`], [t("ui.stats.energy"), `${sci(run.energy)} erg`]];
   if (run.phase === "accrete") {
     const disk = run.diskMasses.reduce((a, b) => a + b, 0);
-    return [[t("ui.stats.star"), `${sci(run.starMass)} M☉`], [t("ui.stats.in_the_disk"), `${sci(disk)} M☉`], [t("ui.stats.still_to_reach"), `${sci(run.envelope)} M☉`], [t("ui.stats.landing_rate"), `${sci(E.infallNow(run, meta))} M☉/yr`], [t("ui.stats.boiled_off"), `${sci(E.diskLossRate(run.starMass, E.feedRadius(run)))} M☉/yr`], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.energy"), `${sci(run.energy)} erg`]];
+    return [[t("ui.stats.star"), `${sci(run.starMass)} M☉`], [t("ui.stats.in_the_disk"), `${sci(disk)} M☉`], [t("ui.stats.still_to_reach"), `${sci(run.envelope)} M☉`], [t("ui.stats.landing_rate"), `${sci(E.infallNow(run, meta))} M☉/yr`], [t("ui.stats.boiled_off"), `${sci(E.diskLossRate(run.starMass, E.feedRadius(run)))} M☉/yr`], [t("ui.stats.gas_reaching_star"), `${sci(E.innerAccretionRate(run, meta))} M☉/yr`], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.energy"), `${sci(run.energy)} erg`]];
   }
   const b = bubble(run, meta);
   return [[t("ui.stats.star"), `${sci(run.starMass)} M☉`], [t("ui.stats.brightness"), `${sci(E.luminosity(run.starMass, run.metalLog10))} Suns`], [t("ui.stats.forecast_life"), myr(run.forecastMyr)], [t("ui.stats.age"), myr(run.msElapsed / run.msDuration * run.lifetimeMyr)], ...(b ? [[t("ui.stats.ionized_bubble"), t("ui.stats.ionized_bubble_value", { size: length(b.now) })]] : [])];
@@ -347,9 +352,50 @@ function renderShell() {
     if (target) { if (target.localName === "h2") target.tabIndex = -1; target.focus({ preventScroll: true }); }
   }
 }
+// The setup strip: the region, heavy-element and control choices of this run, with
+// the ones that matter in the current phase highlighted. The component only
+// turns `setupItems` data into markup, so a future prediction view can render
+// the setup of a hypothetical run through the same function.
+const SETUP_GROUPS = [["region", t("ui.setup.group_region")], ["heavy", t("ui.setup.group_heavy")], ["controls", t("ui.setup.group_controls")]];
+const SETUP_LABEL = {
+  temperature: t("ui.setup.temperature"), density: t("ui.setup.density"), metals: t("ui.setup.metals"), blackHole: t("ui.setup.black_hole"),
+  heavyCooling: t("ui.heavy.cooling"), heavyTurbulence: t("ui.heavy.turbulence"),
+  reach: t("ui.upgrades.reach"), tap: t("ui.upgrades.tap"), cooling: t("ui.upgrades.cooling"), turbulence: t("ui.upgrades.turbulence"), braking: t("ui.upgrades.braking"),
+};
+function setupValue(item) {
+  if (item.id === "temperature") return t("ui.setup.temperature_value", { value: Math.round(item.value) });
+  if (item.id === "density") return t("ui.setup.density_value", { value: sci(item.value) });
+  if (item.id === "metals") return t("ui.setup.metals_value", { value: item.value.toFixed(1) });
+  if (item.id === "blackHole") return item.value ? t("ui.setup.yes") : t("ui.setup.no");
+  return t("ui.setup.level_value", { value: item.value });
+}
+function setupChip(item) {
+  const note = item.active ? ` <span class="sr">(${esc(t("ui.setup.matters"))})</span>` : "";
+  return `<li class="${item.active ? "on" : ""}"><span class="k">${esc(SETUP_LABEL[item.id])}</span> <b>${esc(setupValue(item))}</b>${note}</li>`;
+}
+function setupStripHTML(items) {
+  let groups = "";
+  for (const [group, label] of SETUP_GROUPS) {
+    const chips = items.filter((i) => i.group === group).map(setupChip).join("");
+    if (chips) groups += `<div class="setup-group"><span class="setup-label">${esc(label)}</span><ul>${chips}</ul></div>`;
+  }
+  return `<h3>${esc(t("ui.setup.title"))}</h3>${groups}`;
+}
+// Repaints only when the markup changes, so it is cheap to call every update.
+function paintSetupStrip(el, items) {
+  const html = setupStripHTML(items);
+  if (el.dataset.html !== html) { el.dataset.html = html; el.innerHTML = html; }
+}
+function currentSetup(run, meta) {
+  return {
+    temperature: run.baseTemperature, density: run.density, metalLog10: run.metalLog10, blackHole: run.infallFactor > 1, blackHoleUnlocked: meta.blackHoleUnlocked,
+    heavyTurbulence: meta.heavyTurbulence, heavyCooling: meta.heavyCooling, levels: run.levels, unlocks: meta.unlocks,
+  };
+}
+function setupSection() { return `<section class="setup" id="setup"></section>`; }
 function renderPlay(panel) {
   const shine = state.run.phase === "main_sequence";
-  panel.insertAdjacentHTML("beforeend", `<section><p class="goal" id="goal"></p><h2 id="head"></h2><p id="sub"></p></section>
+  panel.insertAdjacentHTML("beforeend", `<section><p class="goal" id="goal"></p><h2 id="head"></h2><p id="sub"></p></section>${setupSection()}
     ${shine ? `<section class="countdown"><b id="count"></b><span id="count-note"></span></section>` : ""}
     <section><div class="meter"><i id="meter"></i></div><div class="meter-note"><span id="meter-a"></span><span id="meter-b"></span></div></section>
     <section id="upgrade-box"><h3>${esc(t("ui.play.controls_title"))}</h3><p class="fine">${esc(t("ui.play.controls_note"))}</p><div class="upgrades" id="upgrades"></div></section>
@@ -401,7 +447,7 @@ function renderEnded(panel) {
   if (beyond && !state.seen.anomaly) { state.seen.anomaly = 1; note(t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })); }
   panel.insertAdjacentHTML("beforeend", `<section><h3>${esc(state.skipped ? t("ui.ended.heading_forecast") : t("ui.ended.heading"))}</h3><h2>${esc(title)}</h2><p>${esc(description)}</p>
     ${state.skipped || run.skipped ? `<p>${esc(t("ui.ended.left_early_note"))}</p>` : ""}
-    ${beyond ? `<p class="tag">${esc(`${t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })} ${t("ui.ended.anomaly_cause")}`)}</p>` : ""}</section>
+    ${beyond ? `<p class="tag">${esc(`${t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })} ${t("ui.ended.anomaly_cause")}`)}</p>` : ""}</section>${setupSection()}
     <section><h3>${esc(t("ui.ended.final_mass_heading", { mass: sci(run.starMass) }))}</h3>${outcomeBands(run.kind)}</section>
     <section>${stat([[t("ui.stats.blown_away"), `${sci(run.ejected)} M☉`], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.run_time"), duration(run.seconds)], [t("ui.stats.regions_surveyed"), `${sci(meta.regions)} → ${sci(after)}`], [t("ui.stats.probability"), `${E.budget(meta).toFixed(2)} → ${Math.log(after).toFixed(2)}`], ...(released > 0 ? [[t("ui.stats.heavy_elements"), `+${sci(released)} M☉`]] : [])])}<p class="fine">${esc(t("ui.ended.fine"))}</p></section>`);
   const box = document.createElement("section");
@@ -583,6 +629,7 @@ function update() {
   $("scale-label").textContent = length(viewRadius() * 0.5 * zoomShown);
   $("hint").hidden = !(run.phase === "gather" && state.view === "play" && run.seconds < 30 && !meta.runs);
   paintHints();
+  if ($("setup")) paintSetupStrip($("setup"), VISUALS.setupItems(currentSetup(run, meta), run.phase));
   if (!$("head")) return;
   const [head, sub] = headline();
   $("goal").textContent = goal();
@@ -864,9 +911,130 @@ function star(cx, cy, size, m, t) {
   glow(cx, cy, size * 2, starColor(m), 0.75);
   ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(cx, cy, size, 0, 6.283); ctx.fill();
 }
+// The accretion disk, drawn so its state can be read. Geometry first: rings
+// sit on a log-AU scale, seen at a tilt.
+const DISK_TILT = 0.42, DISK_TIP = -0.32, DISK_MAX_LN = Math.log(3000);
+const diskRingAt = (au, R) => R * 0.1 + R * 0.9 * Math.log(au) / DISK_MAX_LN;
+function diskPos(cx, cy, rad, ang) {
+  const px = Math.cos(ang) * rad, py = Math.sin(ang) * rad * DISK_TILT, c = Math.cos(DISK_TIP), s = Math.sin(DISK_TIP);
+  return [cx + px * c - py * s, cy + px * s + py * c];
+}
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+const easeIn = (x) => x * x;
+const easeInOut = (x) => x * x * (3 - 2 * x);
+
+// Fragment tracker (display only). The engine keeps fragments as a plain list
+// with no identities and no events, and the rules stay as they are, so the
+// display follows the list from frame to frame: the engine appends new
+// fragments at the end, filters merged ones out in place, and coalesces by
+// editing the nearest one. From those facts a frame-to-frame diff recovers
+// what happened, enough to draw merges and joins:
+//  - the list shrank: the smallest-radius fragments reached the star;
+//  - the list grew: the extra entries at the end are new;
+//  - fragmentsFormed rose by more than the list grew: a new fragment was
+//    absorbed (coalesced) by the one whose mass jumped most. Its birth radius
+//    follows from conserving sqrt(r) * mass, the momentum rule the engine uses.
+// A frame that spans many engine steps can miss an event; that only costs an
+// animation, never a wrong clump.
+const diskAlpha = { run: null, value: 0, at: -9 };
+const CLUMP_EVENT_SECONDS = 0.8, CLUMP_SETTLE_SECONDS = 3;
+const clumpTrack = { run: null, phase: "", items: [], formed: 0, events: [], settleAt: null, lastT: 0 };
+function trackClumps(run, t) {
+  const tr = clumpTrack, dt = clamp01((t - tr.lastT) / 0.1) * 0.1;
+  tr.lastT = t;
+  const fresh = (b, born) => ({ id: tr.nextId = (tr.nextId ?? 0) + 1, mass: b.mass, radius: b.radius, phase: b.phase, ang: b.phase, born, pulse: -9 });
+  if (tr.run !== run) {
+    Object.assign(tr, { run, phase: run.phase, formed: run.fragmentsFormed ?? 0, events: [], settleAt: null });
+    tr.items = run.fragments.map((b) => fresh(b, -9));
+    return;
+  }
+  const phaseBefore = tr.phase;
+  tr.phase = run.phase;
+  if (run.phase !== "accrete") {
+    if (phaseBefore === "accrete" && run.phase === "main_sequence" && run.companionRecords.length && !calm) tr.settleAt = t;
+    tr.items = []; tr.formed = run.fragmentsFormed ?? 0;
+    return;
+  }
+  const next = run.fragments, prev = tr.items, appended = Math.max(0, next.length - prev.length);
+  let kept;
+  if (next.length >= prev.length) kept = prev.map((_, i) => i);
+  else {
+    // The d smallest-radius fragments are the ones that reached the star.
+    const gone = new Set(prev.map((b, i) => [b.radius, i]).sort((a, b) => a[0] - b[0]).slice(0, prev.length - next.length).map(([, i]) => i));
+    kept = prev.map((_, i) => i).filter((i) => !gone.has(i));
+    if (!calm) for (const i of gone) tr.events.push({ kind: "merge", t0: t, radius: prev[i].radius, ang: prev[i].ang, mass: prev[i].mass });
+  }
+  const items = kept.map((pi, j) => ({ ...prev[pi], mass: next[j].mass, radius: next[j].radius, phase: next[j].phase }));
+  const coalesced = Math.max(0, (run.fragmentsFormed ?? 0) - tr.formed - appended);
+  if (coalesced > 0 && next.length === prev.length && !calm) {
+    let host = 0, best = 0;
+    items.forEach((b, i) => { const jump = (b.mass - prev[kept[i]].mass) / prev[kept[i]].mass; if (jump > best) { best = jump; host = i; } });
+    const old = prev[kept[host]], now = items[host], extra = now.mass - old.mass;
+    const incoming = extra > 0 ? (((now.mass * Math.sqrt(now.radius) - old.mass * Math.sqrt(old.radius)) / extra) ** 2) : old.radius;
+    tr.events.push({ kind: "join", t0: t, radius: Math.min(3000, Math.max(E.R_IN, Number.isFinite(incoming) ? incoming : old.radius)), ang: old.ang + 0.9, mass: Math.max(extra, 1e-6), host: items[host].id });
+    items[host].pulse = t;
+  }
+  for (let j = next.length - appended; j < next.length; j++) items.push(fresh(next[j], calm ? -9 : t));
+  tr.formed = run.fragmentsFormed ?? 0;
+  // Advance the drawn angle of each clump: the true orbital rate where slow, capped
+  // where it would strobe. Reduced motion keeps the angle the engine gave it.
+  const star = Math.max(run.starMass, E.SEED_MASS);
+  if (!calm) for (const b of items) b.ang += VISUALS.clumpAngularRate(E.orbitalFrequency(b.radius, star), E.ACCRETE_YEARS_PER_SECOND * state.speed) * dt;
+  tr.items = items;
+  tr.events = tr.events.filter((e) => t - e.t0 < CLUMP_EVENT_SECONDS + 0.3);
+}
+function clumpAt(cx, cy, R, b, alpha, scale = 1) {
+  const [x, y] = diskPos(cx, cy, diskRingAt(Math.max(b.radius, 1), R), b.ang);
+  const r = VISUALS.fragmentRadiusPx(b.mass, R) * scale;
+  glow(x, y, r * 3, "#ffb86b", 0.3 * alpha);
+  ctx.globalAlpha = alpha; ctx.fillStyle = "#fff3dc"; ctx.strokeStyle = "#0c0a1c"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill(); ctx.stroke();
+  ctx.globalAlpha = 1;
+  return [x, y, r];
+}
+// Clump events: a clump that reaches the star spirals in and shrinks; a new
+// fragment absorbed at the four-fragment limit slides into the one it joined.
+function drawClumpEvents(cx, cy, R, t, hostOf) {
+  for (const e of clumpTrack.events) {
+    const f = clamp01((t - e.t0) / CLUMP_EVENT_SECONDS);
+    if (f >= 1) continue;
+    if (e.kind === "merge") {
+      const rad = diskRingAt(Math.max(e.radius, 1), R) * (1 - easeIn(f));
+      const [x, y] = diskPos(cx, cy, rad, e.ang + f * 2.4), r = VISUALS.fragmentRadiusPx(e.mass, R) * (1 - 0.6 * f);
+      ctx.globalAlpha = 1 - 0.4 * f; ctx.fillStyle = "#fff3dc"; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill();
+      if (f > 0.7) glow(cx, cy, R * 0.12, "#fff3dc", 0.5 * (f - 0.7) / 0.3);
+    } else {
+      const host = hostOf(e.host);
+      if (!host) continue;
+      const [x0, y0] = diskPos(cx, cy, diskRingAt(e.radius, R), e.ang), [x1, y1] = diskPos(cx, cy, diskRingAt(Math.max(host.radius, 1), R), host.ang);
+      const k = easeInOut(f), x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k, r = VISUALS.fragmentRadiusPx(e.mass, R) * (1 - 0.5 * k);
+      ctx.globalAlpha = 0.95; ctx.fillStyle = "#fff3dc"; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+// The ring key: one gradient bar on the same Q scale the rings use.
+function stabilityKey(cx, withClumps) {
+  const bar = 84, low = H - 44;
+  ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.textAlign = "center";
+  ctx.globalAlpha = 0.9; ctx.fillStyle = "#cfc8ff";
+  ctx.strokeText(SKY_TEXT.stabilityKey, cx, low - 12); ctx.fillText(SKY_TEXT.stabilityKey, cx, low - 12);
+  const g = ctx.createLinearGradient(cx - bar / 2, 0, cx + bar / 2, 0);
+  for (let k = 0; k <= 8; k++) g.addColorStop(k / 8, VISUALS.stabilityColor(VISUALS.Q_CALM ** (1 - k / 8)).color);
+  ctx.globalAlpha = 0.95; ctx.fillStyle = g; ctx.fillRect(cx - bar / 2, low - 3, bar, 6);
+  ctx.globalAlpha = 0.85; ctx.fillStyle = "#cfc8ff";
+  ctx.textAlign = "right"; ctx.strokeText(SKY_TEXT.stabilityCalm, cx - bar / 2 - 7, low + 4); ctx.fillText(SKY_TEXT.stabilityCalm, cx - bar / 2 - 7, low + 4);
+  ctx.textAlign = "left"; ctx.strokeText(SKY_TEXT.stabilityUnstable, cx + bar / 2 + 7, low + 4); ctx.fillText(SKY_TEXT.stabilityUnstable, cx + bar / 2 + 7, low + 4);
+  if (withClumps) {
+    ctx.textAlign = "center"; ctx.globalAlpha = 0.85;
+    ctx.strokeText(SKY_TEXT.clumpKey, cx, low + 22); ctx.fillText(SKY_TEXT.clumpKey, cx, low + 22);
+  }
+  ctx.globalAlpha = 1;
+}
 function diskScene(run, cx, cy, R, t, meta) {
-  const tilt = 0.42, maxR = Math.log(3000), tipAngle = -0.32;
-  const ringAt = (au) => R * 0.1 + R * 0.9 * Math.log(au) / maxR;
+  const ringAt = (au) => diskRingAt(au, R), tilt = DISK_TILT, tipAngle = DISK_TIP;
+  trackClumps(run, t);
+  state.scene = { clumps: [], rings: [] };
   // Distance rings on a log scale, so the size of the disk reads in AU.
   ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.textAlign = "left";
   for (const au of [1, 10, 100, 1000]) {
@@ -877,10 +1045,19 @@ function diskScene(run, cx, cy, R, t, meta) {
   ctx.globalAlpha = 1;
   const total = Math.max(run.collapseMass, 1);
   if (run.envelope > 0) glow(cx, cy, R * 1.4, "#ff5f7e", 0.14 + 0.2 * run.envelope / total);
+  // Ring color is the Toomre Q of the engine on one log scale (see visuals.js);
+  // ring brightness and weight stay with the gas mass.
+  const q = E.stability(run.diskMasses, Math.max(run.starMass, 0.01), E.temperature(run, meta));
   run.diskMasses.forEach((m, i) => {
-    const rad = ringAt(E.RADII[i]);
+    const rad = ringAt(E.RADII[i]), look = VISUALS.stabilityColor(q[i]);
     const bright = Math.max(0, Math.min(1, (Math.log10(m + 1e-9) + 3.5) / 3.5));
-    ctx.globalAlpha = 0.08 + 0.5 * bright; ctx.strokeStyle = i % 2 ? "#ff5f7e" : "#ffb86b"; ctx.lineWidth = 1 + bright * R * 0.016;
+    state.scene.rings.push({ q: q[i], shade: look.shade });
+    ctx.strokeStyle = look.color;
+    if (look.glow > 0.02 && bright > 0.05) {
+      ctx.globalAlpha = 0.3 * look.glow * (0.3 + 0.7 * bright); ctx.lineWidth = 4 + bright * R * 0.03;
+      ctx.beginPath(); ctx.ellipse(cx, cy, rad, rad * tilt, tipAngle, 0, 6.283); ctx.stroke();
+    }
+    ctx.globalAlpha = 0.08 + 0.5 * bright; ctx.lineWidth = 1 + bright * R * 0.016;
     ctx.beginPath(); ctx.ellipse(cx, cy, rad, rad * tilt, tipAngle, 0, 6.283); ctx.stroke();
   });
   ctx.globalAlpha = 1;
@@ -891,12 +1068,32 @@ function diskScene(run, cx, cy, R, t, meta) {
   ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
   const landingLabel = SKY_TEXT.gasLands;
   ctx.strokeText(landingLabel, cx, cy + landing * tilt + 22); ctx.fillText(landingLabel, cx, cy + landing * tilt + 22);
-  const flow = E.alpha(run, meta) * 2.4;
+  // Gas dots drift inward at a speed set by alpha (viscosity), each leaving a
+  // short streak whose length is that speed, and jitter sideways by an amount
+  // that also grows with alpha, so a turbulence purchase shows within a second.
+  const alpha = E.alpha(run, meta), flow = alpha * 2.4, streak = Math.min(0.5, alpha * 0.4);
+  // A purchase that raises alpha briefly exaggerates the scatter, so the
+  // change is noticed within a second or two; the steady amplitude then
+  // settles to the true one.
+  const bump = diskAlpha.run === run && alpha > diskAlpha.value + 1e-9;
+  Object.assign(diskAlpha, { run, value: alpha, at: bump ? t : diskAlpha.run === run ? diskAlpha.at : -9 });
+  const jitter = VISUALS.jitterAmplitude(alpha, R) * (calm ? 1 : 1 + 1.5 * clamp01(1 - (t - diskAlpha.at) / 1.2));
+  const dotAt = (i, f) => {
+    const a = hash(i, 13) * 6.283, rad = R * 0.1 + (landing - R * 0.1) * f, turn = a + (calm ? 0 : t * (0.7 + 0.5 / (0.3 + f)));
+    const wob = calm ? (hash(i, 15) - 0.5) * 1.2 : Math.sin(t * 3.1 + i * 1.7) + 0.6 * Math.sin(t * 5.3 + i * 2.9);
+    const wob2 = calm ? (hash(i, 16) - 0.5) * 1.2 : Math.cos(t * 2.7 + i * 2.3) + 0.6 * Math.sin(t * 4.9 + i * 1.3);
+    const px = Math.cos(turn) * rad + wob * jitter, py = (Math.sin(turn) * rad + wob2 * jitter) * tilt, c = Math.cos(tipAngle), s = Math.sin(tipAngle);
+    return [cx + px * c - py * s, cy + px * s + py * c];
+  };
   for (let i = 0; i < 46; i++) {
-    const a = hash(i, 13) * 6.283, f = ((hash(i, 14) - (calm ? 0 : t * flow)) % 1 + 1) % 1, rad = R * 0.1 + (landing - R * 0.1) * f, turn = a + (calm ? 0 : t * (0.7 + 0.5 / (0.3 + f)));
-    const px = Math.cos(turn) * rad, py = Math.sin(turn) * rad * tilt, cosT = Math.cos(tipAngle), sinT = Math.sin(tipAngle);
-    ctx.globalAlpha = 0.85 * Math.min(1, f * 5); ctx.fillStyle = "#ffe9c9";
-    ctx.beginPath(); ctx.arc(cx + px * cosT - py * sinT, cy + px * sinT + py * cosT, 1.6, 0, 6.283); ctx.fill();
+    const f = ((hash(i, 14) - (calm ? 0 : t * flow)) % 1 + 1) % 1, [x, y] = dotAt(i, f), fade = 0.85 * Math.min(1, f * 5);
+    if (streak > 0.01) {
+      const [x2, y2] = dotAt(i, Math.min(1, f + streak));
+      ctx.globalAlpha = fade * 0.5; ctx.strokeStyle = "#ffe9c9"; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+    ctx.globalAlpha = fade; ctx.fillStyle = "#ffe9c9";
+    ctx.beginPath(); ctx.arc(x, y, 1.6, 0, 6.283); ctx.fill();
   }
   ctx.globalAlpha = 1;
   const wind = Math.min(1, E.diskLossRate(run.starMass, E.feedRadius(run)) / 3e-4);
@@ -906,6 +1103,18 @@ function diskScene(run, cx, cy, R, t, meta) {
     ctx.beginPath(); ctx.arc(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad, 1.3, 0, 6.283); ctx.fill();
   }
   ctx.globalAlpha = 1;
+  // Fragments: one clump each, at its radius and orbital phase.
+  const items = clumpTrack.items, drawnClumps = [];
+  const label = W >= 500;
+  ctx.font = "10px 'IBM Plex Mono', monospace"; ctx.textAlign = "left"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
+  items.forEach((b, i) => {
+    const born = calm ? 1 : clamp01((t - b.born) / 0.6), [x, y, r] = clumpAt(cx, cy, R, b, born);
+    drawnClumps.push({ id: b.id, x, y, r, mass: b.mass, radius: b.radius });
+    if (!calm && t - b.pulse < 0.6) { ctx.globalAlpha = 0.8 * (1 - (t - b.pulse) / 0.6); ctx.strokeStyle = "#fff3dc"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r * (1.4 + 1.2 * (t - b.pulse) / 0.6), 0, 6.283); ctx.stroke(); ctx.globalAlpha = 1; ctx.strokeStyle = "#0c0a1c"; ctx.lineWidth = 3; }
+    if (label) { const text = `${sci(b.mass)} M☉`; ctx.globalAlpha = 0.9 * born; ctx.fillStyle = "#fff3dc"; ctx.strokeText(text, x + r + 4, y + 3); ctx.fillText(text, x + r + 4, y + 3); ctx.globalAlpha = 1; }
+  });
+  state.scene.clumps = drawnClumps;
+  drawClumpEvents(cx, cy, R, t, (id) => items.find((b) => b.id === id));
   // Distance labels last, so the disk rings never cover them.
   ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.textAlign = "left"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.fillStyle = "#cfc8ff";
   for (const au of W < 500 ? [100, 1000] : [1, 10, 100, 1000]) {
@@ -913,7 +1122,29 @@ function diskScene(run, cx, cy, R, t, meta) {
     ctx.globalAlpha = 0.9; ctx.strokeText(`${au} AU`, x, y); ctx.fillText(`${au} AU`, x, y);
   }
   ctx.globalAlpha = 1;
+  stabilityKey(cx, items.length > 0);
   if (run.starMass > 0) star(cx, cy, run.ignited ? R * 0.022 * (2 + Math.log10(run.starMass + 1) * 2) : R * 0.02, run.ignited ? run.starMass : 0.3, t);
+}
+// Companions that survive accretion: they settle onto their orbits for a few
+// seconds with a label, then stay as a faint dot on a faint orbit in the shine
+// scene. Same log-AU scale as the accrete scene.
+function drawCompanions(run, cx, cy, R, t) {
+  if (!run.companionRecords.length) return;
+  const since = clumpTrack.settleAt == null ? Infinity : t - clumpTrack.settleAt, settling = since < CLUMP_SETTLE_SECONDS;
+  ctx.font = "10px 'IBM Plex Mono', monospace"; ctx.textAlign = "left"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
+  run.companionRecords.forEach((c, k) => {
+    const rad = diskRingAt(Math.max(c.separation, 1), R), ang = (k + 1) * 2.399963;
+    const draw = settling ? easeInOut(clamp01(since / 1.2)) : 1;
+    ctx.globalAlpha = settling ? 0.55 : 0.22; ctx.strokeStyle = "#ffe9c9"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(cx, cy, rad, rad * DISK_TILT, DISK_TIP, ang, ang + 6.283 * draw); ctx.stroke();
+    const [x, y, r] = clumpAt(cx, cy, R, { mass: c.mass, radius: c.separation, ang }, settling ? draw : 0.6);
+    if (settling && W >= 500) {
+      const text = `${SKY_TEXT.companion} ${sci(c.mass)} M☉`;
+      ctx.globalAlpha = draw; ctx.fillStyle = "#fff3dc"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
+      ctx.strokeText(text, x + r + 4, y + 3); ctx.fillText(text, x + r + 4, y + 3);
+    }
+  });
+  ctx.globalAlpha = 1;
 }
 function deathScene(run, cx, cy, R, t) {
   if (!lastDeath) lastDeath = t;
@@ -998,6 +1229,8 @@ function draw(t) {
   } else if (run.phase === "main_sequence") {
     drawGrid(cx, cy, R * 1.4, 0.1, 0.3);
     shineScene(run, meta, cx, cy, R, t);
+    trackClumps(run, t);
+    drawCompanions(run, cx, cy, R, t);
   } else {
     drawGrid(cx, cy, R * 1.4, 0.16, run.kind === "black_hole" ? 0.72 : 0.3);
     if (!state.skipped) deathScene(run, cx, cy, R, t);

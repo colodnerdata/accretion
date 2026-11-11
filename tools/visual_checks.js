@@ -50,4 +50,76 @@ check("80 /cm3 zooms in 5x", close(V.zoomScale(80, 1e4), 5));
 check("1.25e6 /cm3 zooms out 5x", close(V.zoomScale(1.25e6, 1e4), 0.2));
 check("100 /cm3 is 4.64x, matching the task range", close(V.zoomScale(100, 1e4), 4.6416, 1e-3));
 
+// Disk stability: one log scale, calm at Q >= 10, unstable at Q <= 1.
+check("Q = 10 is fully calm", V.stabilityShade(10) === 0);
+check("Q far above 10 stays calm", V.stabilityShade(1e6) === 0);
+check("Q = 1 is fully unstable", close(V.stabilityShade(1), 1, 1e-12));
+check("Q below 1 clamps at unstable", V.stabilityShade(0.2) === 1 && V.stabilityShade(0) === 1);
+check("Q = sqrt(10) is the halfway shade", close(V.stabilityShade(Math.sqrt(10)), 0.5, 1e-9));
+check("an empty ring (infinite Q) is calm", V.stabilityShade(Infinity) === 0);
+{
+  const qs = [20, 10, 5, 3, 2, 1.5, 1, 0.5];
+  const shades = qs.map(V.stabilityShade);
+  check("shade never falls as Q falls", shades.every((x, i) => i === 0 || x >= shades[i - 1]), shades);
+  check("calm ring: cool color, no glow", V.stabilityColor(30).color === "rgb(111,134,255)" && V.stabilityColor(30).glow === 0);
+  check("midpoint ring: amber", V.stabilityColor(Math.sqrt(10)).color === "rgb(255,184,107)");
+  check("Q = 1: rose with full glow", V.stabilityColor(1).color === "rgb(255,95,126)" && V.stabilityColor(1).glow === 1);
+  check("empty ring is the neutral color", V.stabilityColor(Infinity).empty === true);
+  const glow = qs.map((q) => V.stabilityColor(q).glow);
+  check("glow never falls as Q falls", glow.every((x, i) => i === 0 || x >= glow[i - 1]), glow);
+}
+
+// Fragment clump size: log of mass, clamped, and a share of the scene radius.
+{
+  const R = 300, ref = V.fragmentRadiusPx(V.FRAGMENT_MASS_REF, R);
+  check("a Jupiter-mass clump has the base size", close(ref, 0.012 * R, 1e-9));
+  check("each decade of mass adds the same step", close(V.fragmentRadiusPx(1e-2, R) - ref, 0.008 * R, 1e-9) && close(V.fragmentRadiusPx(1e-1, R) - V.fragmentRadiusPx(1e-2, R), 0.008 * R, 1e-9));
+  check("clump size is monotone in mass", [1e-5, 1e-3, 0.05, 0.5, 5, 50].map((m) => V.fragmentRadiusPx(m, R)).every((x, i, a) => i === 0 || x >= a[i - 1]));
+  check("tiny clumps keep a visible floor", V.fragmentRadiusPx(1e-9, R) >= 2.5);
+  check("huge clumps hit the cap", close(V.fragmentRadiusPx(1e3, R), 0.045 * R, 1e-9));
+  check("clump size scales with the scene radius", close(V.fragmentRadiusPx(0.05, 600), 2 * V.fragmentRadiusPx(0.05, 300), 1e-9));
+}
+
+// Clump spin: true rate where slow, capped where it would strobe.
+check("a slow outer orbit keeps its true rate", close(V.clumpAngularRate(0.001, 700), 0.7, 1e-9));
+check("a fast inner orbit is capped", V.clumpAngularRate(2, 700) === V.CLUMP_SPIN_CAP);
+check("spin rate is monotone in orbital frequency", [1e-4, 1e-3, 1e-2, 1e-1].map((w) => V.clumpAngularRate(w, 700)).every((x, i, a) => i === 0 || x >= a[i - 1]));
+
+// Turbulence jitter: zero without turbulence, rising with alpha, capped.
+{
+  const R = 300, base = V.jitterAmplitude(V.JITTER_BASE_ALPHA, R);
+  check("no turbulence, no jitter", V.jitterAmplitude(0, R) === 0);
+  check("the base alpha gives the base amplitude", close(base, 0.02 * R, 1e-9));
+  check("jitter rises with alpha", [0.05, 0.1, 0.13, 0.2, 0.3].map((a) => V.jitterAmplitude(a, R)).every((x, i, a) => i === 0 || x > a[i - 1]));
+  check("one purchased level (alpha x 1.3) is a visible step", V.jitterAmplitude(0.13, R) / base > 1.3);
+  check("jitter is capped", V.jitterAmplitude(50, R) <= 0.12 * R + 1e-9);
+}
+
+// Setup strip: which items exist and which are highlighted per phase.
+{
+  const setup = {
+    temperature: 120, density: 1e4, metalLog10: -2, blackHole: false, blackHoleUnlocked: false,
+    heavyTurbulence: 2, heavyCooling: 1, levels: { reach: 3, tap: 1, cooling: 0, turbulence: 2, braking: 1 },
+    unlocks: ["reach", "tap", "turbulence", "temperature", "density", "braking", "cooling", "metals"],
+  };
+  const active = (phase, s = setup) => V.setupItems(s, phase).filter((i) => i.active).map((i) => i.id).sort();
+  const ids = (phase, s = setup) => V.setupItems(s, phase).map((i) => i.id);
+  check("accretion highlights turbulence and braking", JSON.stringify(active("accrete")) === JSON.stringify(["braking", "heavyTurbulence", "turbulence"]), active("accrete"));
+  check("accretion does not highlight the region", !active("accrete").some((id) => ["temperature", "density", "metals"].includes(id)));
+  check("gather highlights the region and the gather controls", ["temperature", "density", "reach", "tap", "cooling", "heavyCooling"].every((id) => active("gather").includes(id)));
+  check("gather does not highlight turbulence", !active("gather").includes("turbulence"));
+  check("collapse highlights temperature and density only", JSON.stringify(active("collapse")) === JSON.stringify(["density", "temperature"]));
+  check("shine highlights metal content only", JSON.stringify(active("main_sequence")) === JSON.stringify(["metals"]));
+  check("an ended run highlights nothing", active("ended").length === 0);
+  check("an unknown phase highlights nothing", active("survey").length === 0);
+  check("the strip lists every group", ["region", "heavy", "controls"].every((g) => V.setupItems(setup, "accrete").some((i) => i.group === g)));
+  check("the black hole item hides until it matters", !ids("accrete").includes("blackHole"));
+  check("a black hole start is listed", ids("accrete", { ...setup, blackHole: true }).includes("blackHole"));
+  check("an unlocked black hole option lists a no", V.setupItems({ ...setup, blackHoleUnlocked: true }, "accrete").find((i) => i.id === "blackHole").value === false);
+  const early = { ...setup, unlocks: ["reach"], heavyTurbulence: 0, heavyCooling: 0 };
+  check("a first run lists only what the player has met", JSON.stringify(ids("gather", early)) === JSON.stringify(["temperature", "density", "reach"]), ids("gather", early));
+  check("seeded turbulence carries its level", V.setupItems(setup, "accrete").find((i) => i.id === "heavyTurbulence").value === 2);
+  check("control levels come from the run", V.setupItems(setup, "accrete").find((i) => i.id === "braking").value === 1);
+}
+
 console.log(JSON.stringify(checks));

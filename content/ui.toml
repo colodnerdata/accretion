@@ -30,6 +30,16 @@ text = "temperature"
 text = "the coldest this gas can be"
 [canvas.black_hole_pull]
 text = "a black hole is near: a map of gravity's pull"
+[canvas.stability_key]
+text = "ring color: how close to clumping"
+[canvas.stability_calm]
+text = "holds together"
+[canvas.stability_unstable]
+text = "about to clump"
+[canvas.clump_key]
+text = "clump size shows mass (log scale)"
+[canvas.companion]
+text = "companion star"
 
 [play.controls_title]
 text = "Controls"
@@ -286,6 +296,39 @@ text = "Still to reach the disk"
 text = "Landing on the disk"
 [stats.boiled_off]
 text = "Boiled off the disk"
+[stats.gas_reaching_star]
+text = "Gas reaching the star"
+[setup.title]
+text = "This run's setup"
+[setup.group_region]
+text = "Region"
+[setup.group_heavy]
+text = "Heavy elements"
+[setup.group_controls]
+text = "Controls"
+[setup.temperature]
+text = "Temperature"
+[setup.temperature_value]
+text = "{value} K"
+[setup.density]
+text = "Density"
+[setup.density_value]
+text = "{value} /cm³"
+[setup.metals]
+text = "Metals"
+[setup.metals_value]
+text = "10^{value} Z☉"
+[setup.black_hole]
+text = "Near a black hole"
+[setup.yes]
+text = "yes"
+[setup.no]
+text = "no"
+[setup.level_value]
+text = "{value}"
+[setup.matters]
+text = "matters in this phase"
+
 [stats.companion_stars]
 text = "Companion stars"
 [stats.brightness]

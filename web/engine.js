@@ -332,6 +332,13 @@ const Engine = (() => {
     run.fragments = [];
     run.companions = companionMass(run);
   }
+  // Read-only display value: mass flux through the inner edge (M_sun/yr), the
+  // same boundary term diskStep uses, evaluated at the current cell masses.
+  function innerAccretionRate(run, meta) {
+    const star = Math.max(run.starMass, SEED_MASS), r = RADII[0];
+    const rate0 = 3 * Math.PI * viscosity(r, star, alpha(run, meta), temperature(run, meta)) * Math.sqrt(r) / AREAS[0];
+    return rate0 / (Math.sqrt(r) - Math.sqrt(R_IN)) * run.diskMasses[0];
+  }
   function accreteStep(run, meta) {
     const dt = SIM_STEP_YEARS, rate = infallNow(run, meta), infall = Math.min(run.envelope, rate * dt);
     run.envelope -= infall;
@@ -451,7 +458,7 @@ const Engine = (() => {
     UPGRADES, RADII, CELLS, SIGMA_LN_DENSITY, SIGMA_LOG10_METAL, BLACK_HOLE_START_COST,
     newMeta, newRun, step, tap, buy, canBuy, upgradeCost, budget, regionCost, backgroundMetal, heavyCost, buyHeavy,
     temperature, temperatureAt, coolingHelps, regionFloor, coolingBoundHelps, cosmicAgeGyr, alpha, feedRadius, reachRate, tapPower, patchMass, jeansLogReach, jeansMass, infallRate,
-    diskLossRate, infallNow, diskGas, stability, criticalSurfaceDensity, fragmentMass, companionMass, luminosity, lifetimeMyr, canSkip, runGain, skip, prestige, heavyYield, gas, BASE_DENSITY, BASE_TEMPERATURE,
+    diskLossRate, infallNow, innerAccretionRate, orbitalFrequency, ACCRETE_YEARS_PER_SECOND, FRAGMENT_LIMIT, R_IN, SEED_MASS, diskGas, stability, criticalSurfaceDensity, fragmentMass, companionMass, luminosity, lifetimeMyr, canSkip, runGain, skip, prestige, heavyYield, gas, BASE_DENSITY, BASE_TEMPERATURE,
     freeFallTime, updateUnlocks, COLLAPSE_SECONDS, ionizingRate, stromgrenRadius, hiiRadius, soundSpeed, YR, PRIMORDIAL_METAL_LOG10, HII_SOUND_SPEED,
   };
 })();

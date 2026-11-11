@@ -55,3 +55,26 @@ def test_masses_stay_non_negative():
     for _ in range(500):
         masses, _ = disk.step(masses, 1.0, 1.0, 500.0, 0.0, 0)
         assert min(masses) >= 0
+
+
+def test_inner_accretion_rate_matches_the_solver_boundary_flux():
+    """The display rate agrees with what one solver step accretes.
+
+    ``step`` evaluates the boundary term implicitly (after the update) and
+    the accessor explicitly (before it), so a short step on a smooth disk
+    agrees to about a per cent as the step shrinks.
+    """
+    masses = [0.0] * disk.CELLS
+    masses[0], masses[1] = 0.02, 0.05
+    rate = disk.inner_accretion_rate(masses, 2.0, 0.2)
+    _, accreted = disk.step(masses, 2.0, 0.2, 0.01, 0.0, 0)
+    assert accreted / 0.01 == pytest.approx(rate, rel=0.01)
+
+
+def test_inner_accretion_rate_is_zero_without_inner_gas_and_grows_with_alpha():
+    empty = [0.0] * disk.CELLS
+    assert disk.inner_accretion_rate(empty, 1.0, 0.1) == 0.0
+    full = [0.01] + [0.0] * (disk.CELLS - 1)
+    low = disk.inner_accretion_rate(full, 1.0, 0.1)
+    high = disk.inner_accretion_rate(full, 1.0, 0.13)
+    assert high == pytest.approx(1.3 * low)

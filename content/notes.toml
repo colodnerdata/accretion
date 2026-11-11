@@ -23,7 +23,7 @@ text = "Feed the star"
 [headlines.accrete_protostar.title]
 text = "Build a protostar"
 [headlines.accrete.body]
-text = "Gas lands on the disk at the dashed ring and spirals in to the star. Brighter rings hold more gas; faint rings mark distance in AU (Earth to the Sun). Starlight will end the infall and boil away the disk."
+text = "Gas lands on the disk at the dashed ring and spirals in to the star. Brighter rings hold more gas, and a ring's color shows how close it is to clumping: blue holds together, rose is about to clump. Faint rings mark distance in AU (Earth to the Sun). Starlight will end the infall and boil away the disk."
 
 [headlines.shine.title]
 text = "The star shines"
