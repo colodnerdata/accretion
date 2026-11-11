@@ -154,8 +154,8 @@ def floor_purchase_helps(meta: Meta, metal_log10: float) -> bool:
 def turbulence_purchase_helps(meta: Meta) -> bool:
     """Return whether one more turbulence level still speeds the disk.
 
-    Disk speed is min(1, beta * 1.3 ^ level), so past the level that reaches
-    the cap another level costs mass and changes nothing.
+    Disk speed is min(1, BASE_ALPHA * 1.3 ^ level), so past the level that
+    reaches the cap another level costs mass and changes nothing.
     """
     level = meta.heavy_turbulence
     return min(1.0, BASE_ALPHA * 1.3 ** (level + 1)) > min(1.0, BASE_ALPHA * 1.3**level)
