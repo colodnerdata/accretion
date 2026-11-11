@@ -959,7 +959,13 @@ function trackClumps(run, t) {
   const diff = VISUALS.diffFragments(prev, next, formedNow - tr.formed, E.FRAGMENT_LIMIT, E.R_IN);
   tr.formed = formedNow;
   if (diff.resync) {
-    tr.items = next.map((b) => fresh(b, -9));
+    // Pair afresh, but keep each clump's drawn angle from the nearest-radius
+    // clump before, so the picture does not jump.
+    tr.items = next.map((b) => {
+      const item = fresh(b, -9), near = prev.reduce((m, p) => (m && Math.abs(Math.log(m.radius / b.radius)) <= Math.abs(Math.log(p.radius / b.radius)) ? m : p), null);
+      if (near && !calm) item.ang = near.ang;
+      return item;
+    });
     return;
   }
   const items = diff.kept.map((pi, j) => ({ ...prev[pi], mass: next[j].mass, radius: next[j].radius, phase: next[j].phase }));

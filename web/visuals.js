@@ -165,7 +165,7 @@ const clumpAngularRate = (omegaPerYear, yearsPerSecond) => Math.min(CLUMP_SPIN_C
 //  - nothing formed, the list shrank or stayed: the smallest-radius ones left;
 //  - the list grew by exactly what formed: the extras at the end are new;
 //  - at the limit, the list stayed the same and something formed: the host
-//    (largest relative mass jump) absorbed it, and its birth radius follows
+//    (clearly the largest mass gain) absorbed it, and its birth radius follows
 //    from conserving sqrt(r) * mass, approximately, since gas take and drift
 //    in the same steps also change the host.
 // Anything else (a fragment formed and another left in the same frame, a list
@@ -186,12 +186,15 @@ const diffFragments = (prev, next, formedUp, limit, rIn = 1) => {
     appended = grew;
   } else if (formedUp > 0 && grew === 0 && prev.length === limit && prev.length > 0) {
     kept = prev.map((_, i) => i);
-    let best = 0;
-    kept.forEach((pi, j) => {
-      const jump = (next[j].mass - prev[pi].mass) / prev[pi].mass;
-      if (jump > best) { best = jump; host = j; }
-    });
-    if (host < 0) return resync;
+    // The host is the clump whose mass grew most in absolute terms: gas take
+    // grows a small clump by a larger share than an absorbed fragment grows a
+    // large one, but adds less mass. A close second place, or a clump near
+    // the star that may have merged in the same frame, is not readable.
+    const jumps = kept.map((pi, j) => next[j].mass - prev[pi].mass);
+    const order = jumps.map((x, j) => [x, j]).sort((a, b) => b[0] - a[0]);
+    if (!(order[0][0] > 0) || (order.length > 1 && order[1][0] > 0 && order[0][0] < 2 * order[1][0])) return resync;
+    if (prev.some((b) => b.radius < 2 * rIn)) return resync;
+    host = order[0][1];
     const extra = next[host].mass - prev[host].mass;
     const moment = next[host].mass * Math.sqrt(next[host].radius) - prev[host].mass * Math.sqrt(prev[host].radius);
     incoming = (moment / extra) ** 2;

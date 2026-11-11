@@ -104,7 +104,19 @@ check("spin rate is monotone in orbital frequency", [1e-4, 1e-3, 1e-2, 1e-1].map
     const r = d(prev, next, 1);
     check("a coalesce at the limit finds its host", !r.resync && r.host === host && r.appended === 0, r);
     check("the birth radius follows from conserving momentum", close(r.incoming, 900, 1e-6), r.incoming);
-    check("a same-size list below the limit with something formed resyncs", V.diffFragments(prev.slice(0, 3), next.slice(0, 3), 1, LIMIT).resync === true);
+    {
+    // Gas take grows a small clump by 25%; a large clump absorbs ~1.5% of its mass.
+    const prev = [B(100, 0.02), B(200, 2), B(400, 0.3), B(800, 0.2)];
+    const next = prev.map((b) => ({ ...b }));
+    next[0].mass = 0.025;
+    next[1].mass = 2.03;
+    const r = d(prev, next, 1);
+    check("the host is the clump with the largest absolute gain", !r.resync && r.host === 1, r);
+    const close_call = prev.map((b) => ({ ...b })); close_call[0].mass = 0.05; close_call[1].mass = 2.04;
+    check("a near tie for host resyncs", d(prev, close_call, 1).resync === true);
+    check("a clump near the star blocks the coalesce reading", d([B(1.5), ...prev.slice(1)], [{ ...B(1.5), mass: 0.06 }, ...next.slice(1)], 1).resync === true);
+  }
+  check("a same-size list below the limit with something formed resyncs", V.diffFragments(prev.slice(0, 3), next.slice(0, 3), 1, LIMIT).resync === true);
   }
   check("a pairing that jumps far in radius resyncs", d([B(300), B(500)], [B(30), B(500)], 0).resync === true);
 }

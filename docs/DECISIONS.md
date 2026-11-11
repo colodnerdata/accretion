@@ -44,7 +44,7 @@ design change.
   them; only the galactic spiral arms in `docs/planning/feature-backlog.md`
   exist.
 - **Why:** The tracker keeps the engines unchanged and in parity; the cost is
-  that an unreadable frame (a fragment forming and reaching the star together, or a long frame) resyncs without an animation, so a clump can lose its animation but never takes another clump's identity.
+  that an unreadable frame (a fragment forming and reaching the star together, or a long frame) resyncs without an animation, so a clump can lose its animation; identities are paired in order and checked for continuity, which a contrived frame could in principle still fool.
   Alternative considered: engine-side fragment ids and an event log (a state and
   parity change for a display need).
 - **Revisit when:** A prediction system needs the same setup data (reuse
