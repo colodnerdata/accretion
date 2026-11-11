@@ -1,5 +1,7 @@
 # Feature backlog
 
+> Planning note; last updated 2026-11-08. Candidate features by layer; statuses live in the text.
+
 Candidate features by layer. Status: **Decided**, **Proposed**, or **Idea**. Physics notes come from the research reports; values marked in `verification-checklist.md` need checking before they are hard-coded.
 
 ## Now

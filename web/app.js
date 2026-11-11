@@ -1,5 +1,5 @@
 const E = Engine;
-const SAVE_KEY = "accretion-prototype-v4";
+const SAVE_KEY = "accretion-prototype-v4", SAVE_BACKUP_KEY = "accretion-prototype-v4-backup";
 const $ = (id) => document.getElementById(id);
 const state = { meta: E.newMeta(), run: null, view: "play", pane: "main", speed: 1, log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {}, prospective: null, zoom: 1 };
 state.run = E.newRun(state.meta);
@@ -37,7 +37,12 @@ function myr(value) { return value >= 1000 ? `${sci(value / 1000)} Gyr` : `${sci
 // The Sun's main sequence lasts about 10 billion years. Quote both lifetimes in one unit so they compare directly.
 function lifeVsSun(forecastMyr) {
   const gyr = forecastMyr >= 1000;
-  return `about ${sci(gyr ? forecastMyr / 1000 : forecastMyr)} ${gyr ? "Gyr" : "Myr"}, where the Sun lasts about ${gyr ? "10" : "10,000"} ${gyr ? "Gyr" : "Myr"}`;
+  // The Sun's main sequence lasts about 10 billion years; both lifetimes are
+  // quoted in one unit so they compare directly.
+  return t("notes.shine.sun_compare", {
+    life: `${sci(gyr ? forecastMyr / 1000 : forecastMyr)} ${gyr ? "Gyr" : "Myr"}`,
+    sun: gyr ? "10 Gyr" : "10,000 Myr",
+  });
 }
 function clock(seconds) {
   const s = Math.max(0, Math.ceil(seconds)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, pad = (x) => String(x).padStart(2, "0");
@@ -160,9 +165,11 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 const phaseIndex = (p) => PHASES.findIndex(([name]) => name === p);
 const NOTE_SECONDS = 30;
 function asNote(n) { return typeof n === "string" ? { text: n, p: -1, at: 0, ttl: 0 } : { ...n, ttl: n.ttl ?? Infinity }; }
-function note(text, { phase = state.run.phase, ttl = NOTE_SECONDS } = {}) {
+function note(text, { phase = state.run.phase, ttl = NOTE_SECONDS, tag = undefined } = {}) {
   if ($("live")) $("live").textContent = text;
-  state.log.unshift({ text, p: phaseIndex(phase), at: state.run.seconds, ttl });
+  // unlock-tagged notes are announcements, not observations: the journal
+  // card filters them by tag, never by their first word.
+  state.log.unshift({ text, p: phaseIndex(phase), at: state.run.seconds, ttl, tag });
   state.log = state.log.slice(0, 40);
 }
 function noteExpired(n, run) { return phaseIndex(run.phase) > n.p || run.seconds - n.at > n.ttl; }
@@ -178,23 +185,57 @@ function checkMilestones() {
   while (state.noted < meta.unlocks.length) {
     // A new control's note stays current through the phase where the control is used.
     const name = meta.unlocks[state.noted++], where = E.UPGRADES[name]?.phase ?? "gather";
-    note(CONTROL_NOTES[name], { phase: where, ttl: Infinity });
+    note(CONTROL_NOTES[name], { phase: where, ttl: Infinity, tag: "unlock" });
   }
 }
 
 function save() {
   // logShape 2: note phase indices include the display-only Survey step.
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ meta: state.meta, run: state.run, view: state.view, seen: state.seen, log: state.log, skipped: state.skipped, noted: state.noted, logShape: 2, savedAt: Date.now() })); } catch {}
+  // A last-good copy is kept in a second key, so one broken or truncated
+  // write cannot take the player's data with it.
+  const blob = JSON.stringify({ meta: state.meta, run: state.run, view: state.view, seen: state.seen, log: state.log, skipped: state.skipped, noted: state.noted, logShape: 2, savedAt: Date.now() });
+  const write = (key) => { try { localStorage.setItem(key, blob); return true; } catch (error) { return false; } };
+  let saved = write(SAVE_KEY);
+  if (saved) {
+    // The primary save is intact; a failed mirror cannot hurt the player,
+    // so it gets no banner, and any saving-unavailable banner goes away.
+    state.saveFailed = false;
+    if (state.banner === t("ui.save.unavailable")) state.banner = null;
+    if (!write(SAVE_BACKUP_KEY)) console.warn("save: the last-good copy could not be written");
+  } else if (!state.saveFailed) {
+    // Say so once: the player keeps playing, but must know progress is
+    // not being recorded. Cleared if a later save succeeds.
+    state.saveFailed = true;
+    state.banner = t("ui.save.unavailable");
+    update();
+  }
+}
+// A save must carry a run and a meta whose fields the engines rely on; a
+// partially-written or foreign blob is treated as no save at all.
+function validSave(saved) {
+  return Boolean(
+    saved && typeof saved === "object"
+    && saved.run && typeof saved.run.phase === "string" && typeof saved.run.seconds === "number"
+    && saved.meta && Number.isFinite(saved.meta.regions) && Number.isFinite(saved.meta.runs)
+    && Number.isFinite(saved.meta.heavy) && Number.isFinite(saved.meta.cosmicMyr)
+    && Array.isArray(saved.meta.unlocks) && Array.isArray(saved.meta.journal)
+    && typeof saved.view === "string"
+  );
 }
 function load() {
   try {
-    const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (!saved?.run) return;
+    const read = (key) => { try { return JSON.parse(localStorage.getItem(key)); } catch (error) { return null; } };
+    // Validate, then install: a save that fails the shape check falls back
+    // to the last-good copy, and never touches the live state.
+    let saved = read(SAVE_KEY);
+    if (!validSave(saved)) saved = read(SAVE_BACKUP_KEY);
+    if (!validSave(saved)) return;
+    const view = saved.view === "search" ? "search" : "play";
     // Notes saved before Survey joined PHASES carry indices one lower than
     // today's; re-stamp them so nothing old expires a phase early. Saves
     // written after (logShape 2) already carry the new indices.
     const bump = saved.logShape ? 0 : 1;
-    Object.assign(state, { meta: saved.meta, run: saved.run, view: saved.view, seen: saved.seen || {}, log: (saved.log || []).map((n) => { const m = asNote(n); return m.p < 0 ? m : { ...m, p: m.p + bump }; }), skipped: !!saved.skipped, noted: saved.noted || 0 });
+    Object.assign(state, { meta: saved.meta, run: saved.run, view, seen: saved.seen || {}, log: (saved.log || []).map((n) => { const m = asNote(n); return m.p < 0 ? m : { ...m, p: m.p + bump }; }), skipped: !!saved.skipped, noted: saved.noted || 0 });
     state.prospective = E.newRun(state.meta);
     const away = (Date.now() - saved.savedAt) / 1000;
     if (away > 60 && state.view === "play") {
@@ -407,7 +448,8 @@ function renderEnded(panel) {
   const box = document.createElement("section");
   box.className = "cta";
   box.append(button("primary", t("ui.ended.survey_button"), () => {
-    const notes = state.log.map((n) => n.text);
+    // Unlock announcements are tagged, not matched by their first word.
+    const notes = state.log.filter((n) => !n.tag).map((n) => n.text);
     state.run = E.prestige(state.run, state.meta, state.skipped);
     state.meta.journal.at(-1).notes = notes;
     state.selected = state.meta.journal.length - 1;
@@ -442,7 +484,10 @@ function refreshSearch() {
   // Composition changes re-judge the shop's cooling bound, so repaint it.
   document.querySelectorAll("#heavy-list button").forEach((b) => b.paint && b.paint());
   if ($("density-out")) $("density-out").textContent = `${sci(run.density)} /cm³`;
-  if ($("temperature-out")) $("temperature-out").textContent = `${run.baseTemperature.toFixed(0)} K`;
+  // The readout shows the effective starting temperature: the raw draw,
+  // when it sits above the composition floor, or the floor itself when
+  // gravity clamps it. The floor's own row is the "Lowest temperature".
+  if ($("temperature-out")) $("temperature-out").textContent = `${E.temperature(run, m).toFixed(0)} K`;
   if ($("metals-out")) $("metals-out").textContent = `10^${run.metalLog10.toFixed(1)} Z☉`;
   $("spent").textContent = t("ui.search.spent", { spent: E.regionCost(m).toFixed(2), budget: E.budget(m).toFixed(2) });
   $("spent-bar").style.width = `${Math.min(100, E.regionCost(m) / Math.max(E.budget(m), 1e-9) * 100)}%`;
@@ -476,11 +521,14 @@ function renderSearch(panel) {
       b.type = "button"; b.className = "upgrade"; b.id = `heavy-${name}`;
       b.paint = () => {
         const cost = E.heavyCost(m, name), lvl = name === "cooling" ? m.heavyCooling : m.heavyTurbulence;
-        // Cooling deepens the bound of every future region until the
-        // cosmic background clamps it; the button then says so itself.
+        // A permanent upgrade is refused once its target rests on a bound:
+        // cooling once the cosmic background clamps the region floor,
+        // turbulence once disk speed reaches its cap. The button then says
+        // so itself, like the in-run upgrades.
         const metalLog10 = E.backgroundMetal(m) + E.SIGMA_LOG10_METAL * m.zMetal;
-        const blocked = name === "cooling" && !E.coolingBoundHelps(m, metalLog10);
-        b.innerHTML = `<b>${esc(t("ui.upgrades.level_label", { name: label, level: lvl }))}</b><small>${esc(blocked ? t("notes.upgrades.cooling_background") : text)}</small><span class="cost">${sci(cost)} M☉</span>`;
+        const blocked = name === "cooling" ? !E.coolingBoundHelps(m, metalLog10) : !E.turbulenceBoundHelps(m);
+        const blockedNote = name === "cooling" ? t("notes.upgrades.cooling_background") : t("notes.upgrades.turbulence_cap");
+        b.innerHTML = `<b>${esc(t("ui.upgrades.level_label", { name: label, level: lvl }))}</b><small>${esc(blocked ? blockedNote : text)}</small><span class="cost">${sci(cost)} M☉</span>`;
         b.disabled = m.heavy < cost || blocked;
         shop.querySelector("h3").textContent = t("ui.heavy.heading", { mass: sci(m.heavy) });
       };
@@ -496,7 +544,7 @@ function renderSearch(panel) {
   }
   const go = document.createElement("section");
   go.className = "cta";
-  go.append(button("primary", t("ui.search.begin"), () => { state.run = E.newRun(m); state.view = "play"; state.banner = null; shell = ""; note(t("notes.observations.run_start", { number: m.runs + 1, density: sci(state.run.density), temperature: state.run.baseTemperature.toFixed(0) })); update(); save(); }));
+  go.append(button("primary", t("ui.search.begin"), () => { state.run = E.newRun(m); state.view = "play"; state.banner = null; shell = ""; note(t("notes.observations.run_start", { number: m.runs + 1, density: sci(state.run.density), temperature: E.temperature(state.run, m).toFixed(0) })); update(); save(); }));
   panel.appendChild(go);
   refreshSearch();
 }
@@ -525,6 +573,10 @@ function resultsPlot() {
 }
 function entryCard(j) {
   const rows = [[t("ui.journal.row_ending"), ENDINGS[j.ending].title], [t("ui.journal.row_final_mass"), `${sci(j.mass)} M☉`], [t("ui.journal.row_temperature"), `${j.temperature.toFixed(0)} K`], [t("ui.journal.row_density"), `${sci(j.density)} /cm³`], [t("ui.journal.row_turbulence"), t("ui.journal.alpha_value", { value: j.alpha.toFixed(2) })], [t("ui.journal.row_feed"), `${j.feedRadius.toFixed(0)} AU`], [t("ui.journal.row_run_time"), duration(j.seconds)], [t("ui.journal.row_reward"), t("ui.journal.reward", { gain: j.gain.toFixed(2) }) + (j.heavy ? t("ui.journal.reward_heavy", { heavy: sci(j.heavy) }) : "")]];
+  // Journals written since the tag exists hold observations only; older
+  // saves keep the announcement strings as plain text, so they still get
+  // the legacy first-word filter (those old entries are frozen records
+  // whose strings are English by construction).
   const notes = (j.notes || []).filter((n) => !String(n).startsWith("New ")).slice(0, 5).reverse();
   return `<section><h3>${esc(j.skipped ? t("ui.journal.run_card_title_early", { number: j.run }) : t("ui.journal.run_card_title", { number: j.run }))}</h3>${stat(rows)}${notes.length ? `<h3>${esc(t("ui.play.observations"))}</h3><div id="log">${notes.map((note) => `<div>${esc(note)}</div>`).join("")}</div>` : ""}</section>`;
 }
@@ -553,8 +605,8 @@ function footer() {
   }
   const reset = button("reset", t("ui.footer.reset"), () => {
     if (!state.resetArm) { state.resetArm = true; reset.textContent = t("ui.footer.reset_confirm"); setTimeout(() => { state.resetArm = false; reset.textContent = t("ui.footer.reset"); }, 3000); return; }
-    try { localStorage.removeItem(SAVE_KEY); } catch {}
-    Object.assign(state, { meta: E.newMeta(), view: "play", pane: "main", log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {}, banner: null });
+    try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(SAVE_BACKUP_KEY); } catch {}
+    Object.assign(state, { meta: E.newMeta(), view: "play", pane: "main", log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {}, banner: null, saveFailed: false });
     state.run = E.newRun(state.meta); shell = ""; update();
   });
   row.append(reset); box.append(row);

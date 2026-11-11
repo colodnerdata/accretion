@@ -120,7 +120,7 @@ text = "fewer metals"
 [search.metals_high]
 text = "more metals"
 [search.odds]
-text = "Odds of finding this"
+text = "Relative rarity, compared with the most likely region"
 [search.odds_value]
 text = "1 in {odds}"
 [search.spent]
@@ -225,6 +225,9 @@ text = "Your star moved on to the {stage} stage."
 text = "While you were away ({time}), {event}"
 [banner.dismiss]
 text = "Dismiss"
+
+[save.unavailable]
+text = "Saving is unavailable in this browser: progress will not be kept."
 
 [hints.ask]
 text = "Ask for a hint"

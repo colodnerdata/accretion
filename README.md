@@ -10,8 +10,11 @@ Layer 1 of the Accretion idle game: gather, collapse, accrete, shine, die, and s
 
 ```bash
 uv run poe check
-python tools/build.py
+uv run python tools/build.py
 ```
+
+The parity and engine tests need `node` on `PATH`; without it those tests
+skip instead of failing.
 
 Any rule change must be made in both `src/accretion/game.py` and `web/engine.js`. The parity test fails if they drift.
 
@@ -25,7 +28,7 @@ The game is a single static page, so there is nothing to serve.
    and opens it in a new Chrome window (falling back to your default browser
    if Chrome is not found). Run it again after any change to `web/` or the
    `src/` rules.
-2. To do it by hand instead: `python tools/build.py`, then open
+2. To do it by hand instead: `uv run python tools/build.py`, then open
    `web/accretion.html` in a desktop browser. A network connection is only
    needed for the fonts; the game works without it.
 3. Play through a run: gather gas, collapse, accrete, shine, and die, then pick
@@ -49,17 +52,20 @@ stars" row reflects the current companion mass in that run.
 
 ## Pre-commit hook
 
-A tracked git hook in `.githooks/pre-commit` runs before every commit. It checks that
-`web/accretion.html` matches the web sources (`python tools/build.py --check`), then runs
-`uv run poe check` (lint, format check, tests). Turn it on once per clone:
+A tracked git hook in `.githooks/pre-commit` runs before every commit. It runs
+`uv run poe check`, whose four gates are lint (ruff), the format check, the
+build check (`web/accretion.html` must match the web sources), and the tests.
+Turn it on once per clone:
 
 ```bash
 uv run poe hooks
 ```
 
-If it blocks a commit for a stale build, run `python tools/build.py` and stage
+If it blocks a commit for a stale build, run `uv run python tools/build.py` and stage
 `web/accretion.html`. For lint or format failures, fix them or run `uv run poe format`.
-`git commit --no-verify` skips the hook; CI still runs the same checks.
+`git commit --no-verify` skips the hook; CI runs the same checks (lint, format,
+the build check, and tests), so an unhooked commit that ships a stale build
+fails there.
 
 ## License
 
