@@ -44,14 +44,26 @@ design change.
      player's first run confounded by in-run purchases. The baseline picker
      unlocks after the first run confounded at the survey, so the two never
      arrive together.
+  7. The baseline run's value may be shown beside a live stat, faintly or in
+     a different color. It is a historical record, not a projection or
+     forecast, so it is not a ghost marker.
+  8. The inputs the universal clock drives (composition, background
+     temperature) are divided into epochs. Runs in one epoch count as
+     sharing those inputs. When the epoch changes, predictions reset and the
+     journal's notes start a new page: a carbon copy of the prior epoch's
+     page, with a header stating the main differences in composition and
+     background temperature.
 - **Why:** Asking learners to predict carries strong evidence (d = 0.36), and
   a blind player prediction reveals nothing the game knows. Rejected:
   per-prediction rewards, because a free guess with a positive payout is
   always worth making; and a confidence stake, as an extra control for v1.
+  Epochs exist because the universal clock and enrichment change every
+  region between runs, so a strict "one input differs" rule would leave
+  almost no clean tests.
 - **Revisit when:** v1 playtests show predicting is not engaging without
-  rewards, or event and ending predictions are added. Still open inside
-  decision 5: whether showing the baseline run's value faintly beside a live
-  stat counts as a rejected ghost marker (queued in `docs/NEXT.md`).
+  rewards, or event and ending predictions are added. Decision 8 is the
+  rule "for now": revisit it once the audit tool shows how far composition
+  drifts inside an epoch, and when the epoch boundaries are chosen.
 
 - **Date and title:** 2026-11-11 — The accrete disk is made readable by display-side reading of existing engine state.
 - **Status:** accepted

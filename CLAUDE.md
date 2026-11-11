@@ -69,7 +69,8 @@ rather than silently changing it.
   the player has felt the problem it solves. Do not add previews, forecasts, ghost markers, or model
   runs: they were considered and rejected. The game never forecasts; the player may. Player
   predictions are made blind and resolve only against runs the player has played (see
-  `docs/planning/prediction-system.md`).
+  `docs/planning/prediction-system.md`). A value recorded from a run the player has played is a
+  historical record, not a ghost marker, and may be shown beside a live stat.
 - Controls must never be mysterious, but phenomena can be. Always state a control's direct effect
   plainly. Explain the underlying science only after the player has seen it happen.
 - Logging is required. The journal records every run. Its bubble plot uses log gas temperature and

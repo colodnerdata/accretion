@@ -20,12 +20,22 @@ The audit tool's true bins may inform debrief explanations and developer testing
 
 - A test is a pair of runs that differ in exactly one input: the run and its baseline.
 - Inputs are effective values, not slider positions. Region settings count, and so do in-run purchase levels by their effect: the run's actual gas temperature and actual alpha. Greedy in-run cooling therefore changes the temperature input and is not a clean test of anything else.
-- **Baseline (Decided):** the previous run by default. The player may pick any journal run as the baseline instead, once the baseline picker has unlocked.
+- **Baseline (Decided):** the previous run by default, within the current epoch (see "Epochs" below). The player may pick any journal run as the baseline instead, once the baseline picker has unlocked.
 - **Two control-of-variables tools (Decided),** each unlocking with the confound it solves, so they never arrive together:
   - **Hold to baseline** unlocks after the first run confounded by in-run purchases. Set at the survey, it buys each in-run upgrade up to the baseline's level as soon as energy allows and refuses purchases beyond it. Purchase timing may differ from the baseline; that difference is a consequence of the changed setting, so the test stays clean. If a baseline level cannot be reached, the run records the shortfall and the overlay says so.
   - **Baseline picker** unlocks after the first run confounded at the survey, when two region settings changed at once. The player can then compare against any journal run instead of the previous one.
 - The first confounded run of each kind gets a short refutation card: changing two things at once cannot show which one caused the result.
 - A run that differs from its baseline in more than one input is confounded. Its predictions do not resolve, and the board says which inputs changed together.
+
+## Epochs (Decided, 2026-11-11)
+
+The universal clock and enrichment change a region's composition and background temperature between runs, even when the player moves no slider. Read strictly, "differs in exactly one input" would then leave almost no clean tests. Epochs resolve this for now.
+
+- The inputs the universal clock drives (composition and background temperature) are divided into epochs. Within an epoch they count as the same input, so two runs in one epoch can form a clean test.
+- A run and its baseline must be in the same epoch. A pair that spans two epochs does not resolve a prediction.
+- When the epoch changes, predictions reset. The journal's notes start a new page: a carbon copy of the prior epoch's page, under a header that states the main differences in composition and background temperature.
+- **Proposed reading of "reset":** on the new page the copied cells are carried as predictions still to be tested in this epoch, and streaks restart. The prior epoch's page stays readable as a record.
+- **Open:** where the epoch boundaries fall. The engine has natural candidates: the primordial metallicity threshold (`PRIMORDIAL_METAL_LOG10` in `physics.py`), the range where the temperature floor falls with metallicity, and the point where the cosmic background sets the floor. How much composition drifts inside one epoch has not been measured; the audit tool should report it.
 
 ## Making and resolving predictions
 
@@ -37,7 +47,7 @@ The audit tool's true bins may inform debrief explanations and developer testing
 ## The in-run overlay (Decided)
 
 - Predictions appear on the live stats rows rather than in a separate box: the player's glyph sits beside each predicted quantity and turns to a check or a cross when that stage resolves.
-- **Open, needs an owner ruling:** the overlay would also show the baseline run's value faintly beside each predicted quantity. `CLAUDE.md` rejects ghost markers. This value is a record of a run the player has played, not something the game computed about the current run, but it is still a faint reference mark on a live stat. Do not build it until it is ruled on (queued in `docs/NEXT.md`).
+- **Baseline value (Decided):** the baseline run's value sits beside each predicted quantity, shown faintly or in a different color. It is a historical record of a run the player has played, not a projection or forecast, so it is not a ghost marker.
 - A test-status line names the baseline and says whether the run is still a clean test. Buying an in-run upgrade beyond the baseline's level flips it to confounded and names the input. The "This run's setup" strip (`setupItems` in `web/visuals.js`) already lists the settings and levels this line compares.
 - Predictions cannot be made or edited during a run, which removes any reason to steer an outcome.
 - A locked prediction that breaks shows the streak-break card at that moment, not at the end of the run.

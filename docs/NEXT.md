@@ -13,7 +13,9 @@ a diary. Link to an issue when it owns the detail.
   and `docs/planning/prediction-system.md`.
 - **Resolved:** the queued ruling "post-run debrief vs the rejected-previews
   principle". The game never forecasts; the player may (DECISIONS entry
-  above).
+  above). Also ruled there: a played run's value beside a live stat is a
+  historical record, not a ghost marker; and clock-driven inputs are
+  divided into epochs, with predictions resetting at each change.
 - **Owner actions:**
     - Edit the design spec (the Claude Docs "Accretion Idle Game Design
       Spec", linked from `CLAUDE.md`). It could not be reached from the
@@ -21,9 +23,9 @@ a diary. Link to an issue when it owns the detail.
       predictions or previews" to "without game previews or forecasts;
       players may make their own predictions", and add a pointer to
       `docs/planning/prediction-system.md`.
-    - Rule on the faint baseline value in the prediction overlay: is a
-      played run's value beside a live stat a rejected ghost marker? See
-      "The in-run overlay" in `docs/planning/prediction-system.md`.
+    - Choose the epoch boundaries for the prediction system (candidates
+      in "Epochs" in `docs/planning/prediction-system.md`), and confirm the
+      proposed reading of "predictions reset" there.
     - Rulings still queued from the repository review: the clamped slider
       cost, the ring-count migration story, and the one-implementation
       proposal (protected decision — not for implementation without
