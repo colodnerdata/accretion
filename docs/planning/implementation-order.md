@@ -1,5 +1,7 @@
 # Implementation order
 
+> Planning note; last updated 2026-11-08. The order the decided features are built in.
+
 The run record and the audit tool come first because almost every later feature reads from them.
 
 | Step | Work | Why here | Depends on |

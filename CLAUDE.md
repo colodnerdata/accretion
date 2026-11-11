@@ -9,7 +9,7 @@ Shared workflow rules (verification, decision log, handoff notes) live in @AGENT
 ## Commands
 
 ```bash
-uv run poe check                                           # lint + format check + all tests (what CI runs)
+uv run poe check                                           # lint + format check + build check + all tests (what CI runs)
 uv run pytest tests/test_game.py::test_mass_budget_closes_through_a_run   # one test
 uv run poe lint                                            # ruff check (pydocstyle on src/, not tests/ or tools/)
 uv run poe format                                          # ruff format
@@ -26,7 +26,8 @@ python tools/build.py --check                              # fail if web/accreti
 In WSL, `uv run poe launch` opens Windows Chrome through PowerShell. If uv warns
 that `VIRTUAL_ENV` does not match `.venv`, use `uv run --active poe launch`.
 
-The pre-commit hook (`.githooks/pre-commit`) runs `build.py --check` and then `poe check`, so commit the rebuilt `web/accretion.html` together with any web source change.
+The pre-commit hook (`.githooks/pre-commit`) runs `poe check` (lint, format,
+build check, tests), so commit the rebuilt `web/accretion.html` together with any web source change.
 
 The parity test needs `node` on PATH; without it the test is skipped, not failed.
 

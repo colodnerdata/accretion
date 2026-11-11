@@ -102,6 +102,8 @@ text = "Fast time"
 kind = "tooltip"
 text = "Each second you watch is about {years_per_second} years for this star. All of recorded human history would pass in about {history_seconds} seconds."
 
+[shine.sun_compare]
+text = "about {life}, where the Sun lasts about {sun}."
 [shine.brightness.title]
 text = "Brightness"
 [shine.brightness_heavy.body]
@@ -171,5 +173,7 @@ text = "Gas is already at the coldest this composition allows."
 text = "The cosmic background sets the coldest gas this universe allows."
 [upgrades.turbulence]
 text = "Gas moves through the disk 30% faster, so it reaches the star sooner."
+[upgrades.turbulence_cap]
+text = "The disk already moves at its top speed."
 [upgrades.braking]
 text = "Gas lands {distance_new} AU from the star instead of {distance_old} AU, so it has less far to travel."

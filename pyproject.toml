@@ -29,7 +29,8 @@ lint = "ruff check ."
 format = "ruff format ."
 format-check = "ruff format --check ."
 test = "pytest"
-check = ["lint", "format-check", "test"]
+build-check = "python tools/build.py --check"
+check = ["lint", "format-check", "build-check", "test"]
 launch = "python tools/launch.py"
 hooks = "git config core.hooksPath .githooks"
 

@@ -1,5 +1,7 @@
 # Pinned ideas
 
+> Planning note; last updated 2026-11-08. Parked ideas; nothing here is decided.
+
 Ideas parked for later. Nothing here is decided.
 
 ## Parameter-space coverage ("the hypercube")
