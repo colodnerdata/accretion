@@ -19,9 +19,13 @@ a diary. Link to an issue when it owns the detail.
       reduced-motion streaks carry temperature only, gauge narrow layout
       follows the 760 px breakpoint, neutral gauge marker colors, honesty
       note gated on actual drawn metals.
-- **Review leftovers (minor, accepted or deferred):** saves from
-  intermediate dev builds of the branch get mis-bumped by the note
-  migration (self-healing, dev-only); two pre-existing `W < 500` checks
+- **Review leftovers (minor, accepted or deferred):** brown-dwarf runs
+  ending inside the accrete branch still omit at most one solver chunk
+  (~0.08 s) from the journal's seconds (pre-existing, pre-#19 bug class,
+  negligible — fix for symmetry sometime); no parity scenario buys heavy
+  turbulence (the boundary is covered by explicit tests on both engines,
+  not by parity); saves from intermediate dev builds get mis-bumped by the
+  note migration (self-healing, dev-only); two pre-existing `W < 500` checks
   remain in the accrete scene (disk labels — confirm they fit at 500-760);
   the floor text grazes the ring's top arc at 390 (dark stroke halo keeps
   it readable); the six-item track wraps at 320 px; canvas text (key,

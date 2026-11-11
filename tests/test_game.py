@@ -85,6 +85,10 @@ def test_one_long_step_matches_many_short_steps():
     assert long_entry["mass"] == pytest.approx(short_entry["mass"], rel=1e-6)
     assert long_entry["gain"] == pytest.approx(short_entry["gain"], rel=1e-6)
     assert long_entry["heavy"] == pytest.approx(short_entry["heavy"], rel=1e-6)
+    # Then both trajectories settle their runs, so the clocks and rewards
+    # compare with teeth (regions and heavy only move at prestige).
+    game.prestige(long, long_meta)
+    game.prestige(short, short_meta)
     assert long_meta.regions == pytest.approx(short_meta.regions, rel=1e-6)
     assert long_meta.heavy == pytest.approx(short_meta.heavy, rel=1e-6)
 

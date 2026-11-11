@@ -74,8 +74,9 @@ report with praise or restate what the diff does.
   close to.
 - If `web/app.js` or the sources changed, check `web/accretion.html` is in sync. Compare without
   writing:
-  `python -c "import sys; sys.path.insert(0,'tools'); import build; p=build.HEAD+'<style>\n'+build.read('style.css')+'</style>\n'+build.read('body.html')+'<script>\n'+build.read('engine.js')+'\n'+build.read('app.js')+'</script>\n'; print(p==(build.WEB/'accretion.html').read_text(encoding='utf-8'))"`
-  prints `True` when it is in sync. Hand-edited or stale build output is a finding.
+  `uv run python tools/build.py --check` prints exit 0 when the build output
+  is in sync with the sources (it reads, it does not rebuild; never build
+  inside the repository). Hand-edited or stale build output is a finding.
 - If the saved `meta` or `run` shape changed incompatibly, `SAVE_KEY` in `web/app.js` must be bumped
   (and `CLAUDE.md` updated). If a new field is merely missing from older saves, the engine must
   default it rather than produce `NaN`.

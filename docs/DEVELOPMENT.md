@@ -116,8 +116,8 @@ Python 3.11 or later; CI does not claim to have tested every permitted
 version. Add a supported-version matrix when this becomes a library used by
 other people. If Windows or another platform is part of the product contract,
 test it too. The parity and engine tests also need `node` on `PATH`, and the
-browser screenshot tools need Playwright's Chromium (`uv run sync && uv run
-playwright install chromium` after `uv sync` if the tests skip).
+browser screenshot tools need Playwright's Chromium (`uv sync` once, then
+`uv run playwright install chromium`, if the browser tests skip).
 
 ## Deliverables and integrations
 

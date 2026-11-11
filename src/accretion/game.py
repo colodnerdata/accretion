@@ -165,14 +165,15 @@ def buy_heavy(meta: Meta, name: str, run: Run) -> bool:
     """Buy a permanent upgrade with heavy elements.
 
     Dust and metal cooling is refused once the region bound rests on the
-    cosmic background: another level would cost mass and do nothing.
+    cosmic background, and turbulence once the disk speed reaches its cap:
+    another level would cost mass and do nothing.
     """
     cost = heavy_cost(meta, name)
     if meta.heavy < cost or name not in meta.unlocks:
         return False
     if name == "cooling" and not floor_purchase_helps(meta, run.metal_log10):
         return False
-    if name != "cooling" and not turbulence_purchase_helps(meta):
+    if name == "turbulence" and not turbulence_purchase_helps(meta):
         return False
     meta.heavy -= cost
     if name == "cooling":

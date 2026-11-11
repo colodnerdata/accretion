@@ -186,7 +186,7 @@ const Engine = (() => {
     const cost = heavyCost(meta, name);
     if (meta.heavy < cost || !meta.unlocks.includes(name)) return false;
     if (name === "cooling" && !coolingBoundHelps(meta, run.metalLog10)) return false;
-    if (name !== "cooling" && !turbulenceBoundHelps(meta)) return false;
+    if (name === "turbulence" && !turbulenceBoundHelps(meta)) return false;
     meta.heavy -= cost;
     if (name === "cooling") meta.heavyCooling += 1; else meta.heavyTurbulence += 1;
     return true;

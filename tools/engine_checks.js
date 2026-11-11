@@ -6,7 +6,7 @@ const checks = [];
 function check(name, ok, detail) {
   checks.push({ name, ok: Boolean(ok), detail: ok ? "" : String(detail) });
 }
-function approx(a, b) { return Math.abs(a - b) <= Math.abs(b) * 1e-9; }
+function approx(a, b, rel = 1e-9) { return Math.abs(a - b) <= Math.abs(b) * rel; }
 
 // Radiative cooling: buying the level that first reaches the composition
 // floor is allowed; the next one is refused and leaves state unchanged.
@@ -67,6 +67,10 @@ function approx(a, b) { return Math.abs(a - b) <= Math.abs(b) * 1e-9; }
   check("both record the same lifetime", approx(long.seconds, short.seconds));
   check("the journal carries the full lifetime", approx(longMeta.journal[0].seconds, long.seconds) && approx(shortMeta.journal[0].seconds, short.seconds));
   check("the rewards agree", approx(longMeta.journal[0].gain, shortMeta.journal[0].gain, 1e-6) && approx(longMeta.journal[0].heavy, shortMeta.journal[0].heavy, 1e-6));
+  // Settle both: regions and heavy only move at prestige, so the clock
+  // comparison needs the settlement to have teeth.
+  E.prestige(long, longMeta, false);
+  E.prestige(short, shortMeta, false);
   check("the clocks agree", approx(longMeta.regions, shortMeta.regions, 1e-6) && approx(longMeta.heavy, shortMeta.heavy, 1e-6));
 }
 
