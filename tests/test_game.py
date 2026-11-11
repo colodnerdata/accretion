@@ -134,6 +134,8 @@ def test_prestige_pays_exactly_once():
         len(meta.journal),
         meta.supernovae,
     ) == before
+    # And a settled call hands back a fresh region, not the ended run.
+    assert game.prestige(run, meta).phase == "gather"
 
 
 def test_controls_unlock_one_stage_at_a_time():

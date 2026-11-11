@@ -97,6 +97,7 @@ function approx(a, b, rel = 1e-9) { return Math.abs(a - b) <= Math.abs(b) * rel;
   E.prestige(run, meta, false);
   check("a second prestige call moves nothing",
     JSON.stringify([meta.regions, meta.runs, meta.heavy, meta.localMetals, meta.cosmicMyr, meta.journal.length, meta.supernovae]) === JSON.stringify(before));
+  check("and hands back a fresh region", E.prestige(run, meta, false).phase === "gather");
 }
 
 // A run left early is flagged and its clock advance is only the elapsed share.

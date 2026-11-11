@@ -52,9 +52,10 @@ stars" row reflects the current companion mass in that run.
 
 ## Pre-commit hook
 
-A tracked git hook in `.githooks/pre-commit` runs before every commit. It checks that
-`web/accretion.html` matches the web sources (`uv run python tools/build.py --check`), then runs
-`uv run poe check` (lint, format check, tests). Turn it on once per clone:
+A tracked git hook in `.githooks/pre-commit` runs before every commit. It runs
+`uv run poe check`, whose four gates are lint (ruff), the format check, the
+build check (`web/accretion.html` must match the web sources), and the tests.
+Turn it on once per clone:
 
 ```bash
 uv run poe hooks

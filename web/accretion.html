@@ -919,12 +919,17 @@ function save() {
   // A last-good copy is kept in a second key, so one broken or truncated
   // write cannot take the player's data with it.
   const blob = JSON.stringify({ meta: state.meta, run: state.run, view: state.view, seen: state.seen, log: state.log, skipped: state.skipped, noted: state.noted, logShape: 2, savedAt: Date.now() });
-  try {
-    localStorage.setItem(SAVE_KEY, blob);
-    localStorage.setItem(SAVE_BACKUP_KEY, blob);
-  } catch {
+  const write = (key) => { try { localStorage.setItem(key, blob); return true; } catch (error) { return false; } };
+  let saved = write(SAVE_KEY);
+  if (saved) {
+    // The primary save is intact; a failed mirror cannot hurt the player,
+    // so it gets no banner, and any saving-unavailable banner goes away.
+    state.saveFailed = false;
+    if (state.banner === t("ui.save.unavailable")) state.banner = null;
+    if (!write(SAVE_BACKUP_KEY)) console.warn("save: the last-good copy could not be written");
+  } else if (!state.saveFailed) {
     // Say so once: the player keeps playing, but must know progress is
-    // not being recorded.
+    // not being recorded. Cleared if a later save succeeds.
     if (!state.saveFailed) {
       state.saveFailed = true;
       state.banner = t("ui.save.unavailable");
@@ -938,7 +943,9 @@ function validSave(saved) {
   return Boolean(
     saved && typeof saved === "object"
     && saved.run && typeof saved.run.phase === "string" && typeof saved.run.seconds === "number"
-    && saved.meta && Number.isFinite(saved.meta.regions) && Array.isArray(saved.meta.unlocks) && Array.isArray(saved.meta.journal)
+    && saved.meta && Number.isFinite(saved.meta.regions) && Number.isFinite(saved.meta.runs)
+    && Number.isFinite(saved.meta.heavy) && Number.isFinite(saved.meta.cosmicMyr)
+    && Array.isArray(saved.meta.unlocks) && Array.isArray(saved.meta.journal)
     && typeof saved.view === "string"
   );
 }
@@ -1326,7 +1333,7 @@ function footer() {
   const reset = button("reset", t("ui.footer.reset"), () => {
     if (!state.resetArm) { state.resetArm = true; reset.textContent = t("ui.footer.reset_confirm"); setTimeout(() => { state.resetArm = false; reset.textContent = t("ui.footer.reset"); }, 3000); return; }
     try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(SAVE_BACKUP_KEY); } catch {}
-    Object.assign(state, { meta: E.newMeta(), view: "play", pane: "main", log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {}, banner: null });
+    Object.assign(state, { meta: E.newMeta(), view: "play", pane: "main", log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {}, banner: null, saveFailed: false });
     state.run = E.newRun(state.meta); shell = ""; update();
   });
   row.append(reset); box.append(row);
