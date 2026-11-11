@@ -9,9 +9,10 @@
 // (over hydrogen) moves 1/sqrt(M) as fast: helium (4 amu) half hydrogen's
 // speed, a representative metal (16 amu, oxygen) a quarter. The screens
 // draw speed as px/s through one shared constant, SPEED_BASE_PX: hydrogen
-// at 10 K moves at that base and every other case carries the true ratio,
-// so the hottest settings (about 1000 K) run 10x the base. Speed is the
-// only channel that encodes temperature; color never does.
+// at 10 K moves at that base and every other case carries the true ratio;
+// across the modeled 10-1000 K range that tops out at 10x the base, so the
+// harder cap at SPEED_CAP_PX is only a safety for out-of-range settings.
+// Speed is the only channel that encodes temperature; color never does.
 //
 // Composition as color. One color each for hydrogen, helium, and metals,
 // with a visible key on the canvas. Helium is 8% of atoms in every gas,
@@ -69,7 +70,7 @@ const speciesMix = (log10z, primordialLimit) => {
   return { hydrogen: 1 - HELIUM_SHARE - metals, helium: HELIUM_SHARE, metals };
 };
 
-// Drawn scale ratio for a number density: sqrt of the volume ratio.
+// Drawn scale ratio for a number density: cube root of the volume ratio.
 const zoomScale = (density, reference = DENSITY_REFERENCE) => (reference / density) ** (1 / 3);
 
 const VISUALS = {

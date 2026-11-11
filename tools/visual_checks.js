@@ -1,6 +1,11 @@
 // Display-mapping boundary checks, driven from tests/test_visuals.py the way
 // tools/engine_checks.js is driven. Prints one JSON list of checks.
 const V = require("../web/visuals.js");
+// The primordial threshold must be the engine's own, not a restated value:
+// PRIMORDIAL_METAL_LOG10 (-4, Z-relative log) is the pristine boundary the
+// display share's line starts from.
+const E = require("../web/engine.js");
+const LIMIT = E.PRIMORDIAL_METAL_LOG10;
 
 const checks = [];
 function check(name, ok, detail) {
@@ -25,16 +30,17 @@ check("1/100 solar: 1 in 100,000 atoms", close(V.metalShare(-2), 1e-5));
 check("1/10 solar: 1 in 10,000 atoms", close(V.metalShare(-1), 1e-4));
 
 // Displayed share: amplified, log-visible, and zero for pristine gas.
-check("pristine gas shows no metals", V.metalDisplayShare(-9, -3.886) === 0);
-check("the primordial threshold itself shows none", V.metalDisplayShare(-3.886, -3.886) === 0);
-check("half a decade above the threshold shows 7% of the cap", close(V.metalDisplayShare(-1.943, -3.886), V.METAL_DISPLAY_CAP * 0.5, 1e-6));
-check("solar shows the full cap", close(V.metalDisplayShare(0, -3.886), V.METAL_DISPLAY_CAP, 1e-9));
-check("above solar stays capped", close(V.metalDisplayShare(2, -3.886), V.METAL_DISPLAY_CAP, 1e-9));
+check("the engine's primordial threshold is -4", LIMIT === -4);
+check("pristine gas shows no metals", V.metalDisplayShare(-9, LIMIT) === 0);
+check("the primordial threshold itself shows none", V.metalDisplayShare(LIMIT, LIMIT) === 0);
+check("half a decade above the threshold shows half the cap", close(V.metalDisplayShare(LIMIT / 2, LIMIT), V.METAL_DISPLAY_CAP * 0.5, 1e-6));
+check("solar shows the full cap", close(V.metalDisplayShare(0, LIMIT), V.METAL_DISPLAY_CAP, 1e-9));
+check("above solar stays capped", close(V.metalDisplayShare(2, LIMIT), V.METAL_DISPLAY_CAP, 1e-9));
 
 // Species mix: helium everywhere, metals only when not pristine.
-const pristine = V.speciesMix(-9, -3.886);
+const pristine = V.speciesMix(-9, LIMIT);
 check("pristine mix: 92% hydrogen, 8% helium, no metals", close(pristine.hydrogen, 0.92) && close(pristine.helium, 0.08, 1e-6) && pristine.metals === 0);
-const solar = V.speciesMix(0, -3.886);
+const solar = V.speciesMix(0, LIMIT);
 check("solar mix keeps helium and sums to one", solar.helium === V.HELIUM_SHARE && close(solar.hydrogen + solar.helium + solar.metals, 1, 1e-9));
 check("solar metals match the display cap", close(solar.metals, V.METAL_DISPLAY_CAP, 1e-9));
 

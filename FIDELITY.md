@@ -35,6 +35,7 @@ Values come from the research report "Accretion prototype stellar data". Most pa
 | Temperature distribution | Simplified | 250 K primordial with width 0.15. Enriched regions sit 30% above their floor, a tuned margin, with width 0.35 |
 | Region rarity | Simplified | Cost z^2/2, the Gaussian log-density relative to the mode. Metal spread among regions is tuned, with no published width found |
 | Novae | Not modeled | Planned for Layer 3 |
+| Visible gas display (Survey, Gather, Collapse) | Simplified | Thermal speed on the true sqrt(T/m) scale (hydrogen at 10 K = 7 px/s, helium 4 amu half, a 16 amu metal a quarter); true metal share by number 10^(log10 Z - 3), drawn amplified - linear in log10 Z from the engine's primordial threshold to a 0.28-of-particles cap at solar, labeled on-canvas; helium drawn as a fixed 8% of particles at every metallicity; linear size proportional to density^(-1/3). The 7 px/s base, the 110 px/s safety cap, the fixed 8% helium, the amplification and its 0.28 cap are calibrations. Display only; does not affect any game rule |
 | Reach, tap power, upgrade costs, clocks | Game rule | Tuned for pacing, with no physical basis |
 | Control unlock order | Game rule | Teaches one change at a time |
 | Skipped-run death reward | Game rule | The star has not actually died |
