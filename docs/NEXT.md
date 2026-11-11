@@ -30,7 +30,9 @@ a diary. Link to an issue when it owns the detail.
 - **Next action:** step 0 of `docs/planning/implementation-order.md`: correct
   the density hints and the "buy as soon as energy allows" hint against the
   engine, and rename or justify the shipped "Forecast life" and "Forecast
-  ending" labels - Replace with "Projected life, Projected ending".
+  ending" labels - Replace with "Projected life, Projected ending". The
+  same fix covers the "longer than forecast" note and the design spec's
+  "lives longer than its forecast" line (Mixing and Goldilocks planets).
   Then step 1, the run record. Engineering items still open
   beside that: the 59/61 s offline cliff (credit short absences, keep the
   banner for long ones), the two-tab save policy, standards-mode page entry,
