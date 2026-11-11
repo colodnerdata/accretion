@@ -2,7 +2,7 @@
 
 > Planning note; last updated 2026-11-11. The rules for player predictions; the owner ruling is in `docs/DECISIONS.md`.
 
-The rules behind the screens in `prediction-system-sketch/`. Status: **Decided** where marked, otherwise **Proposed**. Where a sketch screen and this page differ, this page wins.
+The rules behind the screens in `docs/planning/prediction-system-sketch/`. Status: **Decided** where marked, otherwise **Proposed**. Where a sketch screen and this page differ, this page wins.
 
 ## Ruling (Decided, 2026-11-11)
 
