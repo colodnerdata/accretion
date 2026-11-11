@@ -37,7 +37,12 @@ function myr(value) { return value >= 1000 ? `${sci(value / 1000)} Gyr` : `${sci
 // The Sun's main sequence lasts about 10 billion years. Quote both lifetimes in one unit so they compare directly.
 function lifeVsSun(forecastMyr) {
   const gyr = forecastMyr >= 1000;
-  return `about ${sci(gyr ? forecastMyr / 1000 : forecastMyr)} ${gyr ? "Gyr" : "Myr"}, where the Sun lasts about ${gyr ? "10" : "10,000"} ${gyr ? "Gyr" : "Myr"}`;
+  // The Sun's main sequence lasts about 10 billion years; both lifetimes are
+  // quoted in one unit so they compare directly.
+  return t("notes.shine.sun_compare", {
+    life: `${sci(gyr ? forecastMyr / 1000 : forecastMyr)} ${gyr ? "Gyr" : "Myr"}`,
+    sun: gyr ? "10 Gyr" : "10,000 Myr",
+  });
 }
 function clock(seconds) {
   const s = Math.max(0, Math.ceil(seconds)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, pad = (x) => String(x).padStart(2, "0");
@@ -160,9 +165,11 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 const phaseIndex = (p) => PHASES.findIndex(([name]) => name === p);
 const NOTE_SECONDS = 30;
 function asNote(n) { return typeof n === "string" ? { text: n, p: -1, at: 0, ttl: 0 } : { ...n, ttl: n.ttl ?? Infinity }; }
-function note(text, { phase = state.run.phase, ttl = NOTE_SECONDS } = {}) {
+function note(text, { phase = state.run.phase, ttl = NOTE_SECONDS, tag = undefined } = {}) {
   if ($("live")) $("live").textContent = text;
-  state.log.unshift({ text, p: phaseIndex(phase), at: state.run.seconds, ttl });
+  // unlock-tagged notes are announcements, not observations: the journal
+  // card filters them by tag, never by their first word.
+  state.log.unshift({ text, p: phaseIndex(phase), at: state.run.seconds, ttl, tag });
   state.log = state.log.slice(0, 40);
 }
 function noteExpired(n, run) { return phaseIndex(run.phase) > n.p || run.seconds - n.at > n.ttl; }
@@ -178,7 +185,7 @@ function checkMilestones() {
   while (state.noted < meta.unlocks.length) {
     // A new control's note stays current through the phase where the control is used.
     const name = meta.unlocks[state.noted++], where = E.UPGRADES[name]?.phase ?? "gather";
-    note(CONTROL_NOTES[name], { phase: where, ttl: Infinity });
+    note(CONTROL_NOTES[name], { phase: where, ttl: Infinity, tag: "unlock" });
   }
 }
 
@@ -407,7 +414,8 @@ function renderEnded(panel) {
   const box = document.createElement("section");
   box.className = "cta";
   box.append(button("primary", t("ui.ended.survey_button"), () => {
-    const notes = state.log.map((n) => n.text);
+    // Unlock announcements are tagged, not matched by their first word.
+    const notes = state.log.filter((n) => !n.tag).map((n) => n.text);
     state.run = E.prestige(state.run, state.meta, state.skipped);
     state.meta.journal.at(-1).notes = notes;
     state.selected = state.meta.journal.length - 1;
@@ -476,11 +484,14 @@ function renderSearch(panel) {
       b.type = "button"; b.className = "upgrade"; b.id = `heavy-${name}`;
       b.paint = () => {
         const cost = E.heavyCost(m, name), lvl = name === "cooling" ? m.heavyCooling : m.heavyTurbulence;
-        // Cooling deepens the bound of every future region until the
-        // cosmic background clamps it; the button then says so itself.
+        // A permanent upgrade is refused once its target rests on a bound:
+        // cooling once the cosmic background clamps the region floor,
+        // turbulence once disk speed reaches its cap. The button then says
+        // so itself, like the in-run upgrades.
         const metalLog10 = E.backgroundMetal(m) + E.SIGMA_LOG10_METAL * m.zMetal;
-        const blocked = name === "cooling" && !E.coolingBoundHelps(m, metalLog10);
-        b.innerHTML = `<b>${esc(t("ui.upgrades.level_label", { name: label, level: lvl }))}</b><small>${esc(blocked ? t("notes.upgrades.cooling_background") : text)}</small><span class="cost">${sci(cost)} M☉</span>`;
+        const blocked = name === "cooling" ? !E.coolingBoundHelps(m, metalLog10) : !E.turbulenceBoundHelps(m);
+        const blockedNote = name === "cooling" ? t("notes.upgrades.cooling_background") : t("notes.upgrades.turbulence_cap");
+        b.innerHTML = `<b>${esc(t("ui.upgrades.level_label", { name: label, level: lvl }))}</b><small>${esc(blocked ? blockedNote : text)}</small><span class="cost">${sci(cost)} M☉</span>`;
         b.disabled = m.heavy < cost || blocked;
         shop.querySelector("h3").textContent = t("ui.heavy.heading", { mass: sci(m.heavy) });
       };
@@ -525,6 +536,10 @@ function resultsPlot() {
 }
 function entryCard(j) {
   const rows = [[t("ui.journal.row_ending"), ENDINGS[j.ending].title], [t("ui.journal.row_final_mass"), `${sci(j.mass)} M☉`], [t("ui.journal.row_temperature"), `${j.temperature.toFixed(0)} K`], [t("ui.journal.row_density"), `${sci(j.density)} /cm³`], [t("ui.journal.row_turbulence"), t("ui.journal.alpha_value", { value: j.alpha.toFixed(2) })], [t("ui.journal.row_feed"), `${j.feedRadius.toFixed(0)} AU`], [t("ui.journal.row_run_time"), duration(j.seconds)], [t("ui.journal.row_reward"), t("ui.journal.reward", { gain: j.gain.toFixed(2) }) + (j.heavy ? t("ui.journal.reward_heavy", { heavy: sci(j.heavy) }) : "")]];
+  // Journals written since the tag exists hold observations only; older
+  // saves keep the announcement strings as plain text, so they still get
+  // the legacy first-word filter (those old entries are frozen records
+  // whose strings are English by construction).
   const notes = (j.notes || []).filter((n) => !String(n).startsWith("New ")).slice(0, 5).reverse();
   return `<section><h3>${esc(j.skipped ? t("ui.journal.run_card_title_early", { number: j.run }) : t("ui.journal.run_card_title", { number: j.run }))}</h3>${stat(rows)}${notes.length ? `<h3>${esc(t("ui.play.observations"))}</h3><div id="log">${notes.map((note) => `<div>${esc(note)}</div>`).join("")}</div>` : ""}</section>`;
 }
