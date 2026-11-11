@@ -93,6 +93,12 @@ const Engine = (() => {
     const background = cmbTemperature(cosmicAgeGyr(meta)), composition = coolingTemperature(z);
     return Math.max(background, composition * 0.9 ** (meta.heavyCooling + 1)) < Math.max(background, composition * 0.9 ** meta.heavyCooling);
   };
+  // Purchased turbulence is refused once the disk speed rests on its cap:
+  // another level would cost mass and change nothing.
+  const turbulenceBoundHelps = (meta) => {
+    const at = (level) => Math.min(1, BASE_ALPHA * 1.3 ** level);
+    return at(meta.heavyTurbulence + 1) > at(meta.heavyTurbulence);
+  };
   const cosmicMetal = (age) => age >= 0.2 ? cosmicFit(age) : interpolate([0.12, 0.2], [-8, cosmicFit(0.2)], age);
   const hydrogenLimit = (z) => z >= -0.5 ? 0.075 : z >= -4 ? 0.083 : 0.09;
   const explodes = (m) => EXPLOSION_ISLANDS.some(([low, high]) => low <= m && m < high);
@@ -180,6 +186,7 @@ const Engine = (() => {
     const cost = heavyCost(meta, name);
     if (meta.heavy < cost || !meta.unlocks.includes(name)) return false;
     if (name === "cooling" && !coolingBoundHelps(meta, run.metalLog10)) return false;
+    if (name !== "cooling" && !turbulenceBoundHelps(meta)) return false;
     meta.heavy -= cost;
     if (name === "cooling") meta.heavyCooling += 1; else meta.heavyTurbulence += 1;
     return true;
@@ -390,7 +397,14 @@ const Engine = (() => {
       } else {
         used = Math.min(left, run.msDuration - run.msElapsed);
         run.msElapsed += used;
+        // Consume the seconds before ending the run: the journal entry reads
+        // run.seconds, so the final chunk must be on the clock first, or the
+        // recorded lifetime omits it (badly, when one long call consumed the
+        // whole remaining shine phase).
+        left -= used;
+        run.seconds += used;
         if (run.msElapsed >= run.msDuration - 1e-9) endRun(run, meta);
+        continue;
       }
       left -= used;
       run.seconds += used;
@@ -450,7 +464,7 @@ const Engine = (() => {
   return {
     UPGRADES, RADII, CELLS, SIGMA_LN_DENSITY, SIGMA_LOG10_METAL, BLACK_HOLE_START_COST,
     newMeta, newRun, step, tap, buy, canBuy, upgradeCost, budget, regionCost, backgroundMetal, heavyCost, buyHeavy,
-    temperature, temperatureAt, coolingHelps, regionFloor, coolingBoundHelps, cosmicAgeGyr, alpha, feedRadius, reachRate, tapPower, patchMass, jeansLogReach, jeansMass, infallRate,
+    temperature, temperatureAt, coolingHelps, regionFloor, coolingBoundHelps, turbulenceBoundHelps, cosmicAgeGyr, alpha, feedRadius, reachRate, tapPower, patchMass, jeansLogReach, jeansMass, infallRate,
     diskLossRate, infallNow, diskGas, stability, criticalSurfaceDensity, fragmentMass, companionMass, luminosity, lifetimeMyr, canSkip, runGain, skip, prestige, heavyYield, gas, BASE_DENSITY, BASE_TEMPERATURE,
     freeFallTime, updateUnlocks, COLLAPSE_SECONDS, ionizingRate, stromgrenRadius, hiiRadius, soundSpeed, YR, PRIMORDIAL_METAL_LOG10, HII_SOUND_SPEED,
   };

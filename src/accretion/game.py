@@ -151,6 +151,16 @@ def floor_purchase_helps(meta: Meta, metal_log10: float) -> bool:
     )
 
 
+def turbulence_purchase_helps(meta: Meta) -> bool:
+    """Return whether one more turbulence level still speeds the disk.
+
+    Disk speed is min(1, beta * 1.3 ^ level), so past the level that reaches
+    the cap another level costs mass and changes nothing.
+    """
+    level = meta.heavy_turbulence
+    return min(1.0, BASE_ALPHA * 1.3 ** (level + 1)) > min(1.0, BASE_ALPHA * 1.3**level)
+
+
 def buy_heavy(meta: Meta, name: str, run: Run) -> bool:
     """Buy a permanent upgrade with heavy elements.
 
@@ -161,6 +171,8 @@ def buy_heavy(meta: Meta, name: str, run: Run) -> bool:
     if meta.heavy < cost or name not in meta.unlocks:
         return False
     if name == "cooling" and not floor_purchase_helps(meta, run.metal_log10):
+        return False
+    if name != "cooling" and not turbulence_purchase_helps(meta):
         return False
     meta.heavy -= cost
     if name == "cooling":
@@ -579,8 +591,15 @@ def step(run: Run, meta: Meta, seconds: float) -> None:
         else:
             used = min(left, run.ms_duration - run.ms_elapsed)
             run.ms_elapsed += used
+            # Consume the seconds before ending the run: the journal entry
+            # reads run.seconds, so the final chunk must be on the clock
+            # first, or the recorded lifetime omits it (badly, when one long
+            # call consumed the whole remaining shine phase).
+            left -= used
+            run.seconds += used
             if run.ms_elapsed >= run.ms_duration - 1e-9:
                 _end_run(run, meta)
+            continue
         left -= used
         run.seconds += used
     update_unlocks(run, meta)

@@ -41,6 +41,35 @@ function approx(a, b) { return Math.abs(a - b) <= Math.abs(b) * 1e-9; }
   check("the multiplier applies in-run", approx(E.temperature(inRun, meta), 81.0) && E.canBuy(inRun, "cooling", meta));
 }
 
+// Turbulence has the mirror-image boundary: purchases stop once the disk
+// speed rests on its cap, so no 2^9 mass is spent for a 1 -> 1 result.
+{
+  const meta = E.newMeta(), run = E.newRun(meta);
+  meta.unlocks.push("turbulence"); meta.heavy = 1e9;
+  meta.heavyTurbulence = 8;
+  check("the last effective level can be bought", E.buyHeavy(meta, "turbulence", run) && meta.heavyTurbulence === 9 && approx(E.alpha(run, meta), 1.0));
+  const held = meta.heavy;
+  check("the next level is refused and keeps the mass", !E.buyHeavy(meta, "turbulence", run) && meta.heavyTurbulence === 9 && meta.heavy === held);
+  check("the helper agrees", !E.turbulenceBoundHelps(meta));
+  const early = E.newMeta();
+  early.unlocks.push("turbulence"); early.heavy = 1e9; early.heavyTurbulence = 5;
+  check("below the cap the purchase is allowed", E.turbulenceBoundHelps(early));
+}
+
+// One long step must land where many short steps do, journal included:
+// the ending step journals only after consuming its chunk.
+{
+  const shortMeta = E.newMeta(), longMeta = E.newMeta();
+  const short = E.newRun(shortMeta), long = E.newRun(longMeta);
+  for (let i = 0; i < 1800; i++) E.step(short, shortMeta, 2.0);
+  E.step(long, longMeta, 3600.0);
+  check("both end in the same phase", short.phase === "ended" && long.phase === short.phase);
+  check("both record the same lifetime", approx(long.seconds, short.seconds));
+  check("the journal carries the full lifetime", approx(longMeta.journal[0].seconds, long.seconds) && approx(shortMeta.journal[0].seconds, short.seconds));
+  check("the rewards agree", approx(longMeta.journal[0].gain, shortMeta.journal[0].gain, 1e-6) && approx(longMeta.journal[0].heavy, shortMeta.journal[0].heavy, 1e-6));
+  check("the clocks agree", approx(longMeta.regions, shortMeta.regions, 1e-6) && approx(longMeta.heavy, shortMeta.heavy, 1e-6));
+}
+
 // The journal entry exists as soon as the run ends; prestige reuses it.
 {
   const meta = E.newMeta(), run = E.newRun(meta);

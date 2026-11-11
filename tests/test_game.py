@@ -60,15 +60,33 @@ def test_mass_budget_closes_through_a_run():
 
 
 def test_one_long_step_matches_many_short_steps():
-    meta = game.Meta()
-    short = game.new_run(meta)
-    long = game.new_run(meta)
+    """One long step must land where many short steps do, journal included.
+
+    Each trajectory gets its own Meta so a shared ending cannot hide
+    differences in the journal, rewards or clock.
+    """
+    short_meta = game.Meta()
+    long_meta = game.Meta()
+    short = game.new_run(short_meta)
+    long = game.new_run(long_meta)
     for _ in range(1800):
-        game.step(short, meta, 2.0)
-    game.step(long, meta, 3600.0)
+        game.step(short, short_meta, 2.0)
+    game.step(long, long_meta, 3600.0)
     assert long.phase == short.phase
     assert long.star_mass == pytest.approx(short.star_mass, rel=1e-6)
     assert long.seconds == pytest.approx(short.seconds)
+    # The journal's recorded lifetime is part of the agreement: an ending
+    # step that journals before consuming its chunk used to omit the final
+    # interval, invisible when both engines shared one Meta.
+    short_entry = short_meta.journal[-1]
+    long_entry = long_meta.journal[-1]
+    assert long_entry["seconds"] == pytest.approx(short_entry["seconds"])
+    assert long_entry["seconds"] == pytest.approx(long.seconds)
+    assert long_entry["mass"] == pytest.approx(short_entry["mass"], rel=1e-6)
+    assert long_entry["gain"] == pytest.approx(short_entry["gain"], rel=1e-6)
+    assert long_entry["heavy"] == pytest.approx(short_entry["heavy"], rel=1e-6)
+    assert long_meta.regions == pytest.approx(short_meta.regions, rel=1e-6)
+    assert long_meta.heavy == pytest.approx(short_meta.heavy, rel=1e-6)
 
 
 def test_first_run_is_short_and_reaches_supernova():
@@ -121,6 +139,25 @@ def test_heavy_cooling_lowers_what_new_regions_can_reach():
     assert run.floor_temperature == pytest.approx(200.0)
     assert game.buy_heavy(meta, "cooling", run)
     assert game.new_run(meta).floor_temperature == pytest.approx(200.0 * 0.9)
+
+
+def test_heavy_turbulence_stops_when_disk_speed_reaches_the_cap():
+    # min(1, 0.1 * 1.3 ^ level) reaches 1 at level 9 (0.81 at 8, 1.06 at 9);
+    # buying at 9 would spend 512 M☉ for a 1 -> 1 result.
+    meta = game.Meta()
+    meta.unlocks = ["turbulence"]
+    meta.heavy = 1e9
+    run = game.new_run(meta)
+    meta.heavy_turbulence = 8
+    assert game.turbulence_purchase_helps(meta)
+    assert game.buy_heavy(meta, "turbulence", run)
+    assert meta.heavy_turbulence == 9
+    assert game.alpha(run, meta) == pytest.approx(1.0)
+    held = meta.heavy
+    assert not game.turbulence_purchase_helps(meta)
+    assert not game.buy_heavy(meta, "turbulence", run)
+    assert meta.heavy_turbulence == 9
+    assert meta.heavy == held
 
 
 def test_heavy_cooling_stops_at_the_cosmic_background():
