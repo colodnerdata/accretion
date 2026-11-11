@@ -1,6 +1,6 @@
 # Teaching principles
 
-> Planning note; last updated 2026-11-08. Design principles from the teaching research reports.
+> Planning note; last updated 2026-11-11. Design principles from the teaching research reports.
 
 How Accretion explains its physics. Evidence labels: **Strong** (meta-analyses or validated instruments), **Moderate** (one large or controlled study), **Weak** (case studies or practitioner advice), **Design inference** (derived from the evidence, untested in games). Sources are in the research reports "Teaching stellar astrophysics in games" and "Binaries, planets, and cosmology for Accretion".
 
@@ -17,7 +17,7 @@ How Accretion explains its physics. Evidence labels: **Strong** (meta-analyses o
 
 1. **The physics is the mechanic.** Controls change physical parameters, and the simulation decides outcomes. Upgrades never buy results directly, such as "more fusion." **Moderate.**
 2. **One new thing at a time.** Each control, bin, and layer arrives alone, and each prestige layer lifts one simplification. **Design inference.**
-3. **Predict, observe, explain.** Players commit to predictions before outcomes resolve, then get the reason. See the prediction system sketch. **Design inference from Strong evidence.**
+3. **Predict, observe, explain.** Players commit to predictions before outcomes resolve, then get the reason. See `prediction-system.md`. **Design inference from Strong evidence.**
 4. **Debrief every prestige.** The prestige screen summarizes what the run showed and invites a prediction for the next run. **Design inference from Strong evidence.**
 5. **Make wrong intuitions fail visibly.** A simulation that only avoids contradicting a misconception leaves it intact. **Weak.**
 6. **Show the invisible.** Live gauges for quantities players can't see, such as core temperature, the balance between gravity and pressure, and fusion rate. **Design inference.**

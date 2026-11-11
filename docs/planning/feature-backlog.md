@@ -1,6 +1,6 @@
 # Feature backlog
 
-> Planning note; last updated 2026-11-08. Candidate features by layer; statuses live in the text.
+> Planning note; last updated 2026-11-11. Candidate features by layer; statuses live in the text.
 
 Candidate features by layer. Status: **Decided**, **Proposed**, or **Idea**. Physics notes come from the research reports; values marked in `verification-checklist.md` need checking before they are hard-coded.
 
@@ -10,7 +10,7 @@ Candidate features by layer. Status: **Decided**, **Proposed**, or **Idea**. Phy
 | --- | --- | --- |
 | Copy audit | Proposed | Replace "Fuel burned" on the main-sequence meter, for example with "Hydrogen fused". Audit all text for "burn", "dying", "zero gravity", and "gravity cancels". |
 | Audit tool | Decided | Standalone report. Samples regions, nudges one input at a time, and classifies each input–outcome pair as up, down, unrelated, context-dependent, peaked, or threshold. Reports elasticities, interactions, and direct versus total effects. |
-| Prediction system | Proposed | See `prediction-system-sketch/`. Bins, locks, toggles, chain predictions, confounded runs, and the relationship board. Rewards deferred. |
+| Prediction system | Decided | Rules in `prediction-system.md`, screens in `prediction-system-sketch/`. v1 is relationship predictions only, with no rewards. Insight later pays for board milestones only. |
 | Prestige debrief | Proposed | Summarize what the run showed and invite a prediction for the next run. |
 | Disk breakup and companions | Decided | Visible temperature and infall, Toomre-based fragmentation, companions simulated as objects. Details in the spec addition. |
 | Infall surge | Proposed | Raises infall toward primordial rates. With low turbulence the disk fragments and traps the star small, so it needs a turbulence guard. |
