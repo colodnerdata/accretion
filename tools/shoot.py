@@ -34,16 +34,17 @@ WIDTHS = (390, 1280)
 MOTIONS = ("standard", "reduce")
 SPEED_TIMEOUT_MS = 180_000
 
-# Play steps in run order: the five phases by their track index, then the two
+# Play steps in run order: the five phases by their track index (Survey joins
+# the track first as a display-only step for the search screen), then the two
 # screens that follow an ended run.
 STEPS = (
-    ("gather", 0),
-    ("collapse", 1),
-    ("accrete", 2),
-    ("shine", 3),
-    ("ended", 4),
-    ("search", 5),
-    ("journal", 6),
+    ("gather", 1),
+    ("collapse", 2),
+    ("accrete", 3),
+    ("shine", 4),
+    ("ended", 5),
+    ("search", 6),
+    ("journal", 7),
 )
 
 
@@ -89,7 +90,7 @@ def tap_until_collapse(page: Page, deadline: float) -> None:
         If the gather phase does not end within its time budget.
     """
     while True:
-        if is_active(page, 1):
+        if is_active(page, 2):
             return
         if time.monotonic() > deadline:
             raise PlaywrightTimeoutError("gather never reached collapse")

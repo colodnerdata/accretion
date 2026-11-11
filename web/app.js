@@ -639,7 +639,15 @@ addEventListener("resize", resize);
 // temperature this gas can reach; radiative cooling slides the marker down
 // toward it.
 function temperatureGauge(run, meta) {
-  const lo = 10, hi = 1000, x1 = W - 24, x0 = x1 - Math.min(150, W * 0.4), y = H - 40;
+  // Wide layout: a short bar above the bottom edge, right of centre, with the
+  // caption above it and the floor meaning one row below the ticks. Narrow:
+  // a full-width bar between the page header and the collapse ring, with the
+  // caption and current readout above it and the floor meaning below;
+  // tick labels are dropped, the readout carries the numbers.
+  const narrow = W < 500;
+  const lo = 10, hi = 1000;
+  const x1 = narrow ? W - 16 : W - 24, x0 = narrow ? 16 : x1 - Math.min(150, W * 0.4);
+  const y = narrow ? 96 : H - 40;
   const mark = (kelvin) => x0 + Math.log10(Math.min(hi, Math.max(lo, kelvin)) / lo) / Math.log10(hi / lo) * (x1 - x0);
   ctx.font = "10px 'IBM Plex Mono', monospace"; ctx.textAlign = "center"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
   ctx.globalAlpha = 0.85; ctx.strokeStyle = "#8d84d6"; ctx.lineWidth = 1;
@@ -648,25 +656,25 @@ function temperatureGauge(run, meta) {
     const x = mark(k);
     ctx.strokeStyle = "#8d84d6";
     ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4); ctx.stroke();
-    ctx.fillStyle = "#8d84d6"; ctx.fillText(`${k} K`, x, y + 15);
+    if (!narrow) { ctx.fillStyle = "#8d84d6"; ctx.fillText(`${k} K`, x, y + 15); }
   }
   const fx = mark(run.floorTemperature);
   ctx.globalAlpha = 1; ctx.strokeStyle = "#5fe6cf"; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(fx, y - 7); ctx.lineTo(fx, y + 7); ctx.stroke();
-  // Caption and current readout above the bar, the floor meaning below it.
+  // Caption and current readout above the bar; the floor meaning below it at
+  // narrow width, one row past the ticks at wide width.
   ctx.font = "10px 'IBM Plex Mono', monospace"; ctx.textAlign = "left";
   ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.fillStyle = "#cfc8ff";
   const readout = `${SKY_TEXT.gauge}: ${Math.round(E.temperature(run, meta))} K`;
   ctx.strokeText(readout, x0, y - 10); ctx.fillText(readout, x0, y - 10);
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#ff5f7e";
+  ctx.textAlign = "center"; ctx.fillStyle = "#ff5f7e";
   const tx = mark(E.temperature(run, meta));
   ctx.beginPath(); ctx.arc(tx, y, 4, 0, 6.283); ctx.fill();
-  // One row down from the ticks, so the floor's meaning never collides.
-  ctx.fillStyle = "#5fe6cf"; ctx.font = "9px 'IBM Plex Mono', monospace"; ctx.textAlign = "right";
+  // One row away from the bar, so the floor's meaning never collides.
+  ctx.font = "9px 'IBM Plex Mono', monospace"; ctx.fillStyle = "#5fe6cf"; ctx.textAlign = "right";
   ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
   const floorLabel = SKY_TEXT.gaugeFloor;
-  ctx.strokeText(floorLabel, x1, y + 27); ctx.fillText(floorLabel, x1, y + 27);
+  ctx.strokeText(floorLabel, x1, y + (narrow ? 12 : 27)); ctx.fillText(floorLabel, x1, y + (narrow ? 12 : 27));
   ctx.globalAlpha = 1;
 }
 function viewRadius() {
@@ -779,7 +787,7 @@ function atomScene(run, cx, cy, R, t) {
 // zoom; the mappings and their concepts live in web/visuals.js.
 const GAS_COUNT = 120;
 const GAS = Array.from({ length: GAS_COUNT }, (_, i) => ({ a: hash(i, 21) * 6.283, u: hash(i, 22), w: hash(i, 23) * 6.283 }));
-function gasScene(run, cx, cy, R, t, zoom, crowd = 1) {
+function gasScene(run, meta, cx, cy, R, t, zoom, crowd = 1) {
   const mix = VISUALS.speciesMix(run.metalLog10, E.PRIMORDIAL_METAL_LOG10);
   const species = (i) => {
     const roll = hash(i, 24);
@@ -815,9 +823,10 @@ function gasScene(run, cx, cy, R, t, zoom, crowd = 1) {
   ctx.globalAlpha = 1;
 }
 // The composition key: one marked dot per species, and the honesty label
-// whenever any metal particle is drawn.
-function gasKey(cx, low) {
-  if (low === undefined) low = H - 30;
+// whenever any metal particle is drawn. It sits above the #hint overlay's
+// bottom strip.
+function gasKey(cx, run) {
+  const low = H - 46;
   ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.textAlign = "left"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
   const runs = [[VISUALS.SPECIES_COLORS.hydrogen, SKY_TEXT.keyHydrogen], [VISUALS.SPECIES_COLORS.helium, SKY_TEXT.keyHelium], [VISUALS.SPECIES_COLORS.metals, SKY_TEXT.keyMetals]];
   let x = cx - 108, y = low;
@@ -825,6 +834,12 @@ function gasKey(cx, low) {
     ctx.globalAlpha = 0.95; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 3, 0, 6.283); ctx.fill();
     ctx.globalAlpha = 0.85; ctx.fillStyle = "#cfc8ff"; ctx.fillText(word, x + 8, y + 4);
     x += 8 + ctx.measureText(word).width + 12;
+  }
+  // The honesty label: any scene drawing metal particles says so.
+  if (VISUALS.speciesMix(run.metalLog10, E.PRIMORDIAL_METAL_LOG10).metals > 0) {
+    ctx.font = "9px 'IBM Plex Mono', monospace"; ctx.textAlign = "center";
+    ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.fillStyle = "#9d8cff"; ctx.globalAlpha = 0.9;
+    ctx.strokeText(SKY_TEXT.metalsNote, cx, low + 14); ctx.fillText(SKY_TEXT.metalsNote, cx, low + 14);
   }
   ctx.globalAlpha = 1;
 }
@@ -923,8 +938,8 @@ function draw(t) {
       ctx.strokeText(SKY_TEXT.blackHolePull, 16, 96); ctx.fillText(SKY_TEXT.blackHolePull, 16, 96);
       ctx.globalAlpha = 1;
     } else drawGrid(cx, cy, R, 0.16, 0);
-    gasScene(p, cx, cy, R, t, state.zoom);
-    gasKey(cx);
+    gasScene(p, meta, cx, cy, R, t, state.zoom);
+    gasKey(cx, p);
     return;
   }
   if (run.phase !== "ended") lastDeath = 0;
@@ -933,19 +948,25 @@ function draw(t) {
     state.zoom = calm ? zt : state.zoom + (zt - state.zoom) * 0.12;
     drawGrid(cx, cy, R, Math.min(0.2, Math.max(0, (lr - 16.5) / 4)), Math.min(0.22, Math.max(0, (lr - 16.5) * 0.06)));
     const N = E.patchMass(run) * 1.989e33 / 2.04e-24, haze = Math.min(1, Math.max(0, (Math.log10(N) - 2.5) / 2));
-    gasScene(run, cx, cy, R, t, state.zoom);
+    gasScene(run, meta, cx, cy, R, t, state.zoom);
     atomScene(run, cx, cy, R, t);
     const startLog = Math.log(1.5 / run.density ** (1 / 3)), limit = E.jeansLogReach(run, meta);
     const done = Math.min(1, (run.logReach - startLog) / (limit - startLog));
+    // At narrow width the ring pulls in a step, leaving a clear band between
+    // the page header, the gauge, the ring and the key.
+    const rr = W < 500 ? R * 0.78 : R * 0.92;
     ctx.strokeStyle = "#ffb86b"; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.85; ctx.setLineDash([6, 6]);
-    ctx.beginPath(); ctx.arc(cx, cy, R * 0.92, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
-    ctx.strokeStyle = "#ff5f7e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, Math.max(4, R * 0.92 * done), 0, 6.283); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = "#ff5f7e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, Math.max(4, rr * done), 0, 6.283); ctx.stroke();
     ctx.globalAlpha = 1; ctx.fillStyle = "#ffb86b"; ctx.font = "12px 'IBM Plex Mono', monospace"; ctx.textAlign = "center";
     ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
     const limitLabel = SKY_TEXT.collapseLimit;
-    ctx.strokeText(limitLabel, cx, cy + R * 0.92 + 16); ctx.fillText(limitLabel, cx, cy + R * 0.92 + 16);
+    // At narrow width the label sits inside the ring, clear of the key and
+    // the hint at the bottom edge.
+    const limitY = W < 500 ? cy + rr - 12 : cy + rr + 16;
+    ctx.strokeText(limitLabel, cx, limitY); ctx.fillText(limitLabel, cx, limitY);
     glow(cx, cy, R * (0.25 + 0.75 * Math.min(1, Math.max(0, lr / 19))), "#ff5f7e", 0.1 + 0.3 * Math.min(1, Math.max(0, lr / 19)));
-    gasKey(cx);
+    gasKey(cx, run);
     temperatureGauge(run, meta);
   } else if (run.phase === "collapse") {
     const f = 1 - run.collapseLeft / E.COLLAPSE_SECONDS;
@@ -954,9 +975,9 @@ function draw(t) {
     drawGrid(cx, cy, R, 0.2, 0.22 + f * 0.3);
     // The cloud falls inward: the whole layout crowds toward the centre while
     // the thermal channel reads the same engine temperature as everywhere.
-    gasScene(run, cx, cy, R, t, state.zoom, 1 - 0.55 * f);
+    gasScene(run, meta, cx, cy, R, t, state.zoom, 1 - 0.55 * f);
     glow(cx, cy, R * (1 - f * 0.55), "#ff5f7e", 0.3 + f * 0.5);
-    gasKey(cx);
+    gasKey(cx, run);
   } else if (run.phase === "accrete") {
     drawGrid(cx, cy, R * 1.4, 0.18, 0.5);
     diskScene(run, cx, cy, R, t, meta);
