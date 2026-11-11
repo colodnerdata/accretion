@@ -226,6 +226,9 @@ text = "While you were away ({time}), {event}"
 [banner.dismiss]
 text = "Dismiss"
 
+[save.unavailable]
+text = "Saving is unavailable in this browser: progress will not be kept."
+
 [hints.ask]
 text = "Ask for a hint"
 [hints.more]

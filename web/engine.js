@@ -443,6 +443,14 @@ const Engine = (() => {
     // The journal entry was recorded when the run ended; reuse it so the
     // journal keeps exactly one entry per run. Runs that never went through
     // the engine's end path (old saves, direct calls) get their entry here.
+    // A settled run — one prestige has already applied — pays again to
+    // nothing: a second call moves no counter and hands back a fresh region.
+    if (run.settled) {
+      const next = newRun(meta);
+      updateUnlocks(next, meta);
+      return next;
+    }
+    run.settled = true;
     const leftEarly = skipped || run.skipped;
     meta.regions *= Math.exp(runGain(run));
     const released = heavyYield(run.starMass, run.kind, run.metalLog10);

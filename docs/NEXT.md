@@ -32,27 +32,26 @@ a diary. Link to an issue when it owns the detail.
   gauge, honesty note) is invisible to screen readers (mitigated by the
   panels; mirror in DOM if accessibility becomes a goal).
 - **Repository review:** docs/accretion-repository-review.md was evaluated
-  in conversation on 2026-11-10 (no code changes by instruction). Highest
-  value, in order: (1) the journal/step ordering bug — one star, two
-  recorded lifetimes; fix in BOTH engines with an extended long-step test;
-  parity cannot catch it; (2) `tools/build.py --check` wired into
-  poe check/CI plus the README CI-claim correction; (3) save validation,
-  prestige idempotence, the 59/61 s offline cliff. Cheap batch: refuse the
-  no-op turbulence purchase, reword "Odds of finding this" (it is an
-  inverse density ratio, not a tail probability), show the effective
-  temperature at the slider, standards-mode page entry. Owner rulings
-  queued: post-run debrief vs the rejected-previews principle, the clamped
-  slider cost, the ring-count migration story, the one-implementation
-  proposal (protected decision — not for implementation without sign-off).
+  in conversation on 2026-11-10. DONE on this branch: (1) the journal/step
+  ordering bug; (2) `tools/build.py --check` wired into poe check (so CI
+  and the pre-commit hook) with the README claim corrected; (3) save
+  validation with a last-good backup key, a save-failure banner, and
+  prestige idempotence (a settled run pays again to nothing); the no-op
+  turbulence refusal; the "Relative rarity" wording; the effective
+  temperature at the slider. STILL OPEN: the 59/61 s offline cliff
+  (credit short absences, keep the banner for long ones), two-tab save
+  policy, standards-mode page entry, and the owner rulings queued: post-run
+  debrief vs the rejected-previews principle, the clamped slider cost, the
+  ring-count migration story, the one-implementation proposal (protected
+  decision — not for implementation without sign-off).
 - **Pacing:** early runs ~13.4 min vs the 15-20 target — still open, with
   the review's input: the skip control is unreachable on early runs
   (gate at >1 h of shine left); test whether players can explain
   turbulence at a debrief before lengthening the timer.
-- **Next action after merge:** start the repository-review top item
-  (journal/step ordering) or the angular-momentum ledger; DATA_REPORT
-  supersession note for the fragmentation cap; the 16-vs-32-ring decision
-  needs a written migration story first (a 16-entry saved disk under
-  CELLS = 32 NaNs the star).
+- **Next action after merge:** the offline-credit cliff or the
+  angular-momentum ledger; the 16-vs-32-ring decision needs a written
+  migration story first (a 16-entry saved disk under CELLS = 32 NaNs
+  the star).
 - **Human check:** play a first run at x10. It should still reach a
   supernova in roughly the same time as before fragments. The "Companion
   stars" row will mostly read 0, since fragments usually merge. The

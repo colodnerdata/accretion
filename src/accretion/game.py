@@ -675,7 +675,15 @@ def prestige(run: Run, meta: Meta, skipped: bool = False) -> Run:
     the engine's end path (old saves, direct calls) get their entry here.
     A skipped run moves the player to a new region, so the universal clock
     advances only by the time that passed in that run.
+
+    A settled run — one prestige has already applied — pays again to
+    nothing: a second call moves no counter and hands back a fresh region.
     """
+    if getattr(run, "settled", False):
+        next_run = new_run(meta)
+        update_unlocks(next_run, meta)
+        return next_run
+    run.settled = True
     left_early = skipped or run.skipped
     meta.regions *= math.exp(run_gain(run))
     released = physics.heavy_yield(run.star_mass, run.kind, run.metal_log10)

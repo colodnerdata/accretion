@@ -99,6 +99,43 @@ def test_first_run_is_short_and_reaches_supernova():
     assert run.kind == "supernova"
 
 
+def test_prestige_pays_exactly_once():
+    """A settled run must not move any counter on a second prestige call."""
+    meta = game.Meta()
+    run = game.new_run(meta)
+    # A supernova that finished its shine: the engine's own ending path
+    # records the entry, then prestige settles it.
+    run.phase = "main_sequence"
+    run.kind = "supernova"
+    run.star_mass = 21.5
+    run.ms_duration, run.ms_elapsed = 100.0, 100.0
+    run.forecast_myr = run.lifetime_myr = 7.0
+    game.step(run, meta, 100.0)
+    assert run.phase == "ended" and meta.journal
+    game.prestige(run, meta)
+    before = (
+        meta.regions,
+        meta.runs,
+        meta.heavy,
+        meta.local_metals,
+        meta.cosmic_myr,
+        len(meta.journal),
+        meta.supernovae,
+    )
+    assert before[0] > 1.0 and before[5] == 1, "the first call pays and journals"
+    # The doubled call: the same run, a second prestige — nothing may move.
+    game.prestige(run, meta)
+    assert (
+        meta.regions,
+        meta.runs,
+        meta.heavy,
+        meta.local_metals,
+        meta.cosmic_myr,
+        len(meta.journal),
+        meta.supernovae,
+    ) == before
+
+
 def test_controls_unlock_one_stage_at_a_time():
     meta = game.Meta()
     run = game.new_run(meta)

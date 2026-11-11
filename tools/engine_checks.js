@@ -85,6 +85,20 @@ function approx(a, b, rel = 1e-9) { return Math.abs(a - b) <= Math.abs(b) * rel;
   check("prestige keeps exactly one entry", meta.journal.length === 1);
 }
 
+// Prestige pays exactly once: a settled run moves no counter on a second call.
+{
+  const meta = E.newMeta(), run = E.newRun(meta);
+  run.phase = "main_sequence"; run.kind = "supernova"; run.starMass = 21.5;
+  run.msDuration = 100.0; run.msElapsed = 100.0; run.forecastMyr = run.lifetimeMyr = 7.0;
+  E.step(run, meta, 100.0);
+  E.prestige(run, meta, false);
+  const before = [meta.regions, meta.runs, meta.heavy, meta.localMetals, meta.cosmicMyr, meta.journal.length, meta.supernovae];
+  check("the first call pays and journals", before[0] > 1.0 && before[5] === 1);
+  E.prestige(run, meta, false);
+  check("a second prestige call moves nothing",
+    JSON.stringify([meta.regions, meta.runs, meta.heavy, meta.localMetals, meta.cosmicMyr, meta.journal.length, meta.supernovae]) === JSON.stringify(before));
+}
+
 // A run left early is flagged and its clock advance is only the elapsed share.
 {
   const meta = E.newMeta(), run = E.newRun(meta);

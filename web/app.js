@@ -1,5 +1,5 @@
 const E = Engine;
-const SAVE_KEY = "accretion-prototype-v4";
+const SAVE_KEY = "accretion-prototype-v4", SAVE_BACKUP_KEY = "accretion-prototype-v4-backup";
 const $ = (id) => document.getElementById(id);
 const state = { meta: E.newMeta(), run: null, view: "play", pane: "main", speed: 1, log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {}, prospective: null, zoom: 1 };
 state.run = E.newRun(state.meta);
@@ -191,17 +191,46 @@ function checkMilestones() {
 
 function save() {
   // logShape 2: note phase indices include the display-only Survey step.
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ meta: state.meta, run: state.run, view: state.view, seen: state.seen, log: state.log, skipped: state.skipped, noted: state.noted, logShape: 2, savedAt: Date.now() })); } catch {}
+  // A last-good copy is kept in a second key, so one broken or truncated
+  // write cannot take the player's data with it.
+  const blob = JSON.stringify({ meta: state.meta, run: state.run, view: state.view, seen: state.seen, log: state.log, skipped: state.skipped, noted: state.noted, logShape: 2, savedAt: Date.now() });
+  try {
+    localStorage.setItem(SAVE_KEY, blob);
+    localStorage.setItem(SAVE_BACKUP_KEY, blob);
+  } catch {
+    // Say so once: the player keeps playing, but must know progress is
+    // not being recorded.
+    if (!state.saveFailed) {
+      state.saveFailed = true;
+      state.banner = t("ui.save.unavailable");
+      update();
+    }
+  }
+}
+// A save must carry a run and a meta whose fields the engines rely on; a
+// partially-written or foreign blob is treated as no save at all.
+function validSave(saved) {
+  return Boolean(
+    saved && typeof saved === "object"
+    && saved.run && typeof saved.run.phase === "string" && typeof saved.run.seconds === "number"
+    && saved.meta && Number.isFinite(saved.meta.regions) && Array.isArray(saved.meta.unlocks) && Array.isArray(saved.meta.journal)
+    && typeof saved.view === "string"
+  );
 }
 function load() {
   try {
-    const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (!saved?.run) return;
+    const read = (key) => { try { return JSON.parse(localStorage.getItem(key)); } catch (error) { return null; } };
+    // Validate, then install: a save that fails the shape check falls back
+    // to the last-good copy, and never touches the live state.
+    let saved = read(SAVE_KEY);
+    if (!validSave(saved)) saved = read(SAVE_BACKUP_KEY);
+    if (!validSave(saved)) return;
+    const view = saved.view === "search" ? "search" : "play";
     // Notes saved before Survey joined PHASES carry indices one lower than
     // today's; re-stamp them so nothing old expires a phase early. Saves
     // written after (logShape 2) already carry the new indices.
     const bump = saved.logShape ? 0 : 1;
-    Object.assign(state, { meta: saved.meta, run: saved.run, view: saved.view, seen: saved.seen || {}, log: (saved.log || []).map((n) => { const m = asNote(n); return m.p < 0 ? m : { ...m, p: m.p + bump }; }), skipped: !!saved.skipped, noted: saved.noted || 0 });
+    Object.assign(state, { meta: saved.meta, run: saved.run, view, seen: saved.seen || {}, log: (saved.log || []).map((n) => { const m = asNote(n); return m.p < 0 ? m : { ...m, p: m.p + bump }; }), skipped: !!saved.skipped, noted: saved.noted || 0 });
     state.prospective = E.newRun(state.meta);
     const away = (Date.now() - saved.savedAt) / 1000;
     if (away > 60 && state.view === "play") {
@@ -450,7 +479,10 @@ function refreshSearch() {
   // Composition changes re-judge the shop's cooling bound, so repaint it.
   document.querySelectorAll("#heavy-list button").forEach((b) => b.paint && b.paint());
   if ($("density-out")) $("density-out").textContent = `${sci(run.density)} /cm³`;
-  if ($("temperature-out")) $("temperature-out").textContent = `${run.baseTemperature.toFixed(0)} K`;
+  // The readout shows the effective starting temperature: the raw draw,
+  // when it sits above the composition floor, or the floor itself when
+  // gravity clamps it. The floor's own row is the "Lowest temperature".
+  if ($("temperature-out")) $("temperature-out").textContent = `${E.temperature(run, m).toFixed(0)} K`;
   if ($("metals-out")) $("metals-out").textContent = `10^${run.metalLog10.toFixed(1)} Z☉`;
   $("spent").textContent = t("ui.search.spent", { spent: E.regionCost(m).toFixed(2), budget: E.budget(m).toFixed(2) });
   $("spent-bar").style.width = `${Math.min(100, E.regionCost(m) / Math.max(E.budget(m), 1e-9) * 100)}%`;
@@ -507,7 +539,7 @@ function renderSearch(panel) {
   }
   const go = document.createElement("section");
   go.className = "cta";
-  go.append(button("primary", t("ui.search.begin"), () => { state.run = E.newRun(m); state.view = "play"; state.banner = null; shell = ""; note(t("notes.observations.run_start", { number: m.runs + 1, density: sci(state.run.density), temperature: state.run.baseTemperature.toFixed(0) })); update(); save(); }));
+  go.append(button("primary", t("ui.search.begin"), () => { state.run = E.newRun(m); state.view = "play"; state.banner = null; shell = ""; note(t("notes.observations.run_start", { number: m.runs + 1, density: sci(state.run.density), temperature: E.temperature(state.run, m).toFixed(0) })); update(); save(); }));
   panel.appendChild(go);
   refreshSearch();
 }
@@ -568,7 +600,7 @@ function footer() {
   }
   const reset = button("reset", t("ui.footer.reset"), () => {
     if (!state.resetArm) { state.resetArm = true; reset.textContent = t("ui.footer.reset_confirm"); setTimeout(() => { state.resetArm = false; reset.textContent = t("ui.footer.reset"); }, 3000); return; }
-    try { localStorage.removeItem(SAVE_KEY); } catch {}
+    try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(SAVE_BACKUP_KEY); } catch {}
     Object.assign(state, { meta: E.newMeta(), view: "play", pane: "main", log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {}, banner: null });
     state.run = E.newRun(state.meta); shell = ""; update();
   });

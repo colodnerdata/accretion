@@ -62,9 +62,9 @@ uv run poe hooks
 
 If it blocks a commit for a stale build, run `uv run python tools/build.py` and stage
 `web/accretion.html`. For lint or format failures, fix them or run `uv run poe format`.
-`git commit --no-verify` skips the hook; CI runs the same lint and tests but does
-not yet verify the built page, so an unhooked commit can ship a stale build
-(see `docs/NEXT.md`).
+`git commit --no-verify` skips the hook; CI runs the same checks (lint, format,
+the build check, and tests), so an unhooked commit that ships a stale build
+fails there.
 
 ## License
 
