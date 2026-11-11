@@ -205,11 +205,9 @@ function save() {
   } else if (!state.saveFailed) {
     // Say so once: the player keeps playing, but must know progress is
     // not being recorded. Cleared if a later save succeeds.
-    if (!state.saveFailed) {
-      state.saveFailed = true;
-      state.banner = t("ui.save.unavailable");
-      update();
-    }
+    state.saveFailed = true;
+    state.banner = t("ui.save.unavailable");
+    update();
   }
 }
 // A save must carry a run and a meta whose fields the engines rely on; a
