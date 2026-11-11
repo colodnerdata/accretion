@@ -172,6 +172,14 @@ For a later galaxy-level mode, the standard forms are closed box Z = y ln(1/μ) 
 
 ## Feedback needs two mechanisms, and the fragmentation cap has a trap
 
+> Superseded in part (2026-11-10): the game no longer moves disk mass above
+> the star's to companions. `FIDELITY.md`'s "Disk fragmentation" and
+> "Fragment mass/fate" rows now carry the Toomre-Q fragmentation rule that
+> replaced the cap, which kept runs from stalling at low alpha without
+> sending mass to phantom companions. The cap-harness rows below are kept
+> for the reasoning that led there; their "to companions" numbers no longer
+> describe the shipped game.
+
 The infall rate is the smallest problem. At 300 K the game gives 6.9e-4 solar masses per year, about 2 to 10× below simulated early rates of 10⁻³ to 10⁻² ([Klessen and Glover 2023](https://arxiv.org/pdf/2303.12500), [Hirano 2014](https://arxiv.org/pdf/1308.4456), [Hosokawa 2011](https://arxiv.org/pdf/1111.3649)). Real rates also fall with mass, as M^(−3/7) in [McKee and Tan 2008](https://arxiv.org/pdf/0711.4116). Lowering the base temperature widens the gap to 5.2e-4 at 250 K. The researchers' optional factor, f(M) = 3 (M/20)^(−3/7) clamped to 1–10, closes it, but its normalization is a compromise.
 
 The feedback rule is the largest error in the game. Photoevaporation scales as Mdot = 5.4e-5 (Φ/10⁴⁹ s⁻¹)^½ (r_d/1000 AU)^½ solar masses per year ([Tanaka 2013](https://arxiv.org/pdf/1306.6623)), uncertain by a factor of 2. The game exceeds this by 450× at 5 solar masses and 6,200× at 120. Fixing ε alone fails, because photoevaporation alone cannot stop growth: on the game's solver it gives 280 to 640 solar masses. What ends accretion in simulations is the bipolar HII region cutting off the infall feed ([Hosokawa 2011](https://arxiv.org/pdf/1111.3649), [McKee and Tan 2008](https://arxiv.org/pdf/0711.4116)). So the replacement has two parts. The researchers' taper sets M_b = 20 (Mdot/1.6e-3)^(2/3), scales infall by max(0, 1 − (M − M_b)/M_b), and removes 5× the Tanaka rate from disk gas only. M_b and the factor of 5 are their calibrations, not published values. Ionizing photons come from the ZAMS column of [Schaerer 2002](https://www.aanda.org/articles/aa/pdf/2002/04/aa1629.pdf), log-log interpolated:

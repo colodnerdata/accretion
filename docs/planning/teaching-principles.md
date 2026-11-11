@@ -1,5 +1,7 @@
 # Teaching principles
 
+> Planning note; last updated 2026-11-08. Design principles from the teaching research reports.
+
 How Accretion explains its physics. Evidence labels: **Strong** (meta-analyses or validated instruments), **Moderate** (one large or controlled study), **Weak** (case studies or practitioner advice), **Design inference** (derived from the evidence, untested in games). Sources are in the research reports "Teaching stellar astrophysics in games" and "Binaries, planets, and cosmology for Accretion".
 
 ## Core findings

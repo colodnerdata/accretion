@@ -1,5 +1,7 @@
 # Playtest measures
 
+> Planning note; last updated 2026-11-08. Playtest questionnaire design, untested until a session runs.
+
 No study has tested these teaching methods inside an idle game, so Accretion's playtests can supply the first evidence. Ask the same short questions before a player's first session and after several sessions, and compare.
 
 ## Format

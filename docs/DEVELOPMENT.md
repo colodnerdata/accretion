@@ -111,17 +111,23 @@ bug or a larger chunk of work; it need not precede every edit.
   Python/OS CI jobs when they address a specific risk. A coverage percentage
   is a diagnostic, not proof of correctness.
 
-The initial CI job uses Python 3.12 on Linux. The starter permits Python 3.12
-and later, but makes no claim to have tested every permitted version. Add a
-supported-version matrix when this becomes a library used by other people.
-If Windows or another platform is part of the product contract, test it too.
+The initial CI job uses Python 3.12 on Linux. `pyproject.toml` requires
+Python 3.11 or later; CI does not claim to have tested every permitted
+version. Add a supported-version matrix when this becomes a library used by
+other people. If Windows or another platform is part of the product contract,
+test it too. The parity and engine tests also need `node` on `PATH`, and the
+browser screenshot tools need Playwright's Chromium (`uv run sync && uv run
+playwright install chromium` after `uv sync` if the tests skip).
 
 ## Deliverables and integrations
 
 For a workbook, UI, native dependency, GPU, or external service, add a specific
 verification command and document its environment requirement here. Keep it
 separate from headless checks. A missing required environment is a reported
-limitation, not a passing integration check.
+limitation, not a passing integration check. This repository's product is the
+single-page browser build: the only integration beyond Python and `node` is
+Chromium, driven by Playwright from `tools/shoot.py`, which is a development
+aid and not part of CI.
 
 For generated files, use the order: build, verify that output, then publish.
 If a check cannot run in CI, retain concise evidence tied to the commit,

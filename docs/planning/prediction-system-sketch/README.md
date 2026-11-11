@@ -1,5 +1,7 @@
 # Prediction system sketch
 
+> Planning note; last updated 2026-11-08. Sketch only; needs an external canvas runtime, not shipped.
+
 Live canvas: https://claude.ai/artifact/HQyeWZfkxCohdQ3bepb19s
 
 These are the canvas's source files, kept for reference. The `.dc.html` screens need the canvas's runtime, so view them through the link rather than opening them directly. Each screen loads `./support.js`, which the canvas runtime supplies; it is deliberately not committed, so opening a screen locally gives a 404 for that script and a blank page.

@@ -1,5 +1,7 @@
 # Verification checklist
 
+> Planning note; last updated 2026-11-08. Primary-source checks; see its own last-checked line.
+
 Values to confirm against primary sources before they become game rules. Last checked 2026-11-07, reading papers online. PDFs could not be downloaded from this environment, so links are listed at the end.
 
 **Status:** **Verified** means read in the paper or its abstract. **Verified (secondary)** means confirmed through a paper or reference that quotes the original. **Partly** and **Not verified** mean the original still needs reading.
