@@ -122,6 +122,13 @@ rather than silently changing it.
 - The `window.claude?.hot` calls in `app.js` support live reload in the published artifact viewer.
   They do nothing elsewhere and are safe to leave.
 
+## Shell conventions
+
+- Run each git step as its own command, or join steps with `&&` only when every step is covered by an allow rule in `.claude/settings.json`.
+- Put scratch scripts, probe output and screenshots in `.scratch/` at the repo root. It is gitignored.
+- To check a number or a boundary in the engine, write a pytest test, or a script in `.scratch/` run as a file. Prefer the test: it stays as a regression check.
+- Take browser screenshots with `uv run python tools/shoot.py`.
+
 ## Working with agents
 
 Project subagents live in `.claude/agents/`. They load this file but cannot see the main

@@ -159,6 +159,88 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--oiii); outl
   <div id="live" class="sr" aria-live="polite"></div>
 </div>
 <script>
+// Pure display mappings shared by the survey, gather, and collapse scenes.
+//
+// CONCEPT NOTE
+//
+// Temperature as speed. A gas particle's typical (rms) speed is
+// v ~ sqrt(3 k T / m), so only ratios matter and only the true ratios are
+// shown. A temperature ratio R becomes a speed ratio sqrt(R): twice as hot
+// is 1.41x faster, 10 K to 1000 K is 10x faster. A particle of mass ratio M
+// (over hydrogen) moves 1/sqrt(M) as fast: helium (4 amu) half hydrogen's
+// speed, a representative metal (16 amu, oxygen) a quarter. The screens
+// draw speed as px/s through one shared constant, SPEED_BASE_PX: hydrogen
+// at 10 K moves at that base and every other case carries the true ratio;
+// across the modeled 10-1000 K range that tops out at 10x the base, so the
+// harder cap at SPEED_CAP_PX is only a safety for out-of-range settings.
+// Speed is the only channel that encodes temperature; color never does.
+//
+// Composition as color. One color each for hydrogen, helium, and metals,
+// with a visible key on the canvas. Helium is 8% of atoms in every gas,
+// pristine included. The true metal share by number is
+// share = 10^(log10 Z - 3): 1 in 1000 atoms at solar metallicity, 1 in
+// 100,000 at 1/100 solar - far below one drawn particle, so the DISPLAYED
+// metal share is amplified: linear in log10 Z from zero at the engine's
+// primordial threshold to a cap (0.28 of particles) at solar metallicity.
+// The canvas shows "metals shown far more common than in reality" whenever
+// any metal particle is drawn. Pristine gas draws only hydrogen and helium.
+//
+// Density as zoom. The drawn particle count stays fixed; equal mass
+// occupies equal volume, so linear size scales as density^(-1/3). The drawn
+// scale (scale bar and gas spread) multiplies by (1e4 / density)^(1/3):
+// two decades of density shift the scale 4.64x either way, matching the
+// survey's 10^2 .. 10^6 /cm3 range. The zoom animates smoothly when the
+// density slider moves; with reduced motion it jumps straight to the new
+// scale. No count adjustment on top: the bar carries the whole change.
+//
+// Black hole nearby. When "start near a black hole" is checked, the
+// existing grid warp is drawn centred off-screen in one direction, with a
+// label that names it a map of gravity's pull.
+
+const METAL_DISPLAY_CAP = 0.28;
+const HELIUM_SHARE = 0.08;
+const DENSITY_REFERENCE = 1e4;
+const SPEED_BASE_PX = 7;
+const SPEED_CAP_PX = 110;
+const HYDROGEN_MASS = 1;
+const HELIUM_MASS = 4;
+const METAL_MASS = 16;
+// Colors: hydrogen warm pink, helium teal, metals violet, all on the
+// engine's existing palette so the scenes stay one system.
+const SPECIES_COLORS = { hydrogen: "#ff5f7e", helium: "#5fe6cf", metals: "#9d8cff" };
+
+// Relative speed of hydrogen against 10 K, from the sqrt(T/m) law.
+const speedForTemperature = (kelvin, reference = 10) => Math.sqrt(kelvin / reference);
+
+// Relative speed against hydrogen for a mass ratio.
+const speedForMass = (massRatio) => 1 / Math.sqrt(massRatio);
+
+// True share of atoms that are metals at log10 Z: 1/1000 at solar.
+const metalShare = (log10z) => 10 ** (log10z - 3);
+
+// Displayed metal share: linear in log10 Z from the primordial threshold to
+// solar metallicity, capped at METAL_DISPLAY_CAP. Pristine gas shows none.
+const metalDisplayShare = (log10z, primordialLimit) => {
+  if (log10z < primordialLimit) return 0;
+  return METAL_DISPLAY_CAP * Math.min(1, Math.max(0, (log10z - primordialLimit) / -primordialLimit));
+};
+
+// Fractions of drawn particles by species, for one gas composition.
+const speciesMix = (log10z, primordialLimit) => {
+  const metals = metalDisplayShare(log10z, primordialLimit);
+  return { hydrogen: 1 - HELIUM_SHARE - metals, helium: HELIUM_SHARE, metals };
+};
+
+// Drawn scale ratio for a number density: cube root of the volume ratio.
+const zoomScale = (density, reference = DENSITY_REFERENCE) => (reference / density) ** (1 / 3);
+
+const VISUALS = {
+  METAL_DISPLAY_CAP, HELIUM_SHARE, DENSITY_REFERENCE, SPEED_BASE_PX, SPEED_CAP_PX,
+  HYDROGEN_MASS, HELIUM_MASS, METAL_MASS, SPECIES_COLORS,
+  speedForTemperature, speedForMass, metalShare, metalDisplayShare, speciesMix, zoomScale,
+};
+if (typeof module !== "undefined") module.exports = VISUALS;
+
 // Browser port of src/accretion. tests/test_parity.py keeps the two in step.
 const Engine = (() => {
   const G = 6.674e-8, K_B = 1.381e-16, M_H = 1.673e-24, MSUN = 1.989e33, AU = 1.496e13;
@@ -618,12 +700,13 @@ const Engine = (() => {
 })();
 if (typeof module !== "undefined") module.exports = Engine;
 
-const TEXT = {"endings.bands.black_hole.label": "Black hole", "endings.bands.black_hole.range": "some above 18 M☉, most above 27 M☉", "endings.bands.brown_dwarf.label": "Brown dwarf", "endings.bands.brown_dwarf.range": "below 0.08 M☉", "endings.bands.supernova.label": "Supernova", "endings.bands.supernova.range": "about 9–25 M☉, with gaps", "endings.bands.white_dwarf.label": "White dwarf", "endings.bands.white_dwarf.range": "up to about 9 M☉", "endings.black_hole.description": "The core collapsed without a successful explosion, and most heavy elements fell in with it. Stars can fail like this even at masses close to ones that explode. You can now search for regions near a black hole.", "endings.black_hole.title": "Black hole", "endings.brown_dwarf.description": "The core never reached sustained hydrogen fusion. It will cool for trillions of years, so nothing here will change. This run counts as a failed search.", "endings.brown_dwarf.title": "Brown dwarf", "endings.pair_instability.description": "The core became unstable and the whole star was destroyed, leaving no remnant at all.", "endings.pair_instability.title": "Pair-instability supernova", "endings.supernova.description": "The core collapsed in under a second, and the star blew itself apart. Elements heavier than helium now drift through this region.", "endings.supernova.title": "Core-collapse supernova", "endings.white_dwarf.description": "The star shed its outer layers and left a hot, Earth-sized core. There was no explosion, and few heavy elements escaped.", "endings.white_dwarf.title": "White dwarf", "hints.accrete.tier1": "Your star's mass depends on a race between feeding and clearing.", "hints.accrete.tier2": "Disk controls mainly change how quickly gas gets through. Final mass depends more on how fast gas falls in.", "hints.accrete.tier3": "Faster infall feeds the star for longer before its ionizing light shuts the supply off.", "hints.big.tier1": "Your last star collapsed into a black hole, and most of its heavy elements went with it.", "hints.big.tier2": "Try a cooler region, or aim for a slightly different mass.", "hints.big.tier2_with_density": "Try a cooler or denser region, or aim for a slightly different mass.", "hints.big.tier3": "Explosions depend on core structure, so some masses fail even between masses that explode.", "hints.compare.tier1": "Most stars from about 9 to 25 solar masses explode, but not all of them.", "hints.compare.tier2": "Change one search option, then compare the result in your journal.", "hints.compare.tier3": "One change at a time shows which control caused the difference.", "hints.gather.tier1": "The bar shows how close the patch is to collapse.", "hints.gather.tier2": "Buy upgrades as soon as energy allows. Each level costs far more than the last, but energy rises quickly too.", "hints.gather.tier3": "A patch's binding energy climbs steeply as it grows.", "hints.none.tier1": "Keep going. There is nothing to work out yet.", "hints.none.tier2": "", "hints.none.tier3": "", "hints.reach.tier1": "You can make gas gather without tapping.", "hints.reach.tier2": "Spend energy on Gravitational reach.", "hints.reach.tier3": "Reach compounds, so early levels save the most time.", "hints.shine.tier1": "Nothing can change this star now.", "hints.shine.tier2": "Use the wait to review your journal.", "hints.shine.tier3": "A star's fuel lasts far less time as its mass rises.", "hints.small.tier1": "Your last star was too small to explode.", "hints.small.tier2": "Search for a hotter region.", "hints.small.tier2_with_density": "Search for a hotter region, or a less dense one.", "hints.small.tier3": "Hotter gas falls inward faster, so the star gains mass before its light clears the gas.", "hints.start.tier1": "The patch has to grow until gravity beats gas pressure.", "hints.start.tier2": "Keep tapping the sky. Each tap also releases energy.", "hints.start.tier3": "Gas falling together releases energy, and that energy is what you spend on controls.", "notes.controls.braking": "New control: Magnetic braking. Gas is landing far from the star and stalling in the disk.", "notes.controls.cooling": "New control: Radiative cooling. Heavy elements from your supernova make cooler gas possible.", "notes.controls.density": "New search option: Density. The mass needed for collapse can now be targeted.", "notes.controls.metals": "New search option: Metal content. Enriched gas cools better.", "notes.controls.reach": "New control: Gravitational reach. Spend energy to make gas gather on its own.", "notes.controls.tap": "New control: Stronger pull. Tapping had started to matter less.", "notes.controls.temperature": "New search option: Temperature. Your first star's size was not a choice.", "notes.controls.turbulence": "New control: Disk turbulence. Gas is piling up in the disk faster than it reaches the star.", "notes.goals.black_hole": "Goal: find out what happens to a star too massive to explode cleanly.", "notes.goals.explore": "Goal: map how each region shapes the stars born there.", "notes.goals.first": "Goal: build a star massive enough to explode, so its heavy elements can seed the next generation.", "notes.goals.white_dwarf": "Goal: find out what becomes of a much smaller star.", "notes.headlines.accrete.body": "Gas lands on the disk at the dashed ring and spirals in to the star. Brighter rings hold more gas; faint rings mark distance in AU (Earth to the Sun). Starlight will end the infall and boil away the disk.", "notes.headlines.accrete_protostar.title": "Build a protostar", "notes.headlines.accrete_star.title": "Feed the star", "notes.headlines.collapse.body": "Nothing is holding the cloud up now. In reality this fall takes about {fall_time}.", "notes.headlines.collapse.title": "Free fall", "notes.headlines.gather.body": "Tap the sky to pull in gas. At {mass_needed}, gravity beats gas pressure and the patch collapses.", "notes.headlines.gather.title": "Gather the gas", "notes.headlines.shine.body": "Its final mass is set, and it will decide how this star ends. Until then, it fuses hydrogen in its core.", "notes.headlines.shine.title": "The star shines", "notes.milestones.au": "Your reach now spans the distance from Earth to the Sun.", "notes.milestones.cm": "A cubic centimeter of this gas holds only about {density} atoms.", "notes.milestones.earth": "Your reach is as wide as Earth. Its mass is still tiny.", "notes.milestones.ly": "Your reach is one light-year wide. Faint gridlines now map the space around you.", "notes.milestones.m": "Your reach is 1 meter across. The patch still weighs less than a speck of dust.", "notes.observations.anomaly": "Anomaly: this star lived {percent}% longer than forecast.", "notes.observations.collapse": "Gravity has beaten pressure. The patch passed the Jeans mass and is collapsing.", "notes.observations.final_mass": "The gas is gone. Final mass: {mass} M☉.", "notes.observations.ignite": "Hydrogen fusion has begun. Starlight will now start clearing the disk.", "notes.observations.run_start": "Run {number} begins at {density} atoms per cm³ and {temperature} K.", "notes.observations.sun_mass": "You have gathered one solar mass of gas, but its pressure still holds it apart.", "notes.shine.brightness.title": "Brightness", "notes.shine.brightness_heavy.body": "This star shines about {brightness} times as bright as the Sun. Brightness climbs much faster than mass, so a heavier star spends its fuel far faster. It is expected to last {life_vs_sun}.", "notes.shine.brightness_small.body": "This star shines at about {brightness} of the Sun's brightness. Small stars sip their fuel, so it is expected to last {life_vs_sun}.", "notes.shine.bubble_stalls.body": "The ionized bubble has stopped growing, with its edge about {edge_distance} from the star. Its pressure now matches the cold gas around it.", "notes.shine.bubble_stalls.title": "The bubble stops", "notes.shine.fast_time.body": "Each second you watch is about {years_per_second} years for this star. All of recorded human history would pass in about {history_seconds} seconds.", "notes.shine.fast_time.title": "Fast time", "notes.shine.fusion_future.ends_in_iron": "Once the hydrogen is gone, the core shrinks and heats until it can fuse helium, then carbon, neon, oxygen, and silicon, ending in iron. Heavier nuclei repel each other more, so each new fuel needs a hotter, denser core. Each stage also releases less energy per reaction, so the core must fuse faster to hold itself up. Hydrogen lasts millions of years here. Silicon lasts days.", "notes.shine.fusion_future.never_helium": "Its core will never get hot enough to fuse helium, so hydrogen is the only fuel it will ever fuse.", "notes.shine.fusion_future.stops_at_carbon": "Once the hydrogen is gone, the core shrinks and heats until it can fuse helium into carbon and oxygen. Heavier nuclei repel each other more, so each new fuel needs a hotter, denser core. This star will not get hot enough to go past carbon and oxygen.", "notes.shine.fusion_route.cno_enriched": "This star's core uses the carbon, nitrogen, and oxygen it was born with as catalysts, cycling hydrogen through them into helium. Earlier stars made those elements.", "notes.shine.fusion_route.cno_pristine": "Heavier stars usually fuse hydrogen with carbon, nitrogen, and oxygen as catalysts. This gas formed before any star had made those elements, so the core squeezed itself hotter until it made a trace of carbon of its own, then fused on.", "notes.shine.fusion_route.pp": "This star fuses hydrogen proton by proton, as the Sun does. It is a slow route, one reason small stars last so long.", "notes.shine.helium_ash.body": "Helium is piling up in the core. It needs far higher temperatures to fuse, so for now it just sits there. The core slowly shrinks and heats to keep the hydrogen around it fusing, and the star swells and brightens a little.", "notes.shine.helium_ash.title": "Helium ash", "notes.shine.how_it_fuses.title": "How it fuses", "notes.shine.main_sequence.body": "The core is fusing hydrogen into helium. The heat from fusion pushes outward exactly as hard as gravity pulls inward, so the star holds steady. Stars spend about 90% of their lives in this balance.", "notes.shine.main_sequence.title": "The main sequence", "notes.shine.running_low.body": "The core's hydrogen is nearly gone. What happens next depends mostly on the mass this star was born with.", "notes.shine.running_low.title": "Running low", "notes.shine.starlight.title": "Starlight on the gas", "notes.shine.starlight_bubble.body": "Ultraviolet light from the star strips electrons from the hydrogen around it. That ionized gas, near 10,000 K, glows and pushes into the cold gas beyond. The bubble's edge is now {edge_distance} from the star.", "notes.shine.starlight_cool.body": "This star is too cool to ionize much of the gas around it. Its light mostly warms the nearby dust and gas.", "notes.upgrades.braking": "Gas lands {distance_new} AU from the star instead of {distance_old} AU, so it has less far to travel.", "notes.upgrades.cooling": "Gas cools from {temp_now} to {temp_next} K. Mass needed for collapse falls from {jeans_now} to {jeans_next} M☉.", "notes.upgrades.cooling_background": "The cosmic background sets the coldest gas this universe allows.", "notes.upgrades.cooling_maxed": "Gas is already at the coldest this composition allows.", "notes.upgrades.reach": "Gas gathers 25% faster on its own.", "notes.upgrades.tap": "Each tap pulls in 50% more gas.", "notes.upgrades.turbulence": "Gas moves through the disk 30% faster, so it reaches the star sooner.", "ui.aria.sky_phase": "Telescope view, {phase} phase.", "ui.aria.sky_search": "Telescope view of the region you are surveying.", "ui.aria.sky_tap": "Telescope view. Tap to gather gas.", "ui.away.banner": "While you were away ({time}), {event}", "ui.away.ended": "Your star ended as a {ending}.", "ui.away.ended_plain": "Your star ended.", "ui.away.note": "You were away for {time}.", "ui.away.stage": "Your star moved on to the {stage} stage.", "ui.banner.dismiss": "Dismiss", "ui.brand": "ACCRETION", "ui.canvas.collapse_limit": "Collapse limit", "ui.canvas.core_hydrogen": "● core hydrogen", "ui.canvas.gas_lands": "Gas lands here", "ui.canvas.helium_ash": "● helium ash", "ui.canvas.ionization_front": "Ionization front", "ui.canvas.ionization_front_stalled": "Ionization front (stalled)", "ui.ended.anomaly_cause": "The cause is not yet known.", "ui.ended.final_mass_heading": "Final mass {mass} M☉", "ui.ended.fine": "Probability lets you search for rarer regions. Your gas, energy and upgrades reset for the next run. Probability, unlocked controls and heavy elements stay.", "ui.ended.heading": "Ending", "ui.ended.heading_forecast": "Forecast ending", "ui.ended.left_early_note": "You left before this happened. The universe aged only by the time you stayed.", "ui.ended.survey_button": "Survey new regions", "ui.footer.close_journal": "Close journal", "ui.footer.journal": "Journal ({count})", "ui.footer.reset": "Reset", "ui.footer.reset_confirm": "Tap again to erase", "ui.footer.test_speed": "Test speed", "ui.gather_hint": "Tap the sky to gather", "ui.heavy.cooling": "Dust and metal cooling", "ui.heavy.cooling_note": "Permanently cools gas by 10% per level.", "ui.heavy.heading": "Heavy elements: {mass} M☉", "ui.heavy.turbulence": "Seeded turbulence", "ui.heavy.turbulence_note": "Permanently speeds the disk by 30% per level.", "ui.hints.ask": "Ask for a hint", "ui.hints.available": "A hint is available", "ui.hints.more": "Show more", "ui.journal.alpha_value": "α {value}", "ui.journal.axis_density": "Density (/cm³)", "ui.journal.axis_temperature": "Gas temperature (K)", "ui.journal.chip_label": "Run {number}: {ending}", "ui.journal.chip_label_early": "Run {number}: {ending}, left early", "ui.journal.intro": "Bubble area is the star's final mass, and the letters name how it ended. Select a run to read it.", "ui.journal.intro_empty": "Finished runs appear here as bubbles. Size is final mass, position is the region's gas, and letters name the ending.", "ui.journal.legend_left_early": "Left early", "ui.journal.not_seen": "Not seen yet", "ui.journal.plot_aria": "Your completed runs by gas temperature. Bubble size shows final mass.", "ui.journal.plot_aria_density": "Your completed runs by gas temperature and density. Bubble size shows final mass.", "ui.journal.plot_label": "Run {number}: {ending}, {mass} solar masses, {temperature} K", "ui.journal.plot_label_early": "Run {number}: {ending}, {mass} solar masses, {temperature} K, left early", "ui.journal.reward": "+{gain} probability", "ui.journal.reward_heavy": ", +{heavy} M☉ heavy", "ui.journal.row_density": "Density", "ui.journal.row_ending": "Ending", "ui.journal.row_feed": "Gas landed at", "ui.journal.row_final_mass": "Final mass", "ui.journal.row_reward": "Reward", "ui.journal.row_run_time": "Run time", "ui.journal.row_temperature": "Gas temperature", "ui.journal.row_turbulence": "Disk turbulence", "ui.journal.run_card_title": "Run {number}", "ui.journal.run_card_title_early": "Run {number}, left early", "ui.journal.title": "Journal", "ui.phases.accrete": "Accrete", "ui.phases.collapse": "Collapse", "ui.phases.ended": "Death", "ui.phases.gather": "Gather", "ui.phases.main_sequence": "Shine", "ui.play.controls_note": "Energy comes from falling gas. Spend it here.", "ui.play.controls_title": "Controls", "ui.play.earlier_field_notes": "Earlier field notes", "ui.play.earlier_observations": "Earlier observations", "ui.play.field_notes": "Field notes", "ui.play.nothing_new": "Nothing new right now.", "ui.play.observations": "Observations", "ui.progress.accrete": "Gas used or blown away", "ui.progress.gas_left": "{amount} M☉ left", "ui.progress.gather": "Reach toward collapse", "ui.progress.percent": "{percent}%", "ui.progress.shine": "Core hydrogen fused", "ui.search.begin": "Begin run", "ui.search.bh": "Start near a black hole. Gas falls in 50% faster (cost 1.00).", "ui.search.density_high": "denser", "ui.search.density_label": "Density", "ui.search.density_low": "sparser", "ui.search.density_note": "Denser gas collapses with less total mass.", "ui.search.floor_temperature": "Lowest temperature here", "ui.search.infall": "Gas falling inward", "ui.search.intro": "Spend probability to find a rarer starting point. Your full budget returns after every run, so experiments cost nothing.", "ui.search.limit": "Probability budget used up. Lower another slider to go further.", "ui.search.mass_needed": "Mass needed to collapse", "ui.search.metal_content": "Metal content", "ui.search.metals_high": "more metals", "ui.search.metals_low": "fewer metals", "ui.search.metals_note": "More metals let gas cool further.", "ui.search.no_cost": "no cost", "ui.search.odds": "Odds of finding this", "ui.search.odds_value": "1 in {odds}", "ui.search.spent": "{spent} of {budget} spent", "ui.search.temperature_high": "hotter", "ui.search.temperature_label": "Temperature", "ui.search.temperature_low": "cooler", "ui.search.temperature_note": "Hotter gas needs more mass to collapse, but falls inward faster and feeds a bigger star.", "ui.search.title": "Survey the region", "ui.search.universe_age": "Universe age", "ui.shine.count_note": "until the core's hydrogen runs out. Each second here is about {years_per_second} years.", "ui.skip.confirm": "Tap again to leave this star", "ui.skip.label": "Move on to a new region", "ui.skip.live": "Tap again within three seconds to leave this star.", "ui.skip.note": "Nothing you do can change this star for another {time}. Moving on ages the universe only by the time you stayed.", "ui.stats.age": "Age", "ui.stats.blown_away": "Blown away", "ui.stats.boiled_off": "Boiled off the disk", "ui.stats.brightness": "Brightness", "ui.stats.cloud_mass": "Cloud mass", "ui.stats.companion_stars": "Companion stars", "ui.stats.energy": "Energy", "ui.stats.forecast_life": "Forecast life", "ui.stats.heavy_elements": "Heavy elements", "ui.stats.in_the_disk": "In the disk", "ui.stats.ionized_bubble": "Ionized bubble", "ui.stats.ionized_bubble_value": "{size} radius", "ui.stats.landing_rate": "Landing on the disk", "ui.stats.mass_needed": "Mass needed", "ui.stats.patch_mass": "Patch mass", "ui.stats.probability": "Probability", "ui.stats.reach": "Reach", "ui.stats.regions_surveyed": "Regions surveyed", "ui.stats.run_time": "Run time", "ui.stats.star": "Star", "ui.stats.still_to_reach": "Still to reach the disk", "ui.stats.temperature": "Temperature", "ui.upgrades.braking": "Magnetic braking", "ui.upgrades.buy": "Buy {name}, {cost}.", "ui.upgrades.cooling": "Radiative cooling", "ui.upgrades.cost": "{cost} erg", "ui.upgrades.cost_progress": "{percent}% of {cost} erg", "ui.upgrades.level": "level {level}", "ui.upgrades.level_label": "{name}, level {level}", "ui.upgrades.maxed": "Maxed", "ui.upgrades.reach": "Gravitational reach", "ui.upgrades.tap": "Stronger pull", "ui.upgrades.turbulence": "Disk turbulence", "ui.upgrades.unavailable": "{name}, {cost}."};
+const TEXT = {"endings.bands.black_hole.label": "Black hole", "endings.bands.black_hole.range": "some above 18 M☉, most above 27 M☉", "endings.bands.brown_dwarf.label": "Brown dwarf", "endings.bands.brown_dwarf.range": "below 0.08 M☉", "endings.bands.supernova.label": "Supernova", "endings.bands.supernova.range": "about 9–25 M☉, with gaps", "endings.bands.white_dwarf.label": "White dwarf", "endings.bands.white_dwarf.range": "up to about 9 M☉", "endings.black_hole.description": "The core collapsed without a successful explosion, and most heavy elements fell in with it. Stars can fail like this even at masses close to ones that explode. You can now search for regions near a black hole.", "endings.black_hole.title": "Black hole", "endings.brown_dwarf.description": "The core never reached sustained hydrogen fusion. It will cool for trillions of years, so nothing here will change. This run counts as a failed search.", "endings.brown_dwarf.title": "Brown dwarf", "endings.pair_instability.description": "The core became unstable and the whole star was destroyed, leaving no remnant at all.", "endings.pair_instability.title": "Pair-instability supernova", "endings.supernova.description": "The core collapsed in under a second, and the star blew itself apart. Elements heavier than helium now drift through this region.", "endings.supernova.title": "Core-collapse supernova", "endings.white_dwarf.description": "The star shed its outer layers and left a hot, Earth-sized core. There was no explosion, and few heavy elements escaped.", "endings.white_dwarf.title": "White dwarf", "hints.accrete.tier1": "Your star's mass depends on a race between feeding and clearing.", "hints.accrete.tier2": "Disk controls mainly change how quickly gas gets through. Final mass depends more on how fast gas falls in.", "hints.accrete.tier3": "Faster infall feeds the star for longer before its ionizing light shuts the supply off.", "hints.big.tier1": "Your last star collapsed into a black hole, and most of its heavy elements went with it.", "hints.big.tier2": "Try a cooler region, or aim for a slightly different mass.", "hints.big.tier2_with_density": "Try a cooler or denser region, or aim for a slightly different mass.", "hints.big.tier3": "Explosions depend on core structure, so some masses fail even between masses that explode.", "hints.compare.tier1": "Most stars from about 9 to 25 solar masses explode, but not all of them.", "hints.compare.tier2": "Change one search option, then compare the result in your journal.", "hints.compare.tier3": "One change at a time shows which control caused the difference.", "hints.gather.tier1": "The bar shows how close the patch is to collapse.", "hints.gather.tier2": "Buy upgrades as soon as energy allows. Each level costs far more than the last, but energy rises quickly too.", "hints.gather.tier3": "A patch's binding energy climbs steeply as it grows.", "hints.none.tier1": "Keep going. There is nothing to work out yet.", "hints.none.tier2": "", "hints.none.tier3": "", "hints.reach.tier1": "You can make gas gather without tapping.", "hints.reach.tier2": "Spend energy on Gravitational reach.", "hints.reach.tier3": "Reach compounds, so early levels save the most time.", "hints.shine.tier1": "Nothing can change this star now.", "hints.shine.tier2": "Use the wait to review your journal.", "hints.shine.tier3": "A star's fuel lasts far less time as its mass rises.", "hints.small.tier1": "Your last star was too small to explode.", "hints.small.tier2": "Search for a hotter region.", "hints.small.tier2_with_density": "Search for a hotter region, or a less dense one.", "hints.small.tier3": "Hotter gas falls inward faster, so the star gains mass before its light clears the gas.", "hints.start.tier1": "The patch has to grow until gravity beats gas pressure.", "hints.start.tier2": "Keep tapping the sky. Each tap also releases energy.", "hints.start.tier3": "Gas falling together releases energy, and that energy is what you spend on controls.", "notes.controls.braking": "New control: Magnetic braking. Gas is landing far from the star and stalling in the disk.", "notes.controls.cooling": "New control: Radiative cooling. Heavy elements from your supernova make cooler gas possible.", "notes.controls.density": "New search option: Density. The mass needed for collapse can now be targeted.", "notes.controls.metals": "New search option: Metal content. Enriched gas cools better.", "notes.controls.reach": "New control: Gravitational reach. Spend energy to make gas gather on its own.", "notes.controls.tap": "New control: Stronger pull. Tapping had started to matter less.", "notes.controls.temperature": "New search option: Temperature. Your first star's size was not a choice.", "notes.controls.turbulence": "New control: Disk turbulence. Gas is piling up in the disk faster than it reaches the star.", "notes.goals.black_hole": "Goal: find out what happens to a star too massive to explode cleanly.", "notes.goals.explore": "Goal: map how each region shapes the stars born there.", "notes.goals.first": "Goal: build a star massive enough to explode, so its heavy elements can seed the next generation.", "notes.goals.white_dwarf": "Goal: find out what becomes of a much smaller star.", "notes.headlines.accrete.body": "Gas lands on the disk at the dashed ring and spirals in to the star. Brighter rings hold more gas; faint rings mark distance in AU (Earth to the Sun). Starlight will end the infall and boil away the disk.", "notes.headlines.accrete_protostar.title": "Build a protostar", "notes.headlines.accrete_star.title": "Feed the star", "notes.headlines.collapse.body": "Nothing is holding the cloud up now. In reality this fall takes about {fall_time}.", "notes.headlines.collapse.title": "Free fall", "notes.headlines.gather.body": "Tap the sky to pull in gas. At {mass_needed}, gravity beats gas pressure and the patch collapses.", "notes.headlines.gather.title": "Gather the gas", "notes.headlines.shine.body": "Its final mass is set, and it will decide how this star ends. Until then, it fuses hydrogen in its core.", "notes.headlines.shine.title": "The star shines", "notes.milestones.au": "Your reach now spans the distance from Earth to the Sun.", "notes.milestones.cm": "A cubic centimeter of this gas holds only about {density} atoms.", "notes.milestones.earth": "Your reach is as wide as Earth. Its mass is still tiny.", "notes.milestones.ly": "Your reach is one light-year wide. Faint gridlines now map the space around you.", "notes.milestones.m": "Your reach is 1 meter across. The patch still weighs less than a speck of dust.", "notes.observations.anomaly": "Anomaly: this star lived {percent}% longer than forecast.", "notes.observations.collapse": "Gravity has beaten pressure. The patch passed the Jeans mass and is collapsing.", "notes.observations.final_mass": "The gas is gone. Final mass: {mass} M☉.", "notes.observations.ignite": "Hydrogen fusion has begun. Starlight will now start clearing the disk.", "notes.observations.run_start": "Run {number} begins at {density} atoms per cm³ and {temperature} K.", "notes.observations.sun_mass": "You have gathered one solar mass of gas, but its pressure still holds it apart.", "notes.shine.brightness.title": "Brightness", "notes.shine.brightness_heavy.body": "This star shines about {brightness} times as bright as the Sun. Brightness climbs much faster than mass, so a heavier star spends its fuel far faster. It is expected to last {life_vs_sun}.", "notes.shine.brightness_small.body": "This star shines at about {brightness} of the Sun's brightness. Small stars sip their fuel, so it is expected to last {life_vs_sun}.", "notes.shine.bubble_stalls.body": "The ionized bubble has stopped growing, with its edge about {edge_distance} from the star. Its pressure now matches the cold gas around it.", "notes.shine.bubble_stalls.title": "The bubble stops", "notes.shine.fast_time.body": "Each second you watch is about {years_per_second} years for this star. All of recorded human history would pass in about {history_seconds} seconds.", "notes.shine.fast_time.title": "Fast time", "notes.shine.fusion_future.ends_in_iron": "Once the hydrogen is gone, the core shrinks and heats until it can fuse helium, then carbon, neon, oxygen, and silicon, ending in iron. Heavier nuclei repel each other more, so each new fuel needs a hotter, denser core. Each stage also releases less energy per reaction, so the core must fuse faster to hold itself up. Hydrogen lasts millions of years here. Silicon lasts days.", "notes.shine.fusion_future.never_helium": "Its core will never get hot enough to fuse helium, so hydrogen is the only fuel it will ever fuse.", "notes.shine.fusion_future.stops_at_carbon": "Once the hydrogen is gone, the core shrinks and heats until it can fuse helium into carbon and oxygen. Heavier nuclei repel each other more, so each new fuel needs a hotter, denser core. This star will not get hot enough to go past carbon and oxygen.", "notes.shine.fusion_route.cno_enriched": "This star's core uses the carbon, nitrogen, and oxygen it was born with as catalysts, cycling hydrogen through them into helium. Earlier stars made those elements.", "notes.shine.fusion_route.cno_pristine": "Heavier stars usually fuse hydrogen with carbon, nitrogen, and oxygen as catalysts. This gas formed before any star had made those elements, so the core squeezed itself hotter until it made a trace of carbon of its own, then fused on.", "notes.shine.fusion_route.pp": "This star fuses hydrogen proton by proton, as the Sun does. It is a slow route, one reason small stars last so long.", "notes.shine.helium_ash.body": "Helium is piling up in the core. It needs far higher temperatures to fuse, so for now it just sits there. The core slowly shrinks and heats to keep the hydrogen around it fusing, and the star swells and brightens a little.", "notes.shine.helium_ash.title": "Helium ash", "notes.shine.how_it_fuses.title": "How it fuses", "notes.shine.main_sequence.body": "The core is fusing hydrogen into helium. The heat from fusion pushes outward exactly as hard as gravity pulls inward, so the star holds steady. Stars spend about 90% of their lives in this balance.", "notes.shine.main_sequence.title": "The main sequence", "notes.shine.running_low.body": "The core's hydrogen is nearly gone. What happens next depends mostly on the mass this star was born with.", "notes.shine.running_low.title": "Running low", "notes.shine.starlight.title": "Starlight on the gas", "notes.shine.starlight_bubble.body": "Ultraviolet light from the star strips electrons from the hydrogen around it. That ionized gas, near 10,000 K, glows and pushes into the cold gas beyond. The bubble's edge is now {edge_distance} from the star.", "notes.shine.starlight_cool.body": "This star is too cool to ionize much of the gas around it. Its light mostly warms the nearby dust and gas.", "notes.upgrades.braking": "Gas lands {distance_new} AU from the star instead of {distance_old} AU, so it has less far to travel.", "notes.upgrades.cooling": "Gas cools from {temp_now} to {temp_next} K. Mass needed for collapse falls from {jeans_now} to {jeans_next} M☉.", "notes.upgrades.cooling_background": "The cosmic background sets the coldest gas this universe allows.", "notes.upgrades.cooling_maxed": "Gas is already at the coldest this composition allows.", "notes.upgrades.reach": "Gas gathers 25% faster on its own.", "notes.upgrades.tap": "Each tap pulls in 50% more gas.", "notes.upgrades.turbulence": "Gas moves through the disk 30% faster, so it reaches the star sooner.", "ui.aria.sky_phase": "Telescope view, {phase} phase.", "ui.aria.sky_search": "Telescope view of the region you are surveying.", "ui.aria.sky_tap": "Telescope view. Tap to gather gas.", "ui.away.banner": "While you were away ({time}), {event}", "ui.away.ended": "Your star ended as a {ending}.", "ui.away.ended_plain": "Your star ended.", "ui.away.note": "You were away for {time}.", "ui.away.stage": "Your star moved on to the {stage} stage.", "ui.banner.dismiss": "Dismiss", "ui.brand": "ACCRETION", "ui.canvas.black_hole_pull": "a black hole is near: a map of gravity's pull", "ui.canvas.collapse_limit": "Collapse limit", "ui.canvas.core_hydrogen": "● core hydrogen", "ui.canvas.gas_lands": "Gas lands here", "ui.canvas.gauge": "temperature", "ui.canvas.gauge_floor": "the coldest this gas can be", "ui.canvas.helium_ash": "● helium ash", "ui.canvas.ionization_front": "Ionization front", "ui.canvas.ionization_front_stalled": "Ionization front (stalled)", "ui.canvas.key_helium": "helium", "ui.canvas.key_hydrogen": "hydrogen", "ui.canvas.key_metals": "metals", "ui.canvas.metals_note": "metals shown far more common than in reality", "ui.ended.anomaly_cause": "The cause is not yet known.", "ui.ended.final_mass_heading": "Final mass {mass} M☉", "ui.ended.fine": "Probability lets you search for rarer regions. Your gas, energy and upgrades reset for the next run. Probability, unlocked controls and heavy elements stay.", "ui.ended.heading": "Ending", "ui.ended.heading_forecast": "Forecast ending", "ui.ended.left_early_note": "You left before this happened. The universe aged only by the time you stayed.", "ui.ended.survey_button": "Survey new regions", "ui.footer.close_journal": "Close journal", "ui.footer.journal": "Journal ({count})", "ui.footer.reset": "Reset", "ui.footer.reset_confirm": "Tap again to erase", "ui.footer.test_speed": "Test speed", "ui.gather_hint": "Tap the sky to gather", "ui.heavy.cooling": "Dust and metal cooling", "ui.heavy.cooling_note": "Permanently cools gas by 10% per level.", "ui.heavy.heading": "Heavy elements: {mass} M☉", "ui.heavy.turbulence": "Seeded turbulence", "ui.heavy.turbulence_note": "Permanently speeds the disk by 30% per level.", "ui.hints.ask": "Ask for a hint", "ui.hints.available": "A hint is available", "ui.hints.more": "Show more", "ui.journal.alpha_value": "α {value}", "ui.journal.axis_density": "Density (/cm³)", "ui.journal.axis_temperature": "Gas temperature (K)", "ui.journal.chip_label": "Run {number}: {ending}", "ui.journal.chip_label_early": "Run {number}: {ending}, left early", "ui.journal.intro": "Bubble area is the star's final mass, and the letters name how it ended. Select a run to read it.", "ui.journal.intro_empty": "Finished runs appear here as bubbles. Size is final mass, position is the region's gas, and letters name the ending.", "ui.journal.legend_left_early": "Left early", "ui.journal.not_seen": "Not seen yet", "ui.journal.plot_aria": "Your completed runs by gas temperature. Bubble size shows final mass.", "ui.journal.plot_aria_density": "Your completed runs by gas temperature and density. Bubble size shows final mass.", "ui.journal.plot_label": "Run {number}: {ending}, {mass} solar masses, {temperature} K", "ui.journal.plot_label_early": "Run {number}: {ending}, {mass} solar masses, {temperature} K, left early", "ui.journal.reward": "+{gain} probability", "ui.journal.reward_heavy": ", +{heavy} M☉ heavy", "ui.journal.row_density": "Density", "ui.journal.row_ending": "Ending", "ui.journal.row_feed": "Gas landed at", "ui.journal.row_final_mass": "Final mass", "ui.journal.row_reward": "Reward", "ui.journal.row_run_time": "Run time", "ui.journal.row_temperature": "Gas temperature", "ui.journal.row_turbulence": "Disk turbulence", "ui.journal.run_card_title": "Run {number}", "ui.journal.run_card_title_early": "Run {number}, left early", "ui.journal.title": "Journal", "ui.phases.accrete": "Accrete", "ui.phases.collapse": "Collapse", "ui.phases.ended": "Death", "ui.phases.gather": "Gather", "ui.phases.main_sequence": "Shine", "ui.phases.survey": "Survey", "ui.play.controls_note": "Energy comes from falling gas. Spend it here.", "ui.play.controls_title": "Controls", "ui.play.earlier_field_notes": "Earlier field notes", "ui.play.earlier_observations": "Earlier observations", "ui.play.field_notes": "Field notes", "ui.play.nothing_new": "Nothing new right now.", "ui.play.observations": "Observations", "ui.progress.accrete": "Gas used or blown away", "ui.progress.gas_left": "{amount} M☉ left", "ui.progress.gather": "Reach toward collapse", "ui.progress.percent": "{percent}%", "ui.progress.shine": "Core hydrogen fused", "ui.search.begin": "Begin run", "ui.search.bh": "Start near a black hole. Gas falls in 50% faster (cost 1.00).", "ui.search.density_high": "denser", "ui.search.density_label": "Density", "ui.search.density_low": "sparser", "ui.search.density_note": "Denser gas collapses with less total mass.", "ui.search.floor_temperature": "Lowest temperature here", "ui.search.infall": "Gas falling inward", "ui.search.intro": "Spend probability to find a rarer starting point. Your full budget returns after every run, so experiments cost nothing.", "ui.search.limit": "Probability budget used up. Lower another slider to go further.", "ui.search.mass_needed": "Mass needed to collapse", "ui.search.metal_content": "Metal content", "ui.search.metals_high": "more metals", "ui.search.metals_low": "fewer metals", "ui.search.metals_note": "More metals let gas cool further.", "ui.search.no_cost": "no cost", "ui.search.odds": "Odds of finding this", "ui.search.odds_value": "1 in {odds}", "ui.search.spent": "{spent} of {budget} spent", "ui.search.temperature_high": "hotter", "ui.search.temperature_label": "Temperature", "ui.search.temperature_low": "cooler", "ui.search.temperature_note": "Hotter gas needs more mass to collapse, but falls inward faster and feeds a bigger star.", "ui.search.title": "Survey the region", "ui.search.universe_age": "Universe age", "ui.shine.count_note": "until the core's hydrogen runs out. Each second here is about {years_per_second} years.", "ui.skip.confirm": "Tap again to leave this star", "ui.skip.label": "Move on to a new region", "ui.skip.live": "Tap again within three seconds to leave this star.", "ui.skip.note": "Nothing you do can change this star for another {time}. Moving on ages the universe only by the time you stayed.", "ui.stats.age": "Age", "ui.stats.blown_away": "Blown away", "ui.stats.boiled_off": "Boiled off the disk", "ui.stats.brightness": "Brightness", "ui.stats.cloud_mass": "Cloud mass", "ui.stats.companion_stars": "Companion stars", "ui.stats.energy": "Energy", "ui.stats.forecast_life": "Forecast life", "ui.stats.heavy_elements": "Heavy elements", "ui.stats.in_the_disk": "In the disk", "ui.stats.ionized_bubble": "Ionized bubble", "ui.stats.ionized_bubble_value": "{size} radius", "ui.stats.landing_rate": "Landing on the disk", "ui.stats.mass_needed": "Mass needed", "ui.stats.patch_mass": "Patch mass", "ui.stats.probability": "Probability", "ui.stats.reach": "Reach", "ui.stats.regions_surveyed": "Regions surveyed", "ui.stats.run_time": "Run time", "ui.stats.star": "Star", "ui.stats.still_to_reach": "Still to reach the disk", "ui.stats.temperature": "Temperature", "ui.upgrades.braking": "Magnetic braking", "ui.upgrades.buy": "Buy {name}, {cost}.", "ui.upgrades.cooling": "Radiative cooling", "ui.upgrades.cost": "{cost} erg", "ui.upgrades.cost_progress": "{percent}% of {cost} erg", "ui.upgrades.level": "level {level}", "ui.upgrades.level_label": "{name}, level {level}", "ui.upgrades.maxed": "Maxed", "ui.upgrades.reach": "Gravitational reach", "ui.upgrades.tap": "Stronger pull", "ui.upgrades.turbulence": "Disk turbulence", "ui.upgrades.unavailable": "{name}, {cost}."};
 const E = Engine;
 const SAVE_KEY = "accretion-prototype-v4";
 const $ = (id) => document.getElementById(id);
-const state = { meta: E.newMeta(), run: null, view: "play", pane: "main", speed: 1, log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {} };
+const state = { meta: E.newMeta(), run: null, view: "play", pane: "main", speed: 1, log: [], seen: {}, resetArm: false, skipped: false, noted: 0, hint: { key: "", tier: 0 }, selected: null, open: {}, prospective: null, zoom: 1 };
 state.run = E.newRun(state.meta);
+state.prospective = E.newRun(state.meta);
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
@@ -687,6 +770,13 @@ const SKY_TEXT = {
   collapseLimit: t("ui.canvas.collapse_limit"),
   coreHydrogen: t("ui.canvas.core_hydrogen"),
   heliumAsh: t("ui.canvas.helium_ash"),
+  keyHydrogen: t("ui.canvas.key_hydrogen"),
+  keyHelium: t("ui.canvas.key_helium"),
+  keyMetals: t("ui.canvas.key_metals"),
+  metalsNote: t("ui.canvas.metals_note"),
+  gauge: t("ui.canvas.gauge"),
+  gaugeFloor: t("ui.canvas.gauge_floor"),
+  blackHolePull: t("ui.canvas.black_hole_pull"),
 };
 
 // Shine phase. The HII region is display only: Stromgren sphere, Spitzer expansion, then stall.
@@ -729,7 +819,7 @@ function shineNotes(run, meta) {
   return notes.sort((x, y) => x[0] - y[0]);
 }
 
-const PHASES = [["gather", t("ui.phases.gather")], ["collapse", t("ui.phases.collapse")], ["accrete", t("ui.phases.accrete")], ["main_sequence", t("ui.phases.main_sequence")], ["ended", t("ui.phases.ended")]];
+const PHASES = [["survey", t("ui.phases.survey")], ["gather", t("ui.phases.gather")], ["collapse", t("ui.phases.collapse")], ["accrete", t("ui.phases.accrete")], ["main_sequence", t("ui.phases.main_sequence")], ["ended", t("ui.phases.ended")]];
 const ENDINGS = {
   brown_dwarf: { title: t("endings.brown_dwarf.title"), description: t("endings.brown_dwarf.description") },
   white_dwarf: { title: t("endings.white_dwarf.title"), description: t("endings.white_dwarf.description") },
@@ -796,13 +886,19 @@ function checkMilestones() {
 }
 
 function save() {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ meta: state.meta, run: state.run, view: state.view, seen: state.seen, log: state.log, skipped: state.skipped, noted: state.noted, savedAt: Date.now() })); } catch {}
+  // logShape 2: note phase indices include the display-only Survey step.
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ meta: state.meta, run: state.run, view: state.view, seen: state.seen, log: state.log, skipped: state.skipped, noted: state.noted, logShape: 2, savedAt: Date.now() })); } catch {}
 }
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
     if (!saved?.run) return;
-    Object.assign(state, { meta: saved.meta, run: saved.run, view: saved.view, seen: saved.seen || {}, log: (saved.log || []).map(asNote), skipped: !!saved.skipped, noted: saved.noted || 0 });
+    // Notes saved before Survey joined PHASES carry indices one lower than
+    // today's; re-stamp them so nothing old expires a phase early. Saves
+    // written after (logShape 2) already carry the new indices.
+    const bump = saved.logShape ? 0 : 1;
+    Object.assign(state, { meta: saved.meta, run: saved.run, view: saved.view, seen: saved.seen || {}, log: (saved.log || []).map((n) => { const m = asNote(n); return m.p < 0 ? m : { ...m, p: m.p + bump }; }), skipped: !!saved.skipped, noted: saved.noted || 0 });
+    state.prospective = E.newRun(state.meta);
     const away = (Date.now() - saved.savedAt) / 1000;
     if (away > 60 && state.view === "play") {
       const before = state.run.phase;
@@ -1045,6 +1141,7 @@ function fieldRow(id, label, key, text, [low, high]) {
 }
 function refreshSearch() {
   const m = state.meta, run = E.newRun(m), T = E.temperature(run, m);
+  state.prospective = run;
   // Composition changes re-judge the shop's cooling bound, so repaint it.
   document.querySelectorAll("#heavy-list button").forEach((b) => b.paint && b.paint());
   if ($("density-out")) $("density-out").textContent = `${sci(run.density)} /cm³`;
@@ -1084,7 +1181,8 @@ function renderSearch(panel) {
         const cost = E.heavyCost(m, name), lvl = name === "cooling" ? m.heavyCooling : m.heavyTurbulence;
         // Cooling deepens the bound of every future region until the
         // cosmic background clamps it; the button then says so itself.
-        const blocked = name === "cooling" && !E.coolingBoundHelps(m, E.newRun(m).metalLog10);
+        const metalLog10 = E.backgroundMetal(m) + E.SIGMA_LOG10_METAL * m.zMetal;
+        const blocked = name === "cooling" && !E.coolingBoundHelps(m, metalLog10);
         b.innerHTML = `<b>${esc(t("ui.upgrades.level_label", { name: label, level: lvl }))}</b><small>${esc(blocked ? t("notes.upgrades.cooling_background") : text)}</small><span class="cost">${sci(cost)} M☉</span>`;
         b.disabled = m.heavy < cost || blocked;
         shop.querySelector("h3").textContent = t("ui.heavy.heading", { mass: sci(m.heavy) });
@@ -1169,7 +1267,9 @@ function update() {
   checkMilestones();
   renderShell();
   const { run, meta } = state;
-  const track = PHASES.findIndex(([p]) => p === run.phase);
+  // The survey is a display-only first step: it reads as the current step on
+  // the search screen, and as completed once a run is underway.
+  const track = state.view === "search" ? 0 : PHASES.findIndex(([p]) => p === run.phase);
   $("track").innerHTML = PHASES.map(([, label], i) => `<span class="${i === track ? "now" : i < track ? "done" : ""}">${label}</span>`).join("");
   const sky = $("sky"), mode = run.phase === "gather" && state.view === "play" ? "tap" : `${state.view}:${run.phase}`;
   if (sky.dataset.mode !== mode) {
@@ -1182,7 +1282,8 @@ function update() {
     }
   }
   $("scale").hidden = run.phase === "accrete";
-  $("scale-label").textContent = length(viewRadius() * 0.5);
+  const zoomShown = state.view === "search" || run.phase === "gather" || run.phase === "collapse" ? state.zoom : 1;
+  $("scale-label").textContent = length(viewRadius() * 0.5 * zoomShown);
   $("hint").hidden = !(run.phase === "gather" && state.view === "play" && run.seconds < 30 && !meta.runs);
   paintHints();
   if (!$("head")) return;
@@ -1241,8 +1342,54 @@ function resize() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 addEventListener("resize", resize);
+// The temperature gauge: current gas temperature and the composition floor
+// on one log scale, shown through the gather phase. The floor is the lowest
+// temperature this gas can reach; radiative cooling slides the marker down
+// toward it.
+function temperatureGauge(run, meta) {
+  // Wide layout: a short bar above the bottom edge, right of centre, with the
+  // caption above it and the floor meaning one row below the ticks. Narrow:
+  // a full-width bar between the page header and the collapse ring, with the
+  // caption and current readout above it and the floor meaning below;
+  // tick labels are dropped, the readout carries the numbers.
+  const narrow = W < 760;
+  const lo = 10, hi = 1000;
+  const x1 = narrow ? W - 16 : W - 24, x0 = narrow ? 16 : x1 - Math.min(150, W * 0.4);
+  const y = narrow ? 96 : H - 40;
+  const mark = (kelvin) => x0 + Math.log10(Math.min(hi, Math.max(lo, kelvin)) / lo) / Math.log10(hi / lo) * (x1 - x0);
+  ctx.font = "10px 'IBM Plex Mono', monospace"; ctx.textAlign = "center"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
+  ctx.globalAlpha = 0.85; ctx.strokeStyle = "#8d84d6"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+  for (const k of [lo, 100, hi]) {
+    const x = mark(k);
+    ctx.strokeStyle = "#8d84d6";
+    ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4); ctx.stroke();
+    if (!narrow) { ctx.fillStyle = "#8d84d6"; ctx.fillText(`${k} K`, x, y + 15); }
+  }
+  const fx = mark(run.floorTemperature);
+  // The gauge markers stay neutral so the species colors keep meaning only
+  // composition: the current dot in the label color, the floor tick white.
+  ctx.globalAlpha = 1; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(fx, y - 7); ctx.lineTo(fx, y + 7); ctx.stroke();
+  // Caption and current readout above the bar; the floor meaning below it at
+  // narrow width, one row past the ticks at wide width.
+  ctx.font = "10px 'IBM Plex Mono', monospace"; ctx.textAlign = "left";
+  ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.fillStyle = "#cfc8ff";
+  const readout = `${SKY_TEXT.gauge}: ${Math.round(E.temperature(run, meta))} K`;
+  ctx.strokeText(readout, x0, y - 10); ctx.fillText(readout, x0, y - 10);
+  ctx.textAlign = "center"; ctx.fillStyle = "#ffb86b";
+  const tx = mark(E.temperature(run, meta));
+  ctx.beginPath(); ctx.arc(tx, y, 4, 0, 6.283); ctx.fill();
+  // One row away from the bar, so the floor's meaning never collides.
+  ctx.font = "9px 'IBM Plex Mono', monospace"; ctx.fillStyle = "#ffffff"; ctx.textAlign = "right";
+  ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
+  const floorLabel = SKY_TEXT.gaugeFloor;
+  ctx.strokeText(floorLabel, x1, y + (narrow ? 12 : 27)); ctx.fillText(floorLabel, x1, y + (narrow ? 12 : 27));
+  ctx.globalAlpha = 1;
+}
 function viewRadius() {
-  const r = state.run;
+  // The search screen draws the prospective run, so its scale must too.
+  const r = state.view === "search" && state.prospective ? state.prospective : state.run;
   if (r.phase === "gather" || r.phase === "collapse") return Math.exp(r.logReach) * 1.15 * (r.phase === "collapse" ? Math.max(0.03, r.collapseLeft / E.COLLAPSE_SECONDS) : 1);
   const b = bubble(r, state.meta);
   if (b) return b.now / bubbleShare(b);
@@ -1344,17 +1491,76 @@ function atomScene(run, cx, cy, R, t) {
   }
   ctx.globalAlpha = 1;
 }
-function hazeScene(run, cx, cy, R, t, amount, pull) {
-  const zoom = run.logReach * 0.34;
-  for (const [a, u, s] of HAZE) {
-    const flow = ((u - zoom - (calm ? 0 : t * 0.004)) % 1 + 1) % 1, rad = R * 1.5 * flow ** 1.4 * pull;
-    const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
-    ctx.globalAlpha = amount * Math.min(1, flow * 6) * Math.min(1, (1 - flow) * 5) * 0.75;
-    ctx.fillStyle = hashColor(a); ctx.beginPath(); ctx.arc(x, y, s, 0, 6.283); ctx.fill();
+// One consistent drawing of the gas, shared by the survey, gather and
+// collapse scenes. Species colors carry composition (hydrogen/helium/metals
+// with a canvas key), thermal motion carries temperature through the
+// sqrt(T/m) law, and the drawn scale carries density through the cube-root
+// zoom; the mappings and their concepts live in web/visuals.js.
+const GAS_COUNT = 120;
+const GAS = Array.from({ length: GAS_COUNT }, (_, i) => ({ a: hash(i, 21) * 6.283, u: hash(i, 22), w: hash(i, 23) * 6.283 }));
+function gasScene(run, meta, cx, cy, R, t, zoom, crowd = 1) {
+  const mix = VISUALS.speciesMix(run.metalLog10, E.PRIMORDIAL_METAL_LOG10);
+  const species = (i) => {
+    const roll = hash(i, 24);
+    return roll < mix.helium ? "helium" : roll < mix.helium + mix.metals ? "metals" : "hydrogen";
+  };
+  // Thermal speed in px/s on the shared sqrt(T/m) scale: the base constant
+  // sets hydrogen at 10 K, every species and temperature carries the true
+  // ratio, and the cap keeps the hottest settings readable.
+  const base = Math.min(VISUALS.SPEED_CAP_PX, VISUALS.SPEED_BASE_PX * VISUALS.speedForTemperature(E.temperature(run, meta)));
+  const speedOf = (species_) => base * VISUALS.speedForMass(
+    species_ === "helium" ? VISUALS.HELIUM_MASS : species_ === "metals" ? VISUALS.METAL_MASS : VISUALS.HYDROGEN_MASS
+  );
+  for (let i = 0; i < GAS.length; i++) {
+    const g = GAS[i], kind = species(i), speed = speedOf(kind);
+    // Fixed hashed layout: the same particles everywhere; the crowd factor
+    // pulls the whole layout inward as the cloud falls.
+    const rad = R * (0.16 + 0.86 * g.u) * zoom * crowd;
+    const x = cx + Math.cos(g.a) * rad, y = cy + Math.sin(g.a) * rad * 0.96;
+    if (x < -20 || y < -20 || x > W + 20 || y > H + 20) continue;
+    ctx.globalAlpha = 0.92; ctx.fillStyle = VISUALS.SPECIES_COLORS[kind];
+    if (calm) {
+      // A still streak whose length carries this particle's thermal speed.
+      const len = 1.5 + speed * 0.06;
+      ctx.strokeStyle = VISUALS.SPECIES_COLORS[kind]; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(g.w) * len, y + Math.sin(g.w) * len * 0.96); ctx.stroke();
+    } else {
+      // The wobble advances at the particle's thermal speed, so hotter gas
+      // shivers faster and heavier species slower.
+      const ph = t * (speed / 2.4) + g.w;
+      ctx.beginPath(); ctx.arc(x + Math.cos(ph) * 2.4, y + Math.sin(ph * 0.9) * 2.4, kind === "metals" ? 1.5 : 1.8, 0, 6.283); ctx.fill();
+    }
   }
   ctx.globalAlpha = 1;
 }
-function hashColor(a) { return a % 1 < 0.72 ? "#ff5f7e" : "#5fe6cf"; }
+// The composition key: one marked dot per species, and the honesty label
+// whenever metal particles are actually drawn. It sits above the #hint
+// overlay's bottom strip.
+function gasKey(cx, run) {
+  const low = H - 46;
+  const mix = VISUALS.speciesMix(run.metalLog10, E.PRIMORDIAL_METAL_LOG10);
+  ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.textAlign = "left"; ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
+  const runs = [[VISUALS.SPECIES_COLORS.hydrogen, SKY_TEXT.keyHydrogen], [VISUALS.SPECIES_COLORS.helium, SKY_TEXT.keyHelium], [VISUALS.SPECIES_COLORS.metals, SKY_TEXT.keyMetals]];
+  let x = cx - 108, y = low;
+  for (const [color, word] of runs) {
+    ctx.globalAlpha = 0.95; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 3, 0, 6.283); ctx.fill();
+    ctx.globalAlpha = 0.85; ctx.fillStyle = "#cfc8ff"; ctx.fillText(word, x + 8, y + 4);
+    x += 8 + ctx.measureText(word).width + 12;
+  }
+  // The honesty label: only when metal particles are actually drawn, judged
+  // by the same deterministic species roll gasScene uses.
+  let drawn = 0;
+  for (let i = 0; i < GAS.length; i++) {
+    const roll = hash(i, 24);
+    if (roll >= mix.helium && roll < mix.helium + mix.metals) drawn++;
+  }
+  if (drawn > 0) {
+    ctx.font = "9px 'IBM Plex Mono', monospace"; ctx.textAlign = "center";
+    ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.fillStyle = "#9d8cff"; ctx.globalAlpha = 0.9;
+    ctx.strokeText(SKY_TEXT.metalsNote, cx, low + 14); ctx.fillText(SKY_TEXT.metalsNote, cx, low + 14);
+  }
+  ctx.globalAlpha = 1;
+}
 function starColor(m) { return m > 16 ? "#9fc4ff" : m > 2 ? "#e9eeff" : m > 0.8 ? "#ffe2a0" : "#ff9a5c"; }
 function star(cx, cy, size, m, t) {
   glow(cx, cy, size * 5, starColor(m), 0.28);
@@ -1438,28 +1644,57 @@ function draw(t) {
   for (const [x, y, b] of BACK) { ctx.globalAlpha = b * 0.5; ctx.fillStyle = "#cfc8ff"; ctx.fillRect(x * W, y * H, 1.3, 1.3); }
   ctx.globalAlpha = 1;
   const lr = run.logReach / Math.LN10;
-  if (state.view === "search") { drawGrid(cx, cy, R, 0.16, 0); hazeScene(run, cx, cy, R, t, 0.5, 1); return; }
+  if (state.view === "search") {
+    const p = state.prospective || (state.prospective = E.newRun(meta)), zt = VISUALS.zoomScale(p.density);
+    state.zoom = calm ? zt : state.zoom + (zt - state.zoom) * 0.12;
+    if (meta.blackHoleStart) {
+      // Warp the grid around a centre off to one side, so the map says the
+      // hole is near, not here.
+      drawGrid(cx + 2.4 * R, cy - 1.5 * R, R, 0.3, 0.55);
+      ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.textAlign = "left"; ctx.globalAlpha = 0.9;
+      ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c"; ctx.fillStyle = "#ffb86b";
+      ctx.strokeText(SKY_TEXT.blackHolePull, 16, 96); ctx.fillText(SKY_TEXT.blackHolePull, 16, 96);
+      ctx.globalAlpha = 1;
+    } else drawGrid(cx, cy, R, 0.16, 0);
+    gasScene(p, meta, cx, cy, R, t, state.zoom);
+    gasKey(cx, p);
+    return;
+  }
   if (run.phase !== "ended") lastDeath = 0;
   if (run.phase === "gather") {
+    const zt = VISUALS.zoomScale(run.density);
+    state.zoom = calm ? zt : state.zoom + (zt - state.zoom) * 0.12;
     drawGrid(cx, cy, R, Math.min(0.2, Math.max(0, (lr - 16.5) / 4)), Math.min(0.22, Math.max(0, (lr - 16.5) * 0.06)));
-    const N = E.patchMass(run) * 1.989e33 / 2.04e-24, haze = Math.min(1, Math.max(0, (Math.log10(N) - 2.5) / 2));
-    hazeScene(run, cx, cy, R, t, haze, 1);
+    gasScene(run, meta, cx, cy, R, t, state.zoom);
     atomScene(run, cx, cy, R, t);
     const startLog = Math.log(1.5 / run.density ** (1 / 3)), limit = E.jeansLogReach(run, meta);
     const done = Math.min(1, (run.logReach - startLog) / (limit - startLog));
+    // At narrow width the ring pulls in a step, leaving a clear band between
+    // the page header, the gauge, the ring and the key.
+    const rr = W < 760 ? R * 0.78 : R * 0.92;
     ctx.strokeStyle = "#ffb86b"; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.85; ctx.setLineDash([6, 6]);
-    ctx.beginPath(); ctx.arc(cx, cy, R * 0.92, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
-    ctx.strokeStyle = "#ff5f7e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, Math.max(4, R * 0.92 * done), 0, 6.283); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = "#ff5f7e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, Math.max(4, rr * done), 0, 6.283); ctx.stroke();
     ctx.globalAlpha = 1; ctx.fillStyle = "#ffb86b"; ctx.font = "12px 'IBM Plex Mono', monospace"; ctx.textAlign = "center";
     ctx.lineWidth = 3; ctx.strokeStyle = "#0c0a1c";
     const limitLabel = SKY_TEXT.collapseLimit;
-    ctx.strokeText(limitLabel, cx, cy + R * 0.92 + 16); ctx.fillText(limitLabel, cx, cy + R * 0.92 + 16);
+    // At narrow width the label sits inside the ring, clear of the key and
+    // the hint at the bottom edge.
+    const limitY = W < 760 ? cy + rr - 12 : cy + rr + 16;
+    ctx.strokeText(limitLabel, cx, limitY); ctx.fillText(limitLabel, cx, limitY);
     glow(cx, cy, R * (0.25 + 0.75 * Math.min(1, Math.max(0, lr / 19))), "#ff5f7e", 0.1 + 0.3 * Math.min(1, Math.max(0, lr / 19)));
+    gasKey(cx, run);
+    temperatureGauge(run, meta);
   } else if (run.phase === "collapse") {
     const f = 1 - run.collapseLeft / E.COLLAPSE_SECONDS;
+    const zt = VISUALS.zoomScale(run.density);
+    state.zoom = calm ? zt : state.zoom + (zt - state.zoom) * 0.12;
     drawGrid(cx, cy, R, 0.2, 0.22 + f * 0.3);
-    hazeScene(run, cx, cy, R, t, 1, 1 - f * 0.85);
+    // The cloud falls inward: the whole layout crowds toward the centre while
+    // the thermal channel reads the same engine temperature as everywhere.
+    gasScene(run, meta, cx, cy, R, t, state.zoom, 1 - 0.55 * f);
     glow(cx, cy, R * (1 - f * 0.55), "#ff5f7e", 0.3 + f * 0.5);
+    gasKey(cx, run);
   } else if (run.phase === "accrete") {
     drawGrid(cx, cy, R * 1.4, 0.18, 0.5);
     diskScene(run, cx, cy, R, t, meta);

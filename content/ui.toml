@@ -9,11 +9,27 @@ brand = "ACCRETION"
 gather_hint = "Tap the sky to gather"
 
 [phases]
+survey = "Survey"
 gather = "Gather"
 collapse = "Collapse"
 accrete = "Accrete"
 main_sequence = "Shine"
 ended = "Death"
+
+[canvas.key_hydrogen]
+text = "hydrogen"
+[canvas.key_helium]
+text = "helium"
+[canvas.key_metals]
+text = "metals"
+[canvas.metals_note]
+text = "metals shown far more common than in reality"
+[canvas.gauge]
+text = "temperature"
+[canvas.gauge_floor]
+text = "the coldest this gas can be"
+[canvas.black_hole_pull]
+text = "a black hole is near: a map of gravity's pull"
 
 [play.controls_title]
 text = "Controls"
