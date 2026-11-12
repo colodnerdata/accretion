@@ -4,7 +4,10 @@ import glob
 
 import pytest
 
-sync_api = pytest.importorskip("playwright.sync_api")
+try:
+    from playwright import sync_api
+except ImportError:  # the engine and parity tests do not need a browser
+    sync_api = None
 
 FALLBACK_CHROMIUM = "/opt/pw-browsers/chromium-*/chrome-linux64/chrome"
 
@@ -12,6 +15,8 @@ FALLBACK_CHROMIUM = "/opt/pw-browsers/chromium-*/chrome-linux64/chrome"
 @pytest.fixture(scope="module")
 def browser():
     """One Chromium for the module, or a skip when none can be launched."""
+    if sync_api is None:
+        pytest.skip("Playwright is not installed")
     with sync_api.sync_playwright() as playwright:
         try:
             instance = playwright.chromium.launch()

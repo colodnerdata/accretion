@@ -160,7 +160,7 @@ text = "Permanently speeds the disk by 30% per level."
 [journal.title]
 text = "Journal"
 [journal.intro]
-text = "Bubble area is the star's final mass, and the letters name how it ended. Select a run to read it."
+text = "Bubble area is the star's final mass, and the letters name how it ended. A dashed arrow marks a star you left early: its ending was not seen. Select a run to read it."
 [journal.intro_empty]
 text = "Finished runs appear here as bubbles. Size is final mass, position is the region's gas, and letters name the ending."
 [journal.plot_aria]
@@ -172,7 +172,7 @@ text = "Gas temperature (K)"
 [journal.axis_density]
 text = "Density (/cm³)"
 [journal.legend_left_early]
-text = "Left early"
+text = "Left early: ending not seen"
 [journal.not_seen]
 text = "Not seen yet"
 [journal.run_card_title]
@@ -217,7 +217,7 @@ text = "Moved on"
 [ended.title_left_early]
 text = "You left this star"
 [ended.left_early_note]
-text = "You left before this star's life was over, so you did not see how it ended. It was projected to shine for {life}. The universe aged only by the time you stayed."
+text = "You left before this star's life was over, so you did not see how it ended. The universe aged only by the time you stayed. Your reward is the same either way."
 [ended.anomaly_cause]
 text = "The cause is not yet known."
 [ended.final_mass_heading]

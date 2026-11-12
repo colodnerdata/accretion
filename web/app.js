@@ -171,11 +171,11 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 const phaseIndex = (p) => PHASES.findIndex(([name]) => name === p);
 const NOTE_SECONDS = 30;
 function asNote(n) { return typeof n === "string" ? { text: n, p: -1, at: 0, ttl: 0 } : { ...n, ttl: n.ttl ?? Infinity }; }
-function note(text, { phase = state.run.phase, ttl = NOTE_SECONDS, tag = undefined } = {}) {
+function note(text, { phase = state.run.phase, ttl = NOTE_SECONDS, tag = undefined, kind = undefined } = {}) {
   if ($("live")) $("live").textContent = text;
   // unlock-tagged notes are announcements, not observations: the journal
   // card filters them by tag, never by their first word.
-  state.log.unshift({ text, p: phaseIndex(phase), at: state.run.seconds, ttl, tag });
+  state.log.unshift({ text, p: phaseIndex(phase), at: state.run.seconds, ttl, tag, kind });
   state.log = state.log.slice(0, 40);
 }
 function noteExpired(n, run) { return phaseIndex(run.phase) > n.p || run.seconds - n.at > n.ttl; }
@@ -188,7 +188,7 @@ function checkMilestones() {
   if (run.phase === "accrete" && run.fragmentsFormed > 0 && !seen.clump) { seen.clump = 1; note(t("notes.observations.first_clump")); }
   if (run.phase === "collapse" && !seen.collapse) { seen.collapse = 1; note(t("notes.observations.collapse")); }
   if (run.ignited && !seen.ignite) { seen.ignite = 1; note(t("notes.observations.ignite")); }
-  if (run.phase === "main_sequence" && !seen.ms) { seen.ms = 1; note(t("notes.observations.final_mass", { mass: sci(run.starMass) })); }
+  if (run.phase === "main_sequence" && !seen.ms) { seen.ms = 1; note(t("notes.observations.final_mass", { mass: sci(run.starMass) }), { kind: "mass" }); }
   while (state.noted < meta.unlocks.length) {
     // A new control's note stays current through the phase where the control is used.
     const name = meta.unlocks[state.noted++], where = E.UPGRADES[name]?.phase ?? "gather";
@@ -277,7 +277,7 @@ function stat(list) { return `<dl class="stats">${list.map(([k, v]) => `<dt>${es
 
 function goal() {
   const m = state.meta, seen = new Set(m.journal.filter((j) => !j.skipped).map((j) => j.ending));
-  if (!m.supernovae) return t("notes.goals.first");
+  if (!seen.has("supernova")) return t("notes.goals.first");
   if (!seen.has("black_hole")) return t("notes.goals.black_hole");
   if (!seen.has("white_dwarf")) return t("notes.goals.white_dwarf");
   return t("notes.goals.explore");
@@ -317,11 +317,11 @@ function statsFor() {
 function hintSet() {
   const { run, meta, view } = state, dense = meta.unlocks.includes("density");
   // On the ended pane the run is not journaled yet, so read the ending from the run itself.
-  // A star the player left early shows no category, so it steers no hint.
-  const seenOut = (j) => j && !j.skipped;
-  const played = meta.journal.filter(seenOut);
+  // A star the player left early shows no category, so it steers no hint:
+  // the hint set that follows it is the neutral comparison one.
   const endedNow = view === "play" && run.phase === "ended";
-  const last = endedNow ? (run.skipped || state.skipped ? played.at(-1) : { ending: run.kind }) : played.at(-1);
+  const latest = endedNow ? (run.skipped || state.skipped ? { skipped: true } : { ending: run.kind }) : meta.journal.at(-1);
+  const last = latest?.skipped ? { ending: "left_early" } : latest;
   if (view === "play" && run.phase === "gather") {
     if (!meta.unlocks.includes("reach")) return ["start", t("hints.start.tier1"), t("hints.start.tier2"), t("hints.start.tier3")];
     if (run.levels.reach === 0) return ["reach", t("hints.reach.tier1"), t("hints.reach.tier2"), t("hints.reach.tier3")];
@@ -335,7 +335,7 @@ function hintSet() {
   return ["none", t("hints.none.tier1"), t("hints.none.tier2"), t("hints.none.tier3")];
 }
 function stuck() {
-  const m = state.meta, recent = m.journal.slice(-2);
+  const m = state.meta, recent = m.journal.filter((j) => !j.skipped).slice(-2);
   return recent.length === 2 && recent.every((j) => j.ending !== "supernova") && !m.supernovae;
 }
 function askHint() {
@@ -499,7 +499,7 @@ function renderEnded(panel) {
   if (left) {
     // The player moved on, so nothing is shown of how this star would have
     // ended: only how long it was projected to shine, and the payouts.
-    panel.insertAdjacentHTML("beforeend", `<section><h3>${esc(t("ui.ended.heading_left_early"))}</h3><h2>${esc(t("ui.ended.title_left_early"))}</h2><p>${esc(t("ui.ended.left_early_note", { life: myr(run.forecastMyr) }))}</p></section>
+    panel.insertAdjacentHTML("beforeend", `<section><h3>${esc(t("ui.ended.heading_left_early"))}</h3><h2>${esc(t("ui.ended.title_left_early"))}</h2><p>${esc(t("ui.ended.left_early_note"))}</p></section>
       <section>${stat([[t("ui.stats.projected_life"), myr(run.forecastMyr)], ...payouts])}<p class="fine">${esc(t("ui.ended.fine"))}</p></section>${setupSection()}`);
   } else {
     const { title, description } = ENDINGS[run.kind];
@@ -512,7 +512,8 @@ function renderEnded(panel) {
   box.className = "cta";
   box.append(button("primary", t("ui.ended.survey_button"), () => {
     // Unlock announcements are tagged, not matched by their first word.
-    const notes = state.log.filter((n) => !n.tag).map((n) => n.text);
+    // A star the player left early keeps no record of its final mass.
+    const notes = state.log.filter((n) => !n.tag && !(state.skipped && n.kind === "mass")).map((n) => n.text);
     state.run = E.prestige(state.run, state.meta, state.skipped);
     state.meta.journal.at(-1).notes = notes;
     state.selected = state.meta.journal.length - 1;
@@ -625,15 +626,19 @@ function resultsPlot() {
   out += `<text x="${(left + right) / 2}" y="${H - 4}" text-anchor="middle">${esc(t("ui.journal.axis_temperature"))}</text>`;
   if (two) out += `<text x="10" y="${(top + bottom) / 2}" text-anchor="middle" transform="rotate(-90 10 ${(top + bottom) / 2})">${esc(t("ui.journal.axis_density"))}</text>`;
   const sel = state.selected ?? m.journal.length - 1;
-  m.journal.forEach((j, i) => {
+  // Left-early bubbles are drawn last so a watched run in the same region
+  // never hides them.
+  const drawOrder = m.journal.map((j, i) => i).sort((a, b) => Number(m.journal[a].skipped ?? false) - Number(m.journal[b].skipped ?? false));
+  drawOrder.forEach((i) => {
+    const j = m.journal[i];
     // Area follows final mass, down to a minimum size so tiny stars stay visible.
     // A run the player left early shows neither its mass nor its ending: a
     // fixed-size dashed bubble in a neutral color.
-    const r = j.skipped ? 4 : Math.max(2, 2.1 * Math.sqrt(j.mass)), x = X(Math.min(1000, Math.max(10, j.temperature))), y = Y(j.density), color = j.skipped ? EARLY_COLOR : ENDING_COLOR[j.ending];
+    const r = j.skipped ? 5.5 : Math.max(2, 2.1 * Math.sqrt(j.mass)), x = X(Math.min(1000, Math.max(10, j.temperature))), y = Y(j.density), color = j.skipped ? EARLY_COLOR : ENDING_COLOR[j.ending];
     const label = j.skipped
       ? t("ui.journal.plot_label_early", { number: j.run, temperature: j.temperature.toFixed(0) })
       : t("ui.journal.plot_label", { number: j.run, ending: ENDINGS[j.ending].title, mass: sci(j.mass), temperature: j.temperature.toFixed(0) });
-    out += `<circle cx="${x}" cy="${y}" r="${r}" fill="${color}" fill-opacity="${i === sel ? 0.75 : 0.3}" stroke="${color}" stroke-width="${i === sel ? 2.5 : 1.25}"${j.skipped ? ' stroke-dasharray="3 2"' : ""} role="img" aria-label="${esc(label)}" data-i="${i}"/><text class="mark" x="${x}" y="${Math.max(top + 8, y - r - 3)}" text-anchor="middle">${j.skipped ? EARLY_MARK : ENDING_MARK[j.ending]}</text>`;
+    out += `<circle cx="${x}" cy="${y}" r="${r}" fill="${color}" fill-opacity="${i === sel ? 0.75 : 0.3}" stroke="${color}" stroke-width="${i === sel ? 2.5 : 1.25}"${j.skipped ? ' stroke-dasharray="4 3"' : ""} role="img" aria-label="${esc(label)}" data-i="${i}"/><text class="mark" x="${x}" y="${j.skipped ? Math.min(bottom - 2, y + r + 10) : Math.max(top + 8, y - r - 3)}" text-anchor="middle">${j.skipped ? EARLY_MARK : ENDING_MARK[j.ending]}</text>`;
   });
   return `${out}</svg>`;
 }
@@ -1316,8 +1321,10 @@ function draw(t) {
     trackClumps(run, t);
     drawCompanions(run, cx, cy, R, t);
   } else {
-    drawGrid(cx, cy, R * 1.4, 0.16, run.kind === "black_hole" ? 0.72 : 0.3);
-    if (!state.skipped) deathScene(run, cx, cy, R, t);
+    // A star the player left early shows nothing of how it ended.
+    const left = state.skipped || run.skipped;
+    drawGrid(cx, cy, R * 1.4, 0.16, !left && run.kind === "black_hole" ? 0.72 : 0.3);
+    if (!left) deathScene(run, cx, cy, R, t);
   }
   for (const r of ripple) { const age = t - r; ctx.globalAlpha = Math.max(0, 0.5 - age); ctx.strokeStyle = "#5fe6cf"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, R * (0.2 + age * 1.4), 0, 6.283); ctx.stroke(); }
   ctx.globalAlpha = 1;

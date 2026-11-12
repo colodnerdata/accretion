@@ -22,14 +22,14 @@ PLAY_TO_SHINE = """
     for (const name of ["reach", "tap", "cooling", "turbulence", "braking"])
       while (E.buy(run, name, meta));
   }
+  // Only a long-lived white dwarf can be skipped (more than an hour of shine
+  // left), so make the star one: 3 solar masses, life from the engine's table.
+  run.starMass = 3; run.kind = "white_dwarf";
+  run.forecastMyr = E.lifetimeMyr(3, run.metalLog10);
+  run.lifetimeMyr = run.forecastMyr;
+  run.msDuration = 240 * (run.lifetimeMyr / 5) ** 1.12;
+  run.msElapsed = 0;
   s.run = run; s.view = "play"; s.speed = 0; s.skipped = false;
-  update();
-}
-"""
-LEAVE = """
-() => {
-  window.accretion.skipped = true;
-  Engine.skip(window.accretion.run, window.accretion.meta);
   update();
 }
 """
@@ -62,6 +62,13 @@ def page(browser):
     assert not errors, errors
 
 
+def leave(tab):
+    """Press the real skip button twice: it asks for a second tap."""
+    tab.wait_for_selector("#skip", state="visible")
+    tab.click("#skip")
+    tab.click("#skip")
+
+
 def title_of_ending(tab):
     return tab.evaluate("ENDINGS[window.accretion.run.kind].title")
 
@@ -79,7 +86,7 @@ def test_shine_projects_only_the_duration(page):
 
 def test_a_skipped_star_ends_on_duration_only(page):
     ending = title_of_ending(page)
-    page.evaluate(LEAVE)
+    leave(page)
     page.wait_for_selector("#panel .cta")
     text = page.inner_text("#panel").lower()
     assert "moved on" in text
@@ -92,7 +99,7 @@ def test_a_skipped_star_ends_on_duration_only(page):
 
 def test_a_skipped_run_is_neutral_in_the_journal(page):
     ending = title_of_ending(page)
-    page.evaluate(LEAVE)
+    leave(page)
     page.wait_for_selector("#panel .cta")
     page.click("#panel .cta button")
     page.click("#journal-button")
@@ -112,6 +119,12 @@ def test_a_skipped_run_is_neutral_in_the_journal(page):
     assert "solar masses" not in circle
     # No legend entry names the category of a star the player left early.
     assert page.locator(".legend span").count() == 1
+    assert page.inner_text(".run-chip small") == "\u2192"
+    assert page.text_content("svg.plot text.mark") == "\u2192"
+    assert page.locator("#bh").count() == 0
+    goal = page.evaluate("t('notes.goals.first')")
+    page.click("#journal-button")
+    assert goal in page.inner_text("#panel")
 
 
 def test_a_star_seen_to_its_end_still_shows_its_category(page):
@@ -121,3 +134,12 @@ def test_a_star_seen_to_its_end_still_shows_its_category(page):
     text = page.inner_text("#panel").lower()
     assert ending.lower() in text
     assert "final mass" in text
+
+
+def test_a_skipped_star_does_not_steer_hints_or_the_canvas(page):
+    leave(page)
+    page.wait_for_selector("#panel .cta")
+    page.click("#hint-button")
+    first = page.inner_text("#hints").lower()
+    assert "too small" not in first
+    assert page.evaluate("hintSet()[0]") == "compare"

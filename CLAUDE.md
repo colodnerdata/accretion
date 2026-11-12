@@ -77,7 +77,8 @@ rather than silently changing it.
 - Controls must never be mysterious, but phenomena can be. Always state a control's direct effect
   plainly. Explain the underlying science only after the player has seen it happen.
 - Logging is required. The journal records every run. Its bubble plot uses log gas temperature and
-  log density as axes, with bubble area set by final mass and color by ending.
+  log density as axes, with bubble area set by final mass and color by ending. A run the player left early is the exception: a
+  fixed-size neutral dashed bubble with no ending or mass.
 - Hints are tiered (direction, then lever, then explanation), offered on request, and nudged only
   when the player appears stuck.
 

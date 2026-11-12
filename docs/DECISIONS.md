@@ -40,9 +40,23 @@ design change.
   are still paid, since a skip is movement to a new region; they are shown
   plainly. Supersedes, for skipped runs only, the journal rule that bubble area
   is final mass and color is ending.
+- **Known limits:** (1) With today's constants only white dwarfs can be skipped
+  (the skip gate needs more than an hour of shine left, and every star light
+  enough for that ends as a white dwarf), so the skip button's presence already
+  tells the player the category; the live "Star" mass and the payout rows
+  (a white dwarf pays 0.4 + 0.1 m) also reveal it. The ruling is kept as a
+  display rule for stars that could be skipped later. (2) `prestige` still
+  counts a skipped supernova in `supernovae` and a skipped black hole in
+  `blackHoleUnlocked`, because rewards are paid for a skip; that is latent
+  today and would need both engines and the parity test to change. The goal
+  text, outcome bands, hints and "stuck" nudge read only runs the player saw
+  end. (3) A white dwarf is now recorded for the goal and the outcome bands
+  only when watched to its end, which is at least about 21 minutes of shine;
+  check that against the 15 to 20 minute early-run target.
 - **Revisit when:** The prediction system's run record is built (it may store a
-  skipped run's true outcome for the audit tool only), or a playtest shows the
-  payout amounts leak the category.
+  skipped run's true outcome for the audit tool only), a playtest shows the
+  payout amounts leak the category, or the skip gate changes so heavier stars
+  can be skipped.
 
 - **Date and title:** 2026-11-11 — Players may predict; the game never forecasts.
 - **Status:** accepted
