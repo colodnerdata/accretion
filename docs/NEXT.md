@@ -29,11 +29,10 @@ a diary. Link to an issue when it owns the detail.
       `docs/accretion-repository-review.md`.
 - **Next action:** step 0 of `docs/planning/implementation-order.md`: correct
   the density hints and the "buy as soon as energy allows" hint against the
-  engine, and rename or justify the shipped "Forecast life" and "Forecast
-  ending" labels - Replace with "Projected life, Projected ending". The
-  same fix covers the "longer than forecast" note and the design spec's
-  "lives longer than its forecast" line (Mixing and Goldilocks planets).
-  Then step 1, the run record. Engineering items still open
+  engine, and the design spec's "lives longer than its forecast" line (Mixing
+  and Goldilocks planets). The "Projected life" rename, the removal of
+  "Forecast ending", and the skipped-star screen are done (DECISIONS
+  2026-11-12). Then step 1, the run record. Engineering items still open
   beside that: the 59/61 s offline cliff (credit short absences, keep the
   banner for long ones), the two-tab save policy, standards-mode page entry,
   and the angular-momentum ledger. The 16-vs-32-ring decision needs a

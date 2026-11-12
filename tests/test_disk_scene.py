@@ -6,7 +6,6 @@ with the parity stress scenario (an unstable disk and four fragments at 300,
 The tests skip when Playwright or a Chromium build is not available.
 """
 
-import glob
 from pathlib import Path
 
 import build
@@ -17,7 +16,6 @@ sync_api = pytest.importorskip("playwright.sync_api")
 
 ROOT = Path(__file__).parents[1]
 PAGE = ROOT / "web" / "accretion.html"
-FALLBACK_CHROMIUM = "/opt/pw-browsers/chromium-*/chrome-linux64/chrome"
 
 SEED_STRESS = """
 ([masses, radii]) => {
@@ -47,26 +45,6 @@ BRIGHT_AT = """
   return r + g + b;
 }
 """
-
-
-@pytest.fixture(scope="module")
-def browser():
-    """One Chromium for the module, or a skip when none can be launched."""
-    with sync_api.sync_playwright() as playwright:
-        try:
-            instance = playwright.chromium.launch()
-        except sync_api.Error:
-            found = sorted(glob.glob(FALLBACK_CHROMIUM))
-            if not found:
-                pytest.skip("no Chromium available for Playwright")
-            try:
-                instance = playwright.chromium.launch(
-                    executable_path=found[-1], args=["--no-sandbox"]
-                )
-            except sync_api.Error:
-                pytest.skip("Chromium could not be launched")
-        yield instance
-        instance.close()
 
 
 @pytest.fixture
