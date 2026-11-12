@@ -276,7 +276,7 @@ function button(cls, text, on) { const b = document.createElement("button"); b.t
 function stat(list) { return `<dl class="stats">${list.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`; }
 
 function goal() {
-  const m = state.meta, seen = new Set(m.journal.map((j) => j.ending));
+  const m = state.meta, seen = new Set(m.journal.filter((j) => !j.skipped).map((j) => j.ending));
   if (!m.supernovae) return t("notes.goals.first");
   if (!seen.has("black_hole")) return t("notes.goals.black_hole");
   if (!seen.has("white_dwarf")) return t("notes.goals.white_dwarf");
@@ -310,14 +310,18 @@ function statsFor() {
     return [[t("ui.stats.star"), `${sci(run.starMass)} M☉`], [t("ui.stats.in_the_disk"), `${sci(disk)} M☉`], [t("ui.stats.still_to_reach"), `${sci(run.envelope)} M☉`], [t("ui.stats.landing_rate"), `${sci(E.infallNow(run, meta))} M☉/yr`], [t("ui.stats.boiled_off"), `${sci(E.diskLossRate(run.starMass, E.feedRadius(run)))} M☉/yr`], [t("ui.stats.gas_reaching_star"), `${sci(E.innerAccretionRate(run, meta))} M☉/yr`], [t("ui.stats.clumps"), t("ui.stats.clumps_value", { count: run.fragments.length, mass: sci(E.fragmentMass(run)) })], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.energy"), `${sci(run.energy)} erg`]];
   }
   const b = bubble(run, meta);
-  return [[t("ui.stats.star"), `${sci(run.starMass)} M☉`], [t("ui.stats.brightness"), `${sci(E.luminosity(run.starMass, run.metalLog10))} Suns`], [t("ui.stats.forecast_life"), myr(run.forecastMyr)], [t("ui.stats.age"), myr(run.msElapsed / run.msDuration * run.lifetimeMyr)], ...(b ? [[t("ui.stats.ionized_bubble"), t("ui.stats.ionized_bubble_value", { size: length(b.now) })]] : [])];
+  return [[t("ui.stats.star"), `${sci(run.starMass)} M☉`], [t("ui.stats.brightness"), `${sci(E.luminosity(run.starMass, run.metalLog10))} Suns`], [t("ui.stats.projected_life"), myr(run.forecastMyr)], [t("ui.stats.age"), myr(run.msElapsed / run.msDuration * run.lifetimeMyr)], ...(b ? [[t("ui.stats.ionized_bubble"), t("ui.stats.ionized_bubble_value", { size: length(b.now) })]] : [])];
 }
 
 // Hints use what has actually happened in this save, and go one step deeper each time.
 function hintSet() {
   const { run, meta, view } = state, dense = meta.unlocks.includes("density");
   // On the ended pane the run is not journaled yet, so read the ending from the run itself.
-  const last = view === "play" && run.phase === "ended" ? { ending: run.kind } : meta.journal.at(-1);
+  // A star the player left early shows no category, so it steers no hint.
+  const seenOut = (j) => j && !j.skipped;
+  const played = meta.journal.filter(seenOut);
+  const endedNow = view === "play" && run.phase === "ended";
+  const last = endedNow ? (run.skipped || state.skipped ? played.at(-1) : { ending: run.kind }) : played.at(-1);
   if (view === "play" && run.phase === "gather") {
     if (!meta.unlocks.includes("reach")) return ["start", t("hints.start.tier1"), t("hints.start.tier2"), t("hints.start.tier3")];
     if (run.levels.reach === 0) return ["reach", t("hints.reach.tier1"), t("hints.reach.tier2"), t("hints.reach.tier3")];
@@ -480,22 +484,30 @@ function renderPlay(panel) {
 }
 const BANDS = [["brown_dwarf", t("endings.bands.brown_dwarf.label"), t("endings.bands.brown_dwarf.range")], ["white_dwarf", t("endings.bands.white_dwarf.label"), t("endings.bands.white_dwarf.range")], ["supernova", t("endings.bands.supernova.label"), t("endings.bands.supernova.range")], ["black_hole", t("endings.bands.black_hole.label"), t("endings.bands.black_hole.range")]];
 function outcomeBands(current) {
-  const seen = new Set(state.meta.journal.map((j) => j.ending));
+  const seen = new Set(state.meta.journal.filter((j) => !j.skipped).map((j) => j.ending));
   if (current) seen.add(current);
   return `<div class="bands">${BANDS.map(([kind, label, range]) => `<div class="band${kind === current ? " now" : ""}"><b>${esc(seen.has(kind) ? label : "?")}</b><span>${esc(seen.has(kind) ? range : t("ui.journal.not_seen"))}</span></div>`).join("")}</div>`;
 }
 function renderEnded(panel) {
   const { run, meta } = state;
-  const { title, description } = ENDINGS[run.kind];
+  const left = state.skipped || run.skipped;
   const gain = E.runGain(run), released = E.heavyYield(run.starMass, run.kind, run.metalLog10);
   const after = meta.regions * Math.exp(gain);
-  const beyond = !state.skipped && run.lifetimeMyr > run.forecastMyr * 1.01;
+  const beyond = !left && run.lifetimeMyr > run.forecastMyr * 1.01;
   if (beyond && !state.seen.anomaly) { state.seen.anomaly = 1; note(t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })); }
-  panel.insertAdjacentHTML("beforeend", `<section><h3>${esc(state.skipped ? t("ui.ended.heading_forecast") : t("ui.ended.heading"))}</h3><h2>${esc(title)}</h2><p>${esc(description)}</p>
-    ${state.skipped || run.skipped ? `<p>${esc(t("ui.ended.left_early_note"))}</p>` : ""}
-    ${beyond ? `<p class="tag">${esc(`${t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })} ${t("ui.ended.anomaly_cause")}`)}</p>` : ""}</section>
-    <section><h3>${esc(t("ui.ended.final_mass_heading", { mass: sci(run.starMass) }))}</h3>${outcomeBands(run.kind)}</section>
-    <section>${stat([[t("ui.stats.blown_away"), `${sci(run.ejected)} M☉`], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.run_time"), duration(run.seconds)], [t("ui.stats.regions_surveyed"), `${sci(meta.regions)} → ${sci(after)}`], [t("ui.stats.probability"), `${E.budget(meta).toFixed(2)} → ${Math.log(after).toFixed(2)}`], ...(released > 0 ? [[t("ui.stats.heavy_elements"), `+${sci(released)} M☉`]] : [])])}<p class="fine">${esc(t("ui.ended.fine"))}</p></section>${setupSection()}`);
+  const payouts = [[t("ui.stats.blown_away"), `${sci(run.ejected)} M☉`], [t("ui.stats.companion_stars"), `${sci(run.companions)} M☉`], [t("ui.stats.run_time"), duration(run.seconds)], [t("ui.stats.regions_surveyed"), `${sci(meta.regions)} → ${sci(after)}`], [t("ui.stats.probability"), `${E.budget(meta).toFixed(2)} → ${Math.log(after).toFixed(2)}`], ...(released > 0 ? [[t("ui.stats.heavy_elements"), `+${sci(released)} M☉`]] : [])];
+  if (left) {
+    // The player moved on, so nothing is shown of how this star would have
+    // ended: only how long it was projected to shine, and the payouts.
+    panel.insertAdjacentHTML("beforeend", `<section><h3>${esc(t("ui.ended.heading_left_early"))}</h3><h2>${esc(t("ui.ended.title_left_early"))}</h2><p>${esc(t("ui.ended.left_early_note", { life: myr(run.forecastMyr) }))}</p></section>
+      <section>${stat([[t("ui.stats.projected_life"), myr(run.forecastMyr)], ...payouts])}<p class="fine">${esc(t("ui.ended.fine"))}</p></section>${setupSection()}`);
+  } else {
+    const { title, description } = ENDINGS[run.kind];
+    panel.insertAdjacentHTML("beforeend", `<section><h3>${esc(t("ui.ended.heading"))}</h3><h2>${esc(title)}</h2><p>${esc(description)}</p>
+      ${beyond ? `<p class="tag">${esc(`${t("notes.observations.anomaly", { percent: Math.round((run.lifetimeMyr / run.forecastMyr - 1) * 100) })} ${t("ui.ended.anomaly_cause")}`)}</p>` : ""}</section>
+      <section><h3>${esc(t("ui.ended.final_mass_heading", { mass: sci(run.starMass) }))}</h3>${outcomeBands(run.kind)}</section>
+      <section>${stat(payouts)}<p class="fine">${esc(t("ui.ended.fine"))}</p></section>${setupSection()}`);
+  }
   const box = document.createElement("section");
   box.className = "cta";
   box.append(button("primary", t("ui.ended.survey_button"), () => {
@@ -600,6 +612,7 @@ function renderSearch(panel) {
   refreshSearch();
 }
 const ENDING_MARK = { brown_dwarf: "BD", white_dwarf: "WD", supernova: "SN", black_hole: "BH", pair_instability: "PI" };
+const EARLY_MARK = "\u2192", EARLY_COLOR = "var(--quiet)";
 const ENDING_COLOR = { brown_dwarf: "var(--dwarf)", white_dwarf: "var(--ink)", supernova: "var(--oiii)", black_hole: "var(--sii)", pair_instability: "var(--halpha)" };
 function resultsPlot() {
   const m = state.meta, two = m.unlocks.includes("density"), W = 340, H = two ? 250 : 92;
@@ -614,16 +627,19 @@ function resultsPlot() {
   const sel = state.selected ?? m.journal.length - 1;
   m.journal.forEach((j, i) => {
     // Area follows final mass, down to a minimum size so tiny stars stay visible.
-    const r = Math.max(2, 2.1 * Math.sqrt(j.mass)), x = X(Math.min(1000, Math.max(10, j.temperature))), y = Y(j.density), color = ENDING_COLOR[j.ending];
+    // A run the player left early shows neither its mass nor its ending: a
+    // fixed-size dashed bubble in a neutral color.
+    const r = j.skipped ? 4 : Math.max(2, 2.1 * Math.sqrt(j.mass)), x = X(Math.min(1000, Math.max(10, j.temperature))), y = Y(j.density), color = j.skipped ? EARLY_COLOR : ENDING_COLOR[j.ending];
     const label = j.skipped
-      ? t("ui.journal.plot_label_early", { number: j.run, ending: ENDINGS[j.ending].title, mass: sci(j.mass), temperature: j.temperature.toFixed(0) })
+      ? t("ui.journal.plot_label_early", { number: j.run, temperature: j.temperature.toFixed(0) })
       : t("ui.journal.plot_label", { number: j.run, ending: ENDINGS[j.ending].title, mass: sci(j.mass), temperature: j.temperature.toFixed(0) });
-    out += `<circle cx="${x}" cy="${y}" r="${r}" fill="${color}" fill-opacity="${i === sel ? 0.75 : 0.3}" stroke="${color}" stroke-width="${i === sel ? 2.5 : 1.25}"${j.skipped ? ' stroke-dasharray="3 2"' : ""} role="img" aria-label="${esc(label)}" data-i="${i}"/><text class="mark" x="${x}" y="${Math.max(top + 8, y - r - 3)}" text-anchor="middle">${ENDING_MARK[j.ending]}</text>`;
+    out += `<circle cx="${x}" cy="${y}" r="${r}" fill="${color}" fill-opacity="${i === sel ? 0.75 : 0.3}" stroke="${color}" stroke-width="${i === sel ? 2.5 : 1.25}"${j.skipped ? ' stroke-dasharray="3 2"' : ""} role="img" aria-label="${esc(label)}" data-i="${i}"/><text class="mark" x="${x}" y="${Math.max(top + 8, y - r - 3)}" text-anchor="middle">${j.skipped ? EARLY_MARK : ENDING_MARK[j.ending]}</text>`;
   });
   return `${out}</svg>`;
 }
 function entryCard(j) {
-  const rows = [[t("ui.journal.row_ending"), ENDINGS[j.ending].title], [t("ui.journal.row_final_mass"), `${sci(j.mass)} M☉`], [t("ui.journal.row_temperature"), `${j.temperature.toFixed(0)} K`], [t("ui.journal.row_density"), `${sci(j.density)} /cm³`], [t("ui.journal.row_turbulence"), t("ui.journal.alpha_value", { value: j.alpha.toFixed(2) })], [t("ui.journal.row_feed"), `${j.feedRadius.toFixed(0)} AU`], [t("ui.journal.row_run_time"), duration(j.seconds)], [t("ui.journal.row_reward"), t("ui.journal.reward", { gain: j.gain.toFixed(2) }) + (j.heavy ? t("ui.journal.reward_heavy", { heavy: sci(j.heavy) }) : "")]];
+  const outcome = j.skipped ? [[t("ui.stats.projected_life"), myr(j.forecastMyr)]] : [[t("ui.journal.row_ending"), ENDINGS[j.ending].title], [t("ui.journal.row_final_mass"), `${sci(j.mass)} M☉`]];
+  const rows = [...outcome, [t("ui.journal.row_temperature"), `${j.temperature.toFixed(0)} K`], [t("ui.journal.row_density"), `${sci(j.density)} /cm³`], [t("ui.journal.row_turbulence"), t("ui.journal.alpha_value", { value: j.alpha.toFixed(2) })], [t("ui.journal.row_feed"), `${j.feedRadius.toFixed(0)} AU`], [t("ui.journal.row_run_time"), duration(j.seconds)], [t("ui.journal.row_reward"), t("ui.journal.reward", { gain: j.gain.toFixed(2) }) + (j.heavy ? t("ui.journal.reward_heavy", { heavy: sci(j.heavy) }) : "")]];
   // Journals written since the tag exists hold observations only; older
   // saves keep the announcement strings as plain text, so they still get
   // the legacy first-word filter (those old entries are frozen records
@@ -635,7 +651,7 @@ function renderJournal(panel) {
   const m = state.meta, count = m.journal.length;
   panel.insertAdjacentHTML("beforeend", `<section><h2>${esc(t("ui.journal.title"))}</h2><p>${esc(count ? t("ui.journal.intro") : t("ui.journal.intro_empty"))}</p></section>`);
   if (count) {
-    panel.insertAdjacentHTML("beforeend", `<section>${resultsPlot()}<div class="legend">${[...new Set(m.journal.map((j) => j.ending))].map((k) => `<span><i style="background:${ENDING_COLOR[k]}"></i>${esc(`${ENDING_MARK[k]} ${ENDINGS[k].title}`)}</span>`).join("")}${m.journal.some((j) => j.skipped) ? `<span><i class="dash"></i>${esc(t("ui.journal.legend_left_early"))}</span>` : ""}</div><div class="runs">${m.journal.map((j, i) => `<button type="button" class="run-chip" data-i="${i}" aria-pressed="${i === (state.selected ?? count - 1)}" aria-label="${esc(j.skipped ? t("ui.journal.chip_label_early", { number: j.run, ending: ENDINGS[j.ending].title }) : t("ui.journal.chip_label", { number: j.run, ending: ENDINGS[j.ending].title }))}">${j.run}<small>${ENDING_MARK[j.ending]}</small></button>`).join("")}</div></section>${entryCard(m.journal[state.selected ?? count - 1])}`);
+    panel.insertAdjacentHTML("beforeend", `<section>${resultsPlot()}<div class="legend">${[...new Set(m.journal.filter((j) => !j.skipped).map((j) => j.ending))].map((k) => `<span><i style="background:${ENDING_COLOR[k]}"></i>${esc(`${ENDING_MARK[k]} ${ENDINGS[k].title}`)}</span>`).join("")}${m.journal.some((j) => j.skipped) ? `<span><i class="dash"></i>${esc(t("ui.journal.legend_left_early"))}</span>` : ""}</div><div class="runs">${m.journal.map((j, i) => `<button type="button" class="run-chip" data-i="${i}" aria-pressed="${i === (state.selected ?? count - 1)}" aria-label="${esc(j.skipped ? t("ui.journal.chip_label_early", { number: j.run }) : t("ui.journal.chip_label", { number: j.run, ending: ENDINGS[j.ending].title }))}">${j.run}<small>${j.skipped ? EARLY_MARK : ENDING_MARK[j.ending]}</small></button>`).join("")}</div></section>${entryCard(m.journal[state.selected ?? count - 1])}`);
     const pick = (el) => { state.selected = Number(el.dataset.i); shell = `journal:keep`; update(); };
     panel.querySelectorAll(".run-chip").forEach((c) => { c.onclick = () => pick(c); });
     panel.querySelectorAll("circle").forEach((c) => { c.onclick = () => pick(c); });

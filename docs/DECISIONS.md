@@ -20,6 +20,30 @@ design change.
 
 ## Entries
 
+- **Date and title:** 2026-11-12 — The only projection is a star's duration, and a skipped star shows no category or mass.
+- **Status:** accepted
+- **Context:** Skipping a star ended on a "Forecast ending" screen that named the
+  ending, described it, and showed the final mass and the outcome bands. That
+  was a projection of the star's category and size, shown to a player who had not
+  watched it happen.
+- **Decision:** The owner ruled that a projection is shown only when the player
+  has nothing else to do (the shine phase, which is skippable), and that only
+  the duration is projected. After a skip, the ended screen shows "Moved on",
+  the projected life, the time stayed, and the payouts as plain amounts. The
+  journal draws a skipped run as a fixed-size dashed neutral bubble marked with
+  an arrow; its legend, run chip, plot label and entry card carry no ending or
+  final mass. Skipped endings do not count toward the goal text, the outcome
+  bands or the hints. "Forecast life" is renamed "Projected life", the anomaly
+  note says "longer than projected", and "Forecast ending" is removed.
+- **Why:** It keeps the rule that the game never forecasts a category, and a
+  played run is the only thing a later prediction may resolve against. Rewards
+  are still paid, since a skip is movement to a new region; they are shown
+  plainly. Supersedes, for skipped runs only, the journal rule that bubble area
+  is final mass and color is ending.
+- **Revisit when:** The prediction system's run record is built (it may store a
+  skipped run's true outcome for the audit tool only), or a playtest shows the
+  payout amounts leak the category.
+
 - **Date and title:** 2026-11-11 — Players may predict; the game never forecasts.
 - **Status:** accepted
 - **Context:** `CLAUDE.md` rejects previews, forecasts, ghost markers and model

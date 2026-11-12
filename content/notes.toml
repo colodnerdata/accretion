@@ -77,7 +77,7 @@ text = "The gas is gone. Final mass: {mass} M☉."
 [observations.run_start]
 text = "Run {number} begins at {density} atoms per cm³ and {temperature} K."
 [observations.anomaly]
-text = "Anomaly: this star lived {percent}% longer than forecast."
+text = "Anomaly: this star lived {percent}% longer than projected."
 
 [milestones.cm]
 text = "A cubic centimeter of this gas holds only about {density} atoms."

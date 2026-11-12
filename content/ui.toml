@@ -182,11 +182,11 @@ text = "Run {number}, left early"
 [journal.plot_label]
 text = "Run {number}: {ending}, {mass} solar masses, {temperature} K"
 [journal.plot_label_early]
-text = "Run {number}: {ending}, {mass} solar masses, {temperature} K, left early"
+text = "Run {number}: left early, {temperature} K"
 [journal.chip_label]
 text = "Run {number}: {ending}"
 [journal.chip_label_early]
-text = "Run {number}: {ending}, left early"
+text = "Run {number}: left early"
 [journal.row_ending]
 text = "Ending"
 [journal.row_final_mass]
@@ -212,10 +212,12 @@ text = "α {value}"
 
 [ended.heading]
 text = "Ending"
-[ended.heading_forecast]
-text = "Forecast ending"
+[ended.heading_left_early]
+text = "Moved on"
+[ended.title_left_early]
+text = "You left this star"
 [ended.left_early_note]
-text = "You left before this happened. The universe aged only by the time you stayed."
+text = "You left before this star's life was over, so you did not see how it ended. It was projected to shine for {life}. The universe aged only by the time you stayed."
 [ended.anomaly_cause]
 text = "The cause is not yet known."
 [ended.final_mass_heading]
@@ -342,8 +344,8 @@ text = "matters in this phase"
 text = "Companion stars"
 [stats.brightness]
 text = "Brightness"
-[stats.forecast_life]
-text = "Forecast life"
+[stats.projected_life]
+text = "Projected life"
 [stats.age]
 text = "Age"
 [stats.ionized_bubble]
