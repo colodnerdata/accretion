@@ -29,7 +29,8 @@ a diary. Link to an issue when it owns the detail.
 - **Next action:** the spot-check of the Layer 1 values in `physics.py`
   against the original papers, the last open part of step 1 (it also covers
   the "outside the engine" rows in `docs/audit/copy-audit.md`). Then step 3,
-  the edge-on inset, or step 4, disk breakup. Done so far in steps 1 and 2:
+  the edge-on inset, or step 4, disk breakup, which now has a plan with six
+  owner rulings to make first (`docs/planning/disk-breakup-and-companions.md`). Done so far in steps 1 and 2:
   the run record (PR #25), the audit tool and report (PR #26, `uv run poe
   audit`), and the copy audit (`docs/audit/copy-audit.md`, DECISIONS
   2026-11-13). Two copy-audit items still wait for an owner ruling; the one with
