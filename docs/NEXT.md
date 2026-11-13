@@ -26,16 +26,20 @@ a diary. Link to an issue when it owns the detail.
       migration story and the one-implementation proposal (protected decision — not for implementation without
       sign-off). The review itself is a local, uncommitted file,
       `docs/accretion-repository-review.md`.
-- **Next action:** the spot-check of the Layer 1 values in `physics.py`
-  against the original papers, the last open part of step 1 (it also covers
-  the "outside the engine" rows in `docs/audit/copy-audit.md`). Then step 3,
-  the edge-on inset, or step 4, disk breakup, which now has a plan with six
-  owner rulings to make first (`docs/planning/disk-breakup-and-companions.md`). Done so far in steps 1 and 2:
+- **Next action:** stop the disk being cleared before ignition
+  (`ionizing_rate` is flat below 5 M☉, so disk loss runs from the first
+  seed). Owner ruling 2026-11-13: fix it before step 4. It is an engine
+  change in both engines, with `FIDELITY.md`, parity and the audit report
+  regenerated, and needs a short concept note first. Then step 4 stage (a),
+  following `docs/planning/disk-breakup-and-companions.md`, whose six owner
+  rulings are recorded (DECISIONS 2026-11-13). Also open: the spot-check of
+  the Layer 1 values in `physics.py` (last part of step 1; it covers the
+  "outside the engine" rows in `docs/audit/copy-audit.md`), and step 3, the
+  edge-on inset. Done so far in steps 1 and 2:
   the run record (PR #25), the audit tool and report (PR #26, `uv run poe
   audit`), and the copy audit (`docs/audit/copy-audit.md`, DECISIONS
-  2026-11-13). Two copy-audit items still wait for an owner ruling; the one with
-  engine consequences is that the disk is cleared before ignition
-  (`ionizing_rate` is flat below 5 M☉). The other two were ruled: the
+  2026-11-13). One copy-audit item still waits for an owner ruling ("its final
+  mass … will decide how this star ends" is true only within one region). The other two were ruled: the
   Temperature slider now has a padlock at the coldest allowed gas
   (DECISIONS 2026-11-13), which also settles the queued "clamped slider
   cost" item. The clock-drift table in

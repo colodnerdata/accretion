@@ -20,6 +20,33 @@ design change.
 
 ## Entries
 
+- **Date and title:** 2026-11-13 — Disk breakup: six owner rulings before step 4.
+- **Status:** accepted
+- **Context:** `docs/planning/disk-breakup-and-companions.md` sets out step 4
+  in three stages and ended with six open choices.
+- **Decision (owner rulings):**
+  1. The fragment starting mass is calibrated between ΣH² (today) and Σλ²
+     (linear theory, about 40 times larger) against how often massive stars
+     have companions. It was open because the literature spans that range
+     and the choice moves every result.
+  2. No cap on how much mass a companion may take from the star. The guard
+     is that a stage may not merge if the bot's first run stops ending as a
+     supernova.
+  3. Runs saved mid-accretion get defaults for the new fragment fields;
+     `SAVE_KEY` stays at v4.
+  4. Stages run (a) fragment life, (b) formation, (c) cooling gate. Without
+     (a) no companion survives to have a separation.
+  5. The disk being cleared before ignition (`ionizing_rate` flat below
+     5 M☉, found by the copy audit) is fixed before stage (a) is calibrated,
+     because it changes how much disk a small star has.
+  6. "Spacing 2πQH" in `implementation-order.md` is corrected to 2πH/Q, the
+     fastest-growing wavelength; the two agree only at Q = 1.
+- **Why:** These are the choices that would otherwise be made silently in
+  code. The formulas in the plan still need confirming in the primary
+  sources before any is coded.
+- **Revisit when:** Calibration cannot meet the companion benchmarks and the
+  first-supernova guard together, which would reopen rulings 1 and 2.
+
 - **Date and title:** 2026-11-13 — The Temperature slider is a kelvin track from absolute zero with a padlock at the coldest allowed gas.
 - **Status:** accepted
 - **Context:** The slider was a rarity scale (−3σ to +3σ). A setting below

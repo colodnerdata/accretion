@@ -1,7 +1,7 @@
 # Disk breakup and companions: plan for step 4
 
-> Planning note; written 2026-11-13. A plan, not a decision record. Nothing
-> here is built. The formulas are quoted from memory of the cited papers and
+> Planning note; written 2026-11-13, with the owner's rulings of the same day
+> recorded at the end. Nothing here is built. The formulas are quoted from memory of the cited papers and
 > must be confirmed in the primary sources before any is coded (see
 > "Verification before coding").
 
@@ -149,8 +149,7 @@ Stage (b) replaces "Q below 1 fragments at once, at the ring centre, with mass
 ΣH²" by the linear theory of the instability.
 
 - **Fastest-growing wavelength:** `λ = 2π² G Σ / Ω² = 2πH / Q`.
-  (`implementation-order.md` says "spacing 2πQH". The two agree only at Q = 1;
-  the note should read 2πH/Q.)
+  (They agree only at Q = 1.)
 - **Growth rate:** from the dispersion relation
   `ω² = Ω² − 2πGΣ|k| + c_s² k²`, the fastest mode grows at
   `γ = Ω · √(1/Q² − 1)` for Q < 1, and not at all for Q ≥ 1.
@@ -204,10 +203,16 @@ faster than the disk shears it apart.
 - Fragments scattering or ejecting each other. It needs N-body dynamics or a
   random draw.
 - Any use of companions after the run (binaries, mass transfer): Layer 3.
-- The disk being cleared before ignition (`ionizing_rate` is flat below
-  5 M☉). It is a separate engine item from the copy audit, but it changes how
-  much disk a small star has, so it should be ruled on before stage (a) is
-  calibrated.
+
+## Before stage (a)
+
+**Stop the disk being cleared before ignition** (owner ruling, 2026-11-13).
+`ionizing_rate` holds its table constant below 5 M☉, so `disk_loss_rate` runs
+at 2.8 × 10⁻⁶ M☉/yr (at 1,000 AU) from the first 0.01 M☉ seed. That changes
+how much disk a small star has, so it is fixed before stage (a) is
+calibrated: its own PR, in both engines, with the `FIDELITY.md` row, parity
+and the audit report regenerated. It needs a short concept note first on
+what a star below 5 M☉ should emit and from which source.
 
 ## What must stay true
 
@@ -220,15 +225,17 @@ Checked after every stage, in both engines:
    fragment (the current stress scenario covers coalescing only).
 4. **Step-size independence:** one long step equals many short ones.
 5. **The first supernova stays reliable.** A first run with greedy turbulence
-   ends as a supernova today (21.5 M☉ under the `tools/bot.py` policy). A companion that takes several solar
-   masses could push a first star below 9 M☉ or change which side of 25 M☉ it
-   lands. Each stage reports the first-run mass and ending under the bot
-   policy, and a stage that breaks the outcome is retuned before it merges.
+   ends as a supernova today (21.5 M☉ under the `tools/bot.py` policy). A
+   companion that takes several solar masses could push a first star below
+   9 M☉ or change which side of 25 M☉ it lands. There is no cap on what a
+   companion may take (owner ruling). Each stage reports the first-run mass
+   and ending under the bot policy, and a stage that breaks the outcome is
+   retuned through the contraction time before it merges.
 6. **Pacing:** first-run time stays inside the 15 to 20 minute target (it is
    13.4 minutes now, already short).
 7. **Old saves:** a run saved mid-accretion has fragments without the new
-   fields. Either they get defaults on load or `SAVE_KEY` is bumped; decide
-   once, in stage (a).
+   fields. They get defaults on load (age 0, extended), and `SAVE_KEY` stays
+   at v4 (owner ruling).
 
 ## How each stage is built and checked
 
@@ -268,7 +275,7 @@ Order-of-magnitude targets, not fits:
 | --- | --- | --- |
 | Toomre Q, fastest-growing wavelength, growth rate | Established | Linear theory of a thin gas disk (Toomre 1964) |
 | Cooling-time criterion | Debated | Gammie 2001; critical β between about 3 and 30, resolution-dependent |
-| Initial fragment mass | Debated | Between ΣH² and Σλ²; chosen by calibration, labeled so |
+| Initial fragment mass | Debated | Between ΣH² and Σλ²; chosen by calibration against the companion benchmarks (owner ruling), and labeled so |
 | Type I migration of fragments | Established, Simplified here | Tanaka et al. 2002; Baruteau et al. 2011 for self-gravitating disks |
 | Gap opening and gap depth | Established | Crida et al. 2006; Kanagawa et al. 2015 |
 | Growth by Hill-sphere accretion | Simplified | Order-unity coefficient from the literature |
@@ -301,24 +308,17 @@ lifetime (Masunaga & Inutsuka 2000; Nayakshin 2010); the fates in Zhu et al.
 numbers (Sana et al. 2012; Moe & Di Stefano 2017; Moe, Kratter & Badenes
 2019).
 
-## Owner rulings needed
+## Owner rulings (2026-11-13)
 
-1. **Fragment starting mass:** ΣH² (today), Σλ² (linear theory, about 40
-   times larger), or a calibrated value between. Recommendation: calibrate
-   between them against the companion benchmarks, and label it Debated.
-2. **How much a companion may cost the star.** Recommendation: no cap, but
-   stage (a) may not merge if the bot's first run stops ending as a
-   supernova; retune the contraction time first.
-3. **Old saves:** defaults for the new fragment fields, or a `SAVE_KEY` bump.
-   Recommendation: defaults, since the fields have safe values (age 0,
-   extended).
-4. **Stage order:** (a) then (b) then (c), as in `implementation-order.md`.
-   An alternative is (b) first, since it is the smallest and removes the grid
-   from birth radii. Recommendation: keep (a) first; without it no companion
-   survives to have a separation.
-5. **The disk cleared before ignition:** fix it before stage (a) is
-   calibrated, or accept it as a labeled simplification.
-6. **Correct "2πQH" to "2πH/Q"** in `implementation-order.md`.
+1. **Fragment starting mass:** calibrated between ΣH² and Σλ² against the
+   companion benchmarks above, and labeled Debated.
+2. **How much a companion may cost the star:** no cap. The first-supernova
+   check in "What must stay true" is the guard.
+3. **Old saves:** defaults for the new fragment fields; no `SAVE_KEY` bump.
+4. **Stage order:** (a), then (b), then (c).
+5. **The disk cleared before ignition:** fixed before stage (a) is
+   calibrated (see "Before stage (a)").
+6. **"2πQH" corrected to "2πH/Q"** in `implementation-order.md`.
 
 ## Sources
 
