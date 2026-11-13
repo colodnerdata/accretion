@@ -15,6 +15,7 @@ uv run poe lint                                            # ruff check (pydocst
 uv run poe format                                          # ruff format
 python tools/build.py                                      # regenerate web/accretion.html
 uv run python tools/bot.py                                 # simulated first-run player: phase timings, final star
+uv run poe audit                                           # regenerate docs/audit/report.md: true input-outcome bins (~80 s)
 ```
 
 ```bash

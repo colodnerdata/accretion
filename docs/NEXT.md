@@ -27,12 +27,17 @@ a diary. Link to an issue when it owns the detail.
       proposal (protected decision — not for implementation without
       sign-off). The review itself is a local, uncommitted file,
       `docs/accretion-repository-review.md`.
-- **Next action:** step 2 of `docs/planning/implementation-order.md`, the
-  audit tool, reading the run record. The run record half of step 1 is done
-  (DECISIONS 2026-11-13: each journal entry now carries the starting
-  settings, clock-driven inputs, effective inputs with every level, and the
-  staged outcomes). Still open in step 1: the copy audit with physics or
-  game-rule labels, and the spot-check of the Layer 1 values in `physics.py`.
+- **Next action:** read `docs/audit/report.md` against the relationship
+  text and the hints, then the rest of step 1 (the copy audit with physics or
+  game-rule labels, and the spot-check of the Layer 1 values in
+  `physics.py`). Step 2, the audit tool, is done (DECISIONS 2026-11-13,
+  `uv run poe audit`); the run record is done (PR #25). What the first report
+  shows: density changes collapse mass (slope −0.5) and never final mass
+  under held purchases; turbulence dips final mass and is not monotone;
+  inside the primordial range (log Z/Z☉ below −4: still true 200 Myr into
+  the clock with no released metals, crossed by 500 Myr) the clock changes
+  no outcome, and past it the start temperature and final mass fall fast
+  (26.2 M☉ at age 0.32 Gyr, 22.1 at 0.62, 7.7 at 1.12). That table is the input for the epoch ruling.
   Step 0 is done (hints, PR #24; "Projected life", PR #22). Engineering items still open
   beside that: the 59/61 s offline cliff (credit short absences, keep the
   banner for long ones), the two-tab save policy, standards-mode page entry,

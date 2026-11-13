@@ -20,6 +20,40 @@ design change.
 
 ## Entries
 
+- **Date and title:** 2026-11-13 — The audit tool: one-input sweeps, seven bins, two purchase policies, a committed report.
+- **Status:** accepted
+- **Context:** Relationship text and debrief explanations need the engine's
+  true input–outcome relationships (`docs/planning/prediction-system.md`,
+  "Prerequisites before v1"). Two facts had been measured with a throwaway
+  script, and the epoch ruling waits on how far composition drifts.
+- **Decision:** `tools/audit.py` holds a context fixed, moves one input across
+  a grid, plays each run with the `tools/bot.py` player, and reads the run
+  record. Each series gets a bin: no change, up, down, peaked, dipped,
+  threshold (at least 80% of the change in one step, four or more points) or
+  irregular; steps under 1e-6 of the scale are ignored. A pair whose bin
+  differs between contexts is `depends`; a context where the player cannot
+  move the input is `untested` and left out. Four contexts (first run, hot
+  pristine, cold pristine, enriched) and two purchase policies: held (other
+  in-run upgrades at level 0) and greedy (turbulence and braking whenever
+  energy allows, never gather cooling). The report is committed at
+  `docs/audit/report.md` with a fingerprint of the Python engine sources;
+  `tools/audit.py --check` says whether it is stale. `uv run poe audit`
+  regenerates it (about 80 seconds). It is not part of `poe check`.
+- **Why:** Held purchases isolate the input; greedy purchases show what a
+  player who buys everything sees, and the gap is the purchase-timing effect
+  (density changes final mass only under greedy). Irregular is kept as its own
+  bin, never smoothed into a trend: turbulence level 3 to 4 raises the mass.
+  The bins never grade a player's untested prediction.
+- **Known limits:** Contexts are four points, not a sample of the region
+  space, so `depends` means "differs among these four". Pairwise interaction
+  grids are left for the hypercube (step 11). The slope across a change of
+  ending is not reported for the two outcomes paid by category. The staleness
+  check is manual, so an engine change can leave the report behind until
+  someone runs it.
+- **Revisit when:** Each disk-breakup stage lands (rerun and diff), the epoch
+  boundaries are ruled (add them as contexts), or a second reader needs the
+  bins as data and not Markdown.
+
 - **Date and title:** 2026-11-13 — The journal entry is the run record; it is flat, additive, and stores raw clock inputs instead of an epoch.
 - **Status:** accepted
 - **Context:** A prediction resolves against a pair of runs that differ in
