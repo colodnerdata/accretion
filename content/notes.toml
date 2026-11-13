@@ -59,10 +59,10 @@ kind = "hook"
 text = "New control: Magnetic braking. Gas is landing far from the star and stalling in the disk."
 [controls.cooling]
 kind = "hook"
-text = "New control: Radiative cooling. Heavy elements from your supernova make cooler gas possible."
+text = "New control: Radiative cooling. Cools the gas, so less mass is needed for collapse."
 [controls.metals]
 kind = "hook"
-text = "New search option: Metal content. Enriched gas cools better."
+text = "New search option: Metal content. Metals unlock colder gas."
 
 [observations.sun_mass]
 text = "You have gathered one solar mass of gas, but its pressure still holds it apart."

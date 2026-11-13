@@ -22,22 +22,28 @@ a diary. Link to an issue when it owns the detail.
     - Choose the epoch boundaries for the prediction system (candidates
       in "Epochs" in `docs/planning/prediction-system.md`), and confirm the
       proposed reading of "predictions reset" there.
-    - Rulings still queued from the repository review: the clamped slider
-      cost, the ring-count migration story, and the one-implementation
-      proposal (protected decision — not for implementation without
+    - Rulings still queued from the repository review: the ring-count
+      migration story and the one-implementation proposal (protected decision — not for implementation without
       sign-off). The review itself is a local, uncommitted file,
       `docs/accretion-repository-review.md`.
-- **Next action:** read `docs/audit/report.md` against the relationship
-  text and the hints, then the rest of step 1 (the copy audit with physics or
-  game-rule labels, and the spot-check of the Layer 1 values in
-  `physics.py`). Step 2, the audit tool, is done (DECISIONS 2026-11-13,
-  `uv run poe audit`); the run record is done (PR #25). What the first report
-  shows: density changes collapse mass (slope −0.5) and never final mass
-  under held purchases; turbulence dips final mass and is not monotone;
-  inside the primordial range (log Z/Z☉ below −4: still true 200 Myr into
-  the clock with no released metals, crossed by 500 Myr) the clock changes
-  no outcome, and past it the start temperature and final mass fall fast
-  (26.2 M☉ at age 0.32 Gyr, 22.1 at 0.62, 7.7 at 1.12). That table is the input for the epoch ruling.
+- **Next action:** stop the disk being cleared before ignition
+  (`ionizing_rate` is flat below 5 M☉, so disk loss runs from the first
+  seed). Owner ruling 2026-11-13: fix it before step 4. It is an engine
+  change in both engines, with `FIDELITY.md`, parity and the audit report
+  regenerated, and needs a short concept note first. Then step 4 stage (a),
+  following `docs/planning/disk-breakup-and-companions.md`, whose six owner
+  rulings are recorded (DECISIONS 2026-11-13). Also open: the spot-check of
+  the Layer 1 values in `physics.py` (last part of step 1; it covers the
+  "outside the engine" rows in `docs/audit/copy-audit.md`), and step 3, the
+  edge-on inset. Done so far in steps 1 and 2:
+  the run record (PR #25), the audit tool and report (PR #26, `uv run poe
+  audit`), and the copy audit (`docs/audit/copy-audit.md`, DECISIONS
+  2026-11-13). One copy-audit item still waits for an owner ruling ("its final
+  mass … will decide how this star ends" is true only within one region). The other two were ruled: the
+  Temperature slider now has a padlock at the coldest allowed gas
+  (DECISIONS 2026-11-13), which also settles the queued "clamped slider
+  cost" item. The clock-drift table in
+  `docs/audit/report.md` is the input for the epoch ruling.
   Step 0 is done (hints, PR #24; "Projected life", PR #22). Engineering items still open
   beside that: the 59/61 s offline cliff (credit short absences, keep the
   banner for long ones), the two-tab save policy, standards-mode page entry,

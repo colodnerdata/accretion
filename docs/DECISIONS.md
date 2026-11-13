@@ -20,6 +20,100 @@ design change.
 
 ## Entries
 
+- **Date and title:** 2026-11-13 — Disk breakup: six owner rulings before step 4.
+- **Status:** accepted
+- **Context:** `docs/planning/disk-breakup-and-companions.md` sets out step 4
+  in three stages and ended with six open choices.
+- **Decision (owner rulings):**
+  1. The fragment starting mass is calibrated between ΣH² (today) and Σλ²
+     (linear theory, about 40 times larger) against how often massive stars
+     have companions. It was open because the literature spans that range
+     and the choice moves every result.
+  2. No cap on how much mass a companion may take from the star. The guard
+     is that a stage may not merge if the bot's first run stops ending as a
+     supernova.
+  3. Runs saved mid-accretion get defaults for the new fragment fields;
+     `SAVE_KEY` stays at v4.
+  4. Stages run (a) fragment life, (b) formation, (c) cooling gate. Without
+     (a) no companion survives to have a separation.
+  5. The disk being cleared before ignition (`ionizing_rate` flat below
+     5 M☉, found by the copy audit) is fixed before stage (a) is calibrated,
+     because it changes how much disk a small star has.
+  6. "Spacing 2πQH" in `implementation-order.md` is corrected to 2πH/Q, the
+     fastest-growing wavelength; the two agree only at Q = 1.
+- **Why:** These are the choices that would otherwise be made silently in
+  code. The formulas in the plan still need confirming in the primary
+  sources before any is coded.
+- **Revisit when:** Calibration cannot meet the companion benchmarks and the
+  first-supernova guard together, which would reopen rulings 1 and 2.
+
+- **Date and title:** 2026-11-13 — The Temperature slider is a kelvin track from absolute zero with a padlock at the coldest allowed gas.
+- **Status:** accepted
+- **Context:** The slider was a rarity scale (−3σ to +3σ). A setting below
+  the region's floor was accepted, charged for, and then clamped by the
+  engine (the "clamped slider cost" item from the repository review), and the
+  Metal content slider looked dead while the gas was still primordial.
+- **Decision (owner ruling):** Metals unclamp the bottom of the Temperature
+  slider. The track starts at absolute zero from the first survey. A padlock
+  marks the coldest gas the region allows (`region_floor`: composition,
+  permanent cooling, cosmic background); the thumb cannot pass it; more
+  metals move the padlock toward absolute zero. The wording follows, and the
+  Radiative cooling announcement states the control's direct effect.
+- **How:** The stored setting is still `zTemperature`, so neither engine,
+  parity nor the save shape changes. The interface asks the engine for the
+  region at z = 0 and z = 1 to get the centre and spread, and for the free
+  region's temperature after permanent cooling, so the thumb shows the gas
+  the run will really start with. It converts thumb position → kelvin → z
+  and holds z between the padlock and the budget. The track is compressed:
+  position = asinh(T / 100 K) / asinh(8), from 0 to 800 K, so pristine gas
+  (200 to 392 K) has about 23% of it and enriched gas at 2 Gyr (23 to 86 K)
+  about 20%. A setting that the padlock has passed, or one saved below it,
+  is raised to it, which refunds the wasted probability. A drag that comes
+  within 0.08σ of the free point lands on it; arrow keys do not snap.
+- **Permanent cooling:** it lowers the gas a setting gives (×0.9 per level)
+  as well as the padlock. With enough levels the free region already rests on
+  the padlock; the settings between the free point and the one that lifts the
+  gas off the padlock would buy nothing, so a thumb at the padlock is stored
+  as the free point.
+- **Why:** A lock that can be seen moving explains the metals lever without
+  a forecast: it shows the current bound, not an outcome. A linear track was
+  rejected because enriched gas would get a fifth of it; keeping the rarity
+  scale was rejected because the lock would barely move.
+- **Known limits:** The clamp is in the interface only. A script that sets
+  `z_temperature` below the floor still gets the engine's own clamp and pays
+  for it. The scale differs from the one first proposed (knee 20 K, top
+  400 K): that left pristine gas 19% of the track, and gas that has just
+  stopped being primordial can start as hot as about 743 K.
+- **Revisit when:** A region can start above 800 K, or playtests show the
+  compressed scale is misread as linear.
+
+- **Date and title:** 2026-11-13 — Copy audit: player-facing claims are checked against the engine and recorded in `docs/audit/copy-audit.md`.
+- **Status:** accepted
+- **Context:** The audit report says what the engine does; the text had only
+  been checked for the hints (PR #24). A wrong sentence seeds a wrong
+  prediction.
+- **Decision:** Every sentence in `content/*.toml` that states a cause, a
+  direction, a number or a control's effect has a row in
+  `docs/audit/copy-audit.md` with a verdict, the evidence and a physics or
+  game-rule label. Five were changed: two accrete hints (one claimed disk
+  controls matter less than infall, one claimed faster infall feeds "for
+  longer", which is the opposite of the engine), a hint that advised aiming
+  for "a slightly different mass" with no control to do it, a hint missing
+  "more", and the brown-dwarf band's exact limit. A hint states only direct
+  effects and tested relationships; comparisons of how much two levers matter
+  stay out, since the answer depends on the region.
+- **Why:** The table makes the next text change checkable, and the labels
+  are the input if in-game physics or game-rule labels are taken up.
+- **Left for the owner (not changed):** (1) the engine clears the disk before
+  ignition, because `ionizing_rate` is held constant below 5 M☉, while the
+  ignition note says clearing starts then; (2) the cooling announcement gives
+  the supernova as the cause of a control whose unlock is a game rule;
+  (3) "its final mass … will decide how this star ends" is true only within
+  one region; (4) "More metals let gas cool further" is true only past
+  log Z/Z☉ = −4.
+- **Revisit when:** An engine change regenerates the audit report (recheck
+  the rows that cite it), or text is added.
+
 - **Date and title:** 2026-11-13 — The audit tool: one-input sweeps, seven bins, two purchase policies, a committed report.
 - **Status:** accepted
 - **Context:** Relationship text and debrief explanations need the engine's

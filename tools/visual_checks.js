@@ -159,4 +159,58 @@ check("spin rate is monotone in orbital frequency", [1e-4, 1e-3, 1e-2, 1e-1].map
   check("control levels come from the run", V.setupItems(setup, "accrete").find((i) => i.id === "braking").value === 1);
 }
 
+// The survey's Temperature track: absolute zero to 800 K, compressed.
+check("the track starts at absolute zero", V.trackPosition(0) === 0);
+check("the track ends at its maximum", close(V.trackPosition(V.TRACK_MAX_K), 1, 1e-12));
+check("the track covers the hottest reachable region (about 743 K)", V.TRACK_MAX_K >= 750);
+check("pristine gas has about 23% of the track", close(V.trackPosition(392) - V.trackPosition(200), 0.23, 0.05));
+check("enriched gas at 2 Gyr has about 20% of the track", close(V.trackPosition(86) - V.trackPosition(23), 0.20, 0.05));
+{
+  let rising = true, back = true;
+  for (let k = 0; k + 7 <= V.TRACK_MAX_K; k += 7) {
+    if (V.trackPosition(k + 7) <= V.trackPosition(k)) rising = false;
+    if (!close(V.trackTemperature(V.trackPosition(k + 7)), k + 7, 1e-9)) back = false;
+  }
+  check("track position rises with temperature", rising);
+  check("position and temperature round-trip", back);
+}
+{
+  // Pristine gas: centre 250 K, sigma 0.15, lock at the 200 K floor.
+  const s = V.temperatureSetting(250, 0.15, 200);
+  check("the lock is below the free point", s.zLock < 0 && close(s.temperatureFor(s.zLock), 200, 1e-9));
+  check("a setting below the lock is raised to it", s.clamp(-3) === s.zLock);
+  check("the free point is always allowed", s.clamp(0) === 0);
+  check("the hot end stops at +3 sigma", s.clamp(9) === 3);
+  // A small budget stops the thumb before the lock on the cold side.
+  const tight = V.temperatureSetting(250, 0.15, 200, 0.5);
+  check("the budget bounds both sides", tight.clamp(-3) === -0.5 && tight.clamp(3) === 0.5);
+  // More metals: a lower floor puts the lock further left on the track.
+  check("a colder lock sits further left", V.trackPosition(23) < V.trackPosition(200));
+}
+{
+  // Two permanent cooling levels on pristine gas: the centre is 250 * 0.81
+  // and the floor 162 K. No setting colder than the lock may be stored.
+  const s = V.temperatureSetting(250 * 0.81, 0.15, 162);
+  check("permanent cooling moves the free point's gas", close(s.temperatureFor(0), 202.5, 1e-9));
+  check("the cold stop is where the cooled gas meets the lock", close(s.clamp(-3), Math.log(162 / 202.5) / 0.15, 1e-12));
+  let wasted = false;
+  for (let z = -3; z <= 3; z += 0.01) {
+    const held = s.clamp(z);
+    if (held < s.zLock - 1e-12) wasted = true;
+  }
+  check("no stored setting lies below the lock", !wasted);
+}
+{
+  // Enough permanent cooling that the free point already rests on the lock:
+  // centre 16 K, lock 20 K. Settings between 0 and zLock would buy nothing.
+  const s = V.temperatureSetting(16, 0.35, 20);
+  check("the lock lies above the free point", s.zLock > 0 && s.rest === 0);
+  check("the free point shows the lock's temperature", s.temperatureFor(0) === 20);
+  check("a setting between the free point and the lock falls back to free", s.clamp(s.zLock / 2) === 0);
+  check("a colder setting also falls back to free", s.clamp(-2) === 0);
+  check("a setting past the lock is kept", s.clamp(s.zLock + 0.5) === s.zLock + 0.5);
+  const poor = V.temperatureSetting(16, 0.35, 20, s.zLock / 2);
+  check("a budget that cannot reach past the lock leaves only the free point", poor.clamp(3) === 0);
+}
+
 console.log(JSON.stringify(checks));

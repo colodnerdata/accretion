@@ -37,7 +37,7 @@ text = "The core became unstable and the whole star was destroyed, leaving no re
 
 [bands.brown_dwarf]
 label = "Brown dwarf"
-range = "below 0.08 M☉"
+range = "below about 0.08 M☉"
 
 [bands.white_dwarf]
 label = "White dwarf"
