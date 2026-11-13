@@ -707,12 +707,16 @@ def prestige(run: Run, meta: Meta, skipped: bool = False) -> Run:
             meta.journal[-1]["skipped"] = True
     else:
         meta.journal.append(journal_entry(run, meta, skipped=left_early))
-    if run.kind == "supernova":
-        meta.supernovae += 1
-    if run.kind == "black_hole":
-        meta.black_hole_unlocked = True
-    if run.kind == "pair_instability":
-        meta.pair_instability_seen = True
+    # A star the player left early was never seen to end, so its category
+    # counts toward no unlock: the reward above and the clock below are paid
+    # for the move to a new region, but discovery needs the ending.
+    if not left_early:
+        if run.kind == "supernova":
+            meta.supernovae += 1
+        if run.kind == "black_hole":
+            meta.black_hole_unlocked = True
+        if run.kind == "pair_instability":
+            meta.pair_instability_seen = True
     if run.lifetime_myr:
         passed = run.ms_elapsed / run.ms_duration * run.lifetime_myr
         meta.cosmic_myr += passed if left_early else run.lifetime_myr
