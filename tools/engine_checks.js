@@ -143,4 +143,29 @@ for (const [kind, counter, mass] of [["supernova", "supernovae", 30], ["black_ho
   check("prestige(skipped = true) counts no supernova but pays", meta.supernovae === 0 && meta.regions > 1.0);
 }
 
+// The run record keeps the settings the run started from, not the ones the
+// search pane holds when it ends, and closes the mass budget.
+{
+  const meta = E.newMeta();
+  meta.zTemperature = 0.5;
+  const run = E.newRun(meta);
+  meta.zTemperature = -1.0; meta.zDensity = 1.0;
+  while (run.phase !== "ended") E.step(run, meta, 5.0);
+  const j = meta.journal[0];
+  check("the record keeps the starting settings", j.zTemperature === 0.5 && j.zDensity === 0 && j.blackHoleStart === false);
+  check("the record closes the mass budget", approx(j.mass + j.ejected + j.companionMass, j.collapseMass, 1e-8), `${j.mass} ${j.ejected} ${j.companionMass} ${j.collapseMass}`);
+  check("the record lists every level", ["reach", "tap", "cooling", "turbulence", "braking", "heavyCooling", "heavyTurbulence"].every((k) => j.levels[k] === 0));
+}
+
+// A run saved before the start snapshot existed still gets a full record.
+{
+  const meta = E.newMeta(), run = E.newRun(meta);
+  delete run.start;
+  meta.zMetal = 0.25;
+  run.phase = "accrete"; run.envelope = 0; run.starMass = 0.01;
+  E.step(run, meta, 1.0);
+  const j = meta.journal[0];
+  check("a run without a snapshot falls back to the current settings", j.zMetal === 0.25 && Number.isFinite(j.cosmicAgeGyr) && Number.isFinite(j.backgroundMetalLog10));
+}
+
 console.log(JSON.stringify(checks));

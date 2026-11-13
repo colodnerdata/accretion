@@ -7,6 +7,16 @@ import pytest
 
 from accretion import game, physics
 
+RECORD_LEVELS = (
+    "reach",
+    "tap",
+    "cooling",
+    "turbulence",
+    "braking",
+    "heavy_cooling",
+    "heavy_turbulence",
+)
+
 ROOT = Path(__file__).parents[1]
 
 
@@ -158,6 +168,21 @@ def test_python_and_browser_engines_agree():
                 entry["feed_radius"],
                 entry["skipped"],
                 len(entry["companions"]),
+                entry["z_density"],
+                entry["z_temperature"],
+                entry["z_metal"],
+                entry["black_hole_start"],
+                entry["cosmic_age_gyr"],
+                entry["background_metal_log10"],
+                entry["start_temperature"],
+                entry["floor_temperature"],
+                entry["infall_factor"],
+                *(entry["levels"][k] for k in RECORD_LEVELS),
+                entry["collapse_mass"],
+                entry["infall_rate"],
+                entry["ejected"],
+                entry["companion_mass"],
+                entry["accrete_years"],
             ]
         )
     # The read-only inner-flux accessor on a fixed accreting state.

@@ -46,6 +46,79 @@ def test_journal_entry_records_companions_as_a_copy():
     assert entry["companions"] == [{"mass": 2.0, "separation": 30.0}]
 
 
+def test_run_record_keeps_the_settings_the_run_started_from():
+    meta = game.Meta(z_temperature=0.5)
+    run = game.new_run(meta)
+    age, metal = game.cosmic_age_gyr(meta), game.background_metal_log10(meta)
+    # The search pane moves the settings for the next run before this one ends.
+    meta.z_temperature, meta.z_density = -1.0, 1.0
+    while run.phase != "ended":
+        game.step(run, meta, 5.0)
+    entry = meta.journal[0]
+    assert entry["z_temperature"] == 0.5
+    assert entry["z_density"] == 0.0
+    assert entry["black_hole_start"] is False
+    assert entry["cosmic_age_gyr"] == age
+    assert entry["background_metal_log10"] == metal
+
+
+def test_run_record_holds_effective_inputs_and_staged_outcomes():
+    meta = game.Meta()
+    run = game.new_run(meta)
+    meta.unlocks.append("cooling")
+    run.energy = 1.0e60
+    assert game.buy(run, "cooling", meta)
+    while run.phase in ("gather", "collapse"):
+        game.step(run, meta, 5.0)
+    rate_at_collapse = game.infall_now(run, meta)
+    while run.phase != "ended":
+        game.step(run, meta, 5.0)
+    entry = meta.journal[0]
+    assert entry["start_temperature"] == run.base_temperature
+    assert entry["temperature"] == pytest.approx(0.9 * entry["start_temperature"])
+    assert entry["floor_temperature"] == run.floor_temperature
+    assert entry["infall_factor"] == 1.0
+    assert entry["levels"] == {
+        "reach": 0,
+        "tap": 0,
+        "cooling": 1,
+        "turbulence": 0,
+        "braking": 0,
+        "heavy_cooling": 0,
+        "heavy_turbulence": 0,
+    }
+    # Direct outcomes, fixed when the region collapses.
+    assert entry["collapse_mass"] == run.collapse_mass
+    assert entry["infall_rate"] == pytest.approx(rate_at_collapse, rel=1e-12)
+    # Net outcomes close the mass budget from the record alone.
+    assert entry["mass"] + entry["ejected"] + entry["companion_mass"] == pytest.approx(
+        entry["collapse_mass"], rel=1e-8
+    )
+    assert entry["accrete_years"] == run.accrete_years > 0
+
+
+def test_run_record_levels_are_a_copy_and_count_permanent_upgrades():
+    meta = game.Meta(heavy_cooling=2, heavy_turbulence=1)
+    run = game.new_run(meta)
+    run.kind = "white_dwarf"
+    entry = game.journal_entry(run, meta)
+    run.levels["reach"] = 9
+    assert entry["levels"]["reach"] == 0
+    assert entry["levels"]["heavy_cooling"] == 2
+    assert entry["levels"]["heavy_turbulence"] == 1
+
+
+def test_run_without_a_start_snapshot_still_gets_a_full_record():
+    meta = game.Meta()
+    run = game.new_run(meta)
+    run.start = {}  # a run saved before the snapshot existed
+    meta.z_metal = 0.25
+    run.kind = "white_dwarf"
+    entry = game.journal_entry(run, meta)
+    assert entry["z_metal"] == 0.25
+    assert entry["cosmic_age_gyr"] == game.cosmic_age_gyr(meta)
+
+
 def test_mass_budget_closes_through_a_run():
     meta = game.Meta()
     run = game.new_run(meta)
@@ -274,6 +347,8 @@ def test_density_changes_collapse_mass_but_not_final_mass():
 
 def test_cooling_bought_while_gathering_makes_a_smaller_star():
     # The gather hint advises buying reach, not every upgrade, because of this.
+    # The level is forced, not bought: cooling acts only through temperature(),
+    # so the result is the same as buying it once it has unlocked.
     def final_mass(cooling):
         meta = game.Meta()
         run = game.new_run(meta)

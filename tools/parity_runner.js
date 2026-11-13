@@ -61,7 +61,11 @@ rows.push([E.stromgrenRadius(E.ionizingRate(22), 1e4), E.hiiRadius(E.ionizingRat
   // One row per journal entry: both engines must record the same run record,
   // appended when the run ended and reused by prestige.
   for (const j of meta.journal) {
-    rows.push([j.run, j.temperature, j.density, j.mass, j.ending, j.gain, j.heavy, j.seconds, j.lifetimeMyr, j.forecastMyr, j.alpha, j.feedRadius, j.skipped, j.companions.length]);
+    rows.push([j.run, j.temperature, j.density, j.mass, j.ending, j.gain, j.heavy, j.seconds, j.lifetimeMyr, j.forecastMyr, j.alpha, j.feedRadius, j.skipped, j.companions.length,
+      j.zDensity, j.zTemperature, j.zMetal, j.blackHoleStart, j.cosmicAgeGyr, j.backgroundMetalLog10,
+      j.startTemperature, j.floorTemperature, j.infallFactor,
+      ...["reach", "tap", "cooling", "turbulence", "braking", "heavyCooling", "heavyTurbulence"].map((k) => j.levels[k]),
+      j.collapseMass, j.infallRate, j.ejected, j.companionMass, j.accreteYears]);
   }
 }
 {

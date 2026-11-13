@@ -20,6 +20,41 @@ design change.
 
 ## Entries
 
+- **Date and title:** 2026-11-13 — The journal entry is the run record; it is flat, additive, and stores raw clock inputs instead of an epoch.
+- **Status:** accepted
+- **Context:** A prediction resolves against a pair of runs that differ in
+  exactly one effective input (`docs/planning/prediction-system.md`). The
+  journal entry held outcomes and a few inputs, not enough to tell which
+  inputs differed. The epoch boundaries are not chosen yet.
+- **Decision:** Extend the journal entry in both engines, with no second
+  store. New fields: the settings the run started from (`z_density`,
+  `z_temperature`, `z_metal`, `black_hole_start`); the clock-driven inputs at
+  the start (`cosmic_age_gyr`, `background_metal_log10`); effective inputs
+  (`start_temperature`, `floor_temperature`, `infall_factor`, and `levels`
+  with the five in-run levels plus `heavy_cooling` and `heavy_turbulence`);
+  direct outcomes (`collapse_mass`, `infall_rate` before the ionized-region
+  taper); net outcomes (`ejected`, `companion_mass`, `accrete_years`). The
+  settings and clock inputs are snapshotted on the run (`run.start`) when it
+  is created, because the search pane changes the settings for the next run
+  while this one is still current. No epoch number is stored: it is derived
+  from the clock inputs once the boundaries are ruled. No time series is
+  stored (owner choice, 2026-11-13): nothing reads one until the debrief.
+- **Why:** One record per run keeps the journal the single source and adds
+  nothing to migrate: the fields are additive, so `SAVE_KEY` stays at v4.
+  Journal entries written before this change lack the new fields, so readers
+  (the audit tool, predictions) must treat such a run as unusable for a test,
+  not guess its inputs. A run in progress saved before this change has no
+  snapshot and records the settings at the time it ends.
+- **Known limits:** `infall_rate` is computed at the end from the final
+  temperature; it equals the rate at collapse only because cooling is bought
+  while gathering and permanent upgrades are bought between runs. If either
+  rule changes, record it at collapse instead. The parity script buys no
+  cooling and no permanent upgrade, so those level fields are compared only
+  at zero; the explicit tests in both engines cover non-zero values.
+- **Revisit when:** The epoch boundaries are chosen (add a derived epoch, do
+  not store one), the debrief needs a time series, or a rule lets temperature
+  change after collapse.
+
 - **Date and title:** 2026-11-13 — Hints name only levers the engine has: no density hint, and the gather hint advises reach only.
 - **Status:** accepted
 - **Context:** After a too-small star or a black hole, the tier 2 hint added

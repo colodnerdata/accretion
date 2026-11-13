@@ -207,6 +207,17 @@ const Engine = (() => {
       collapseLeft: COLLAPSE_SECONDS, envelope: 0, diskMasses: new Array(CELLS).fill(0),
       starMass: 0, ejected: 0, companions: 0, fragments: [], fragmentsFormed: 0, companionRecords: [], accreteYears: 0, collapseMass: 0, ignited: false, yearDebt: 0, msElapsed: 0,
       msDuration: 0, lifetimeMyr: 0, forecastMyr: 0, kind: "", seconds: 0, skipped: false,
+      start: startRecord(meta),
+    };
+  }
+  // The settings and clock-driven inputs a run starts from, taken when the
+  // run is created: the region settings can be changed for the next run while
+  // this one is still current. backgroundMetalLog10 is the cosmic trend plus
+  // player enrichment, before the metal setting's offset.
+  function startRecord(meta) {
+    return {
+      zDensity: meta.zDensity, zTemperature: meta.zTemperature, zMetal: meta.zMetal, blackHoleStart: meta.blackHoleStart,
+      cosmicAgeGyr: cosmicAgeGyr(meta), backgroundMetalLog10: backgroundMetal(meta),
     };
   }
   // Gas temperature at a cooling level: each level multiplies the region's
@@ -425,8 +436,21 @@ const Engine = (() => {
       supernova: 1 + 0.05 * run.starMass, black_hole: 1.5, pair_instability: 3,
     }[run.kind];
   }
+  // The entry is the run record that a test of one input against another run
+  // reads: the settings and clock-driven inputs at the start, the effective
+  // inputs at the end (temperatures, disk speed, feed radius, every upgrade
+  // level), the direct outcomes (collapse mass and the infall rate before the
+  // ionized-region taper), and the net outcomes. Cooling is bought only while
+  // gathering, so the temperature at the end is the temperature at collapse.
+  // A run saved before the start snapshot existed falls back to the settings
+  // at the time it ends.
   function journalEntry(run, meta, skipped) {
     return {
+      ...(run.start || startRecord(meta)),
+      startTemperature: run.baseTemperature, floorTemperature: run.floorTemperature, infallFactor: run.infallFactor,
+      levels: { ...run.levels, heavyCooling: meta.heavyCooling, heavyTurbulence: meta.heavyTurbulence },
+      collapseMass: run.collapseMass, infallRate: infallRate(temperature(run, meta)) * run.infallFactor,
+      ejected: run.ejected, companionMass: run.companions, accreteYears: run.accreteYears,
       run: meta.runs + 1, temperature: temperature(run, meta), density: run.density, metalLog10: run.metalLog10,
       mass: run.starMass, ending: run.kind, gain: runGain(run), heavy: heavyYield(run.starMass, run.kind, run.metalLog10),
       seconds: run.seconds, lifetimeMyr: run.lifetimeMyr, forecastMyr: run.forecastMyr, alpha: alpha(run, meta),

@@ -106,6 +106,7 @@ class Run:
     kind: str = ""
     seconds: float = 0.0
     skipped: bool = False
+    start: dict = field(default_factory=dict)
 
 
 def update_unlocks(run: Run, meta: Meta) -> None:
@@ -221,7 +222,26 @@ def new_run(meta: Meta) -> Run:
     factor = BLACK_HOLE_INFALL_FACTOR if meta.black_hole_start else 1.0
     run = Run(density, temperature_value, floor, metal, factor)
     run.log_reach = math.log(1.5 / density ** (1 / 3))
+    run.start = start_record(meta)
     return run
+
+
+def start_record(meta: Meta) -> dict:
+    """Return the settings and clock-driven inputs a run starts from.
+
+    Taken when the run is created, because the region settings can be
+    changed for the next run while this one is still the current run.
+    ``background_metal_log10`` is the cosmic trend plus player enrichment,
+    before the metal setting's offset.
+    """
+    return {
+        "z_density": meta.z_density,
+        "z_temperature": meta.z_temperature,
+        "z_metal": meta.z_metal,
+        "black_hole_start": meta.black_hole_start,
+        "cosmic_age_gyr": cosmic_age_gyr(meta),
+        "background_metal_log10": background_metal_log10(meta),
+    }
 
 
 def region_floor(meta: Meta, metal_log10: float, age_gyr: float) -> float:
@@ -637,8 +657,32 @@ def journal_entry(run: Run, meta: Meta, skipped: bool | None = None) -> dict:
     ``skipped`` overrides the run's own flag; call sites pass it only for
     runs that never went through the engine's end path (old saves, direct
     calls in tests).
+
+    The entry is the run record that a test of one input against another
+    run reads. It holds the settings and clock-driven inputs the run started
+    from, the effective inputs when it ended (temperatures, disk speed, feed
+    radius, and every upgrade level), the direct outcomes (collapse mass and
+    the infall rate before the ionized-region taper), and the net outcomes.
+    Cooling is bought only while gathering, so the temperature at the end is
+    the temperature at collapse. A run saved before the start snapshot
+    existed falls back to the settings at the time it ends.
     """
+    start = run.start or start_record(meta)
     return {
+        **start,
+        "start_temperature": run.base_temperature,
+        "floor_temperature": run.floor_temperature,
+        "infall_factor": run.infall_factor,
+        "levels": {
+            **run.levels,
+            "heavy_cooling": meta.heavy_cooling,
+            "heavy_turbulence": meta.heavy_turbulence,
+        },
+        "collapse_mass": run.collapse_mass,
+        "infall_rate": physics.infall_rate(temperature(run, meta)) * run.infall_factor,
+        "ejected": run.ejected,
+        "companion_mass": run.companions,
+        "accrete_years": run.accrete_years,
         "run": meta.runs + 1,
         "temperature": temperature(run, meta),
         "density": run.density,
