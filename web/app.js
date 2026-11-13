@@ -576,6 +576,11 @@ function temperatureRow() {
   // could never leave it.
   let dragging = false;
   input.onpointerdown = () => { dragging = true; };
+  // The drag ends when the pointer does, not never: an input event with no
+  // pointer behind it (a wheel over the slider) must not count as a drag.
+  const endDrag = () => { dragging = false; };
+  input.onpointerup = input.onpointercancel = input.onlostpointercapture = endDrag;
+  input.onblur = endDrag;
   input.onkeydown = () => { dragging = false; };
   input.oninput = () => {
     const m = state.meta, old = m.zTemperature, range = temperatureRange(m);
@@ -605,7 +610,9 @@ function placeTemperature(range) {
   // The cold dim stretch is gas the budget cannot reach above the lock.
   const coldest = Math.max(range.low, range.zLock);
   const lock = P(range.lock), low = P(T(coldest)), high = P(T(range.high)), free = P(T(0));
-  input.value = Math.round(P(T(m.zTemperature)) * 1000);
+  // The track's step is 5, so the thumb lands on it too: an off-step value
+  // keeps later presses off the grid.
+  input.value = Math.round(P(T(m.zTemperature)) * 200) * 5;
   input.closest(".field").classList.toggle("at-lock", T(m.zTemperature) <= range.lock);
   input.setAttribute("aria-valuetext", t("ui.search.temperature_aria", { value: T(m.zTemperature).toFixed(0), lock: range.lock.toFixed(0) }));
   span("temperature-locked", 0, lock);

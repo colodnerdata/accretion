@@ -44,7 +44,7 @@ kind = "hook"
 text = "Your star's mass depends on a race between feeding and clearing."
 [accrete.tier2]
 kind = "tooltip"
-text = "Disk controls change how quickly gas moves through the disk. How fast gas falls in is set by the region's gas temperature, which cannot change during this phase."
+text = "Disk controls change how quickly gas moves through the disk. The hotter the region's gas, the faster it falls in — a temperature that cannot change during this phase."
 [accrete.tier3]
 kind = "panel"
 text = "Faster infall lets the star grow larger before its ionizing light shuts the supply off."
