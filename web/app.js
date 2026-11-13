@@ -315,7 +315,7 @@ function statsFor() {
 
 // Hints use what has actually happened in this save, and go one step deeper each time.
 function hintSet() {
-  const { run, meta, view } = state, dense = meta.unlocks.includes("density");
+  const { run, meta, view } = state;
   // On the ended pane the run is not journaled yet, so read the ending from the run itself.
   // A star the player left early shows no category, so it steers no hint:
   // the hint set that follows it is the neutral comparison one.
@@ -329,8 +329,8 @@ function hintSet() {
   }
   if (view === "play" && run.phase === "accrete") return ["accrete", t("hints.accrete.tier1"), t("hints.accrete.tier2"), t("hints.accrete.tier3")];
   if (view === "play" && run.phase === "main_sequence") return ["shine", t("hints.shine.tier1"), t("hints.shine.tier2"), t("hints.shine.tier3")];
-  if (last && (last.ending === "white_dwarf" || last.ending === "brown_dwarf")) return ["small", t("hints.small.tier1"), dense ? t("hints.small.tier2_with_density") : t("hints.small.tier2"), t("hints.small.tier3")];
-  if (last?.ending === "black_hole") return ["big", t("hints.big.tier1"), dense ? t("hints.big.tier2_with_density") : t("hints.big.tier2"), t("hints.big.tier3")];
+  if (last && (last.ending === "white_dwarf" || last.ending === "brown_dwarf")) return ["small", t("hints.small.tier1"), t("hints.small.tier2"), t("hints.small.tier3")];
+  if (last?.ending === "black_hole") return ["big", t("hints.big.tier1"), t("hints.big.tier2"), t("hints.big.tier3")];
   if (last) return ["compare", t("hints.compare.tier1"), t("hints.compare.tier2"), t("hints.compare.tier3")];
   return ["none", t("hints.none.tier1"), t("hints.none.tier2"), t("hints.none.tier3")];
 }

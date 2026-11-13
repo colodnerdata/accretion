@@ -20,6 +20,27 @@ design change.
 
 ## Entries
 
+- **Date and title:** 2026-11-13 — Hints name only levers the engine has: no density hint, and the gather hint advises reach only.
+- **Status:** accepted
+- **Context:** After a too-small star or a black hole, the tier 2 hint added
+  "or a less dense one" / "or denser" once the density search option unlocked.
+  The engine has no such lever: with nothing else changed, final mass is
+  26.162 M☉ from 498 to 200,855 cm⁻³ while collapse mass falls twentyfold.
+  The gather hint said "Buy upgrades as soon as energy allows", but Radiative
+  cooling, a gather upgrade, makes a smaller star (two levels take a first
+  region from 26.16 to 21.72 M☉, black hole to supernova).
+- **Decision:** Remove `small.tier2_with_density` and `big.tier2_with_density`
+  and the branch in `hintSet()` that chose them. The gather hint now says "Buy
+  Gravitational reach as soon as energy allows." No new lever is named in
+  their place.
+- **Why:** A wrong hint seeds a wrong player prediction, and "no change" is
+  itself a result the player can find. Naming turbulence or cooling as the
+  replacement lever was left out: those belong to the prediction system's
+  relationships, which the player should test, not be told.
+- **Revisit when:** `test_density_changes_collapse_mass_but_not_final_mass` or
+  `test_cooling_bought_while_gathering_makes_a_smaller_star` fails (the engine
+  changed under the hints), or disk breakup (step 4) makes density matter.
+
 - **Date and title:** 2026-11-12 — The only projection is a star's duration, and a skipped star shows no category or mass.
 - **Status:** accepted
 - **Context:** Skipping a star ended on a "Forecast ending" screen that named the

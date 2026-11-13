@@ -261,6 +261,28 @@ def test_hot_regions_make_bigger_stars_than_cool_regions():
     assert finish(hot).star_mass > finish(cold).star_mass
 
 
+def test_density_changes_collapse_mass_but_not_final_mass():
+    # The hints in content/hints.toml name no density lever because of this.
+    # If it fails, density has become a mass lever: revisit the hints.
+    thin = finish(game.Meta(z_density=-2.0), 5.0)
+    dense = finish(game.Meta(z_density=2.0), 5.0)
+    assert thin.collapse_mass > 10 * dense.collapse_mass
+    assert thin.star_mass == pytest.approx(dense.star_mass, rel=1e-9)
+
+
+def test_cooling_bought_while_gathering_makes_a_smaller_star():
+    # The gather hint advises buying reach, not every upgrade, because of this.
+    def final_mass(cooling):
+        meta = game.Meta()
+        run = game.new_run(meta)
+        run.levels["cooling"] = cooling
+        while run.phase != "ended":
+            game.step(run, meta, 5.0)
+        return run.star_mass
+
+    assert final_mass(2) < final_mass(0)
+
+
 def test_cooling_lowers_the_collapse_threshold():
     meta = game.Meta()
     run = game.new_run(meta)

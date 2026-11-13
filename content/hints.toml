@@ -1,8 +1,9 @@
 # Tiered hints, one table per situation. tier1 points a direction, tier2 names
 # a lever, tier3 explains the science behind it, matching hintSet() in app.js.
 # tier1's tier is hook, tier2's tooltip, tier3's panel.
-# "tier2_with_density" is the fuller sentence shown once the density search
-# option has unlocked; the code picks one, so each is a complete sentence.
+# Hints name only levers the engine has: density does not change final mass,
+# and Radiative cooling makes a smaller star, so neither is advised here
+# (tests/test_game.py pins both facts).
 # Keep the empty tier2 and tier3 under [none]: the code still asks for them.
 # Placeholders such as {brightness} are filled in by the game; see
 # docs/DEVELOPMENT.md under "Editing game text".
@@ -32,7 +33,7 @@ kind = "hook"
 text = "The bar shows how close the patch is to collapse."
 [gather.tier2]
 kind = "tooltip"
-text = "Buy upgrades as soon as energy allows. Each level costs far more than the last, but energy rises quickly too."
+text = "Buy Gravitational reach as soon as energy allows. Each level costs far more than the last, but energy rises quickly too."
 [gather.tier3]
 kind = "panel"
 text = "A patch's binding energy climbs steeply as it grows."
@@ -63,9 +64,6 @@ text = "Your last star was too small to explode."
 [small.tier2]
 kind = "tooltip"
 text = "Search for a hotter region."
-[small.tier2_with_density]
-kind = "tooltip"
-text = "Search for a hotter region, or a less dense one."
 [small.tier3]
 kind = "panel"
 text = "Hotter gas falls inward faster, so the star gains mass before its light clears the gas."
@@ -76,9 +74,6 @@ text = "Your last star collapsed into a black hole, and most of its heavy elemen
 [big.tier2]
 kind = "tooltip"
 text = "Try a cooler region, or aim for a slightly different mass."
-[big.tier2_with_density]
-kind = "tooltip"
-text = "Try a cooler or denser region, or aim for a slightly different mass."
 [big.tier3]
 kind = "panel"
 text = "Explosions depend on core structure, so some masses fail even between masses that explode."
