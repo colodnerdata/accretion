@@ -25,22 +25,23 @@ still open).
 | `hints.small.tier3` | "…so the star gains mass before its light clears the gas." | Every star gains mass; the point is how much. | "…gains more mass…" |
 | `hints.big.tier2` | "Try a cooler region, or aim for a slightly different mass." | The second half names no control; the game has no direct mass control. | "Search for a cooler region." The gaps are explained in tier 3. |
 | `endings.bands.brown_dwarf.range` | "below 0.08 M☉" | The limit is 0.075, 0.083 or 0.09 M☉ by metal content (`physics.hydrogen_limit`). | "below about 0.08 M☉" |
+| `notes.controls.cooling` | "New control: Radiative cooling. Heavy elements from your supernova make cooler gas possible." | The unlock is a game rule; the control works the same without those elements. Owner ruling, 2026-11-13. | "New control: Radiative cooling. Cools the gas, so less mass is needed for collapse." |
+| `ui.search.metals_note` | "More metals let gas cool further." | True only past log Z/Z☉ = −4, and the slider looked dead below it. Owner ruling, 2026-11-13: the Temperature slider shows a padlock at the coldest allowed gas, and metals move it. | "Metals unlock colder gas: past a trace amount, more metals move the Temperature padlock toward absolute zero." |
+| `notes.controls.metals` | "New search option: Metal content. Enriched gas cools better." | Reworded to match the padlock. | "New search option: Metal content. Metals unlock colder gas." |
+| `ui.search.temperature_note` | (the sentence on hotter gas) | The padlock needed naming. | adds "The padlock marks the coldest gas this region allows." |
+| `ui.heavy.cooling_note` | "Permanently cools gas by 10% per level." | It also lowers the region floor by 10% per level, which is the padlock. | adds "…and moves the Temperature padlock with it." |
+| `ui.search.temperature_lock` (new) | — | — | "Locked below {value} K, the coldest this gas can be." The value is the region's floor (`region_floor`). |
 
 ## Left as written, for the owner's ruling
 
 | Key | Text | Why it is flagged |
 | --- | --- | --- |
 | `notes.observations.ignite` | "Hydrogen fusion has begun. Starlight will now start clearing the disk." | The engine starts clearing earlier. `physics.ionizing_rate` holds its table constant below 5 M☉, so `disk_loss_rate` is 2.8 × 10⁻⁶ M☉/yr (at 1,000 AU) from the first seed, before ignition, and the "Boiled off the disk" row shows it. The text is the physics; the engine is the departure. Fixing it is an engine change (both engines, `FIDELITY.md`), not a wording change. |
-| `notes.controls.cooling` | "New control: Radiative cooling. Heavy elements from your supernova make cooler gas possible." | The unlock (three runs and one supernova) is a game rule. In the engine the control works the same with or without those elements: it cools toward the region's floor, which only falls once log Z/Z☉ passes −4. The sentence presents the unlock order as a cause. |
 | `notes.headlines.shine.body` | "Its final mass is set, and it will decide how this star ends." | True within one region. Across regions the metal content also decides: pristine stars from 9.2 to 25 M☉ always explode (game rule), enriched ones have gaps. `shine.running_low` already says "mostly". |
-| `ui.search.metals_note` | "More metals let gas cool further." | True only past log Z/Z☉ = −4. Below it the floor stays at 200 K whatever the slider says; the "Lowest temperature here" readout shows that. |
 
-The ui-ux review, judging from the player's side only, rated the cooling
-announcement and the metals note "should fix" (a player will take the heavy
-elements as what powers the control, and a slider with no visible effect reads
-as broken) and the other two minor. Its suggested wordings: "New control:
-Radiative cooling. Cools the gas, so less mass is needed for collapse." and
-"More metals let gas cool further, once there are enough of them."
+The ui-ux review rated both remaining items minor from the player's side.
+The cooling announcement and the metals note, which it rated "should fix",
+were ruled on and changed (above).
 
 ## Checked and true
 
@@ -54,7 +55,7 @@ Radiative cooling. Cools the gas, so less mass is needed for collapse." and
 | `search.bh` | Gas falls in 50% faster, cost 1.00 | true | `BLACK_HOLE_INFALL_FACTOR = 1.5`, `BLACK_HOLE_START_COST = 1.0`; audit: infall rate up | game rule |
 | `search.temperature_note` | Hotter gas needs more mass to collapse, falls in faster, feeds a bigger star | true | audit: collapse mass up (+1.50), infall up (+1.50), final mass up (+1.04), in both contexts tested | physics |
 | `search.density_note` | Denser gas collapses with less total mass | true | audit: collapse mass down, slope −0.50, all four contexts | physics |
-| `heavy.cooling_note` | Permanently cools gas by 10% per level | true in part | `temperature_at` counts permanent levels with in-run ones, ×0.9 each, until the floor; the purchase is refused once the cosmic background sets the bound | game rule |
+| `heavy.cooling_note` | Permanently cools gas by 10% per level, and moves the padlock | true in part | `temperature_at` counts permanent levels with in-run ones, ×0.9 each, until the floor; the purchase is refused once the cosmic background sets the bound | game rule |
 | `heavy.turbulence_note` | Permanently speeds the disk by 30% per level | true in part | `alpha = min(1, 0.1 × 1.3^level)`; refused at the cap | game rule |
 | `ended.fine` | Gas, energy and upgrades reset; probability, unlocks and heavy elements stay | true | `prestige` → `new_run`; `Meta` keeps regions, unlocks, heavy | game rule |
 | `journal.intro` and legend | Bubble area is final mass; a dashed arrow is a star left early | true | DECISIONS 2026-11-12 | game rule |
@@ -69,7 +70,7 @@ Radiative cooling. Cools the gas, so less mass is needed for collapse." and
 | `controls.turbulence` | Gas is piling up in the disk faster than it reaches the star | true on a first run | at ignition the disk holds 0.37 M☉ against a 0.11 M☉ star; landing 5.2 × 10⁻⁴, reaching the star 1.5 × 10⁻⁴ M☉/yr. The unlock rule itself tests only ignition | game rule |
 | `controls.density` | The mass needed for collapse can now be targeted | true | audit: density → collapse mass down | game rule |
 | `controls.braking` | Gas is landing far out and stalling in the disk | true | unlock needs disk gas above five star masses | game rule |
-| `controls.metals` | Enriched gas cools better | true in part | `physics.cooling_temperature` falls with metal content past −4 | physics |
+| `controls.metals` | Metals unlock colder gas | true in part | `physics.cooling_temperature` falls with metal content past −4 | physics |
 | `observations.first_clump` | A clump drifts inward and joins the star, or stays as a companion | true | `_evolve_fragments`, `_settle_fragments` | physics (Simplified) |
 | `milestones.m` | A 1 m patch weighs less than a speck of dust | true | about 10⁻¹⁷ kg at 10⁴ atoms/cm³ | physics |
 | `upgrades.reach` | Gas gathers 25% faster | true | `reach_rate`: ×1.25 per level | game rule |

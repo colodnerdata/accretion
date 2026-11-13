@@ -110,11 +110,13 @@ text = "no cost"
 [search.temperature_label]
 text = "Temperature"
 [search.temperature_note]
-text = "Hotter gas needs more mass to collapse, but falls inward faster and feeds a bigger star."
-[search.temperature_low]
-text = "cooler"
-[search.temperature_high]
-text = "hotter"
+text = "Hotter gas needs more mass to collapse, but falls inward faster and feeds a bigger star. The padlock marks the coldest gas this region allows."
+[search.temperature_zero]
+text = "0 K"
+[search.temperature_lock]
+text = "Locked below {value} K, the coldest this gas can be."
+[search.temperature_aria]
+text = "{value} K. Coldest allowed here: {lock} K."
 [search.density_label]
 text = "Density"
 [search.density_note]
@@ -126,7 +128,7 @@ text = "denser"
 [search.metal_content]
 text = "Metal content"
 [search.metals_note]
-text = "More metals let gas cool further."
+text = "Metals unlock colder gas: past a trace amount, more metals move the Temperature padlock toward absolute zero."
 [search.metals_low]
 text = "fewer metals"
 [search.metals_high]
@@ -151,7 +153,7 @@ text = "Heavy elements: {mass} M☉"
 [heavy.cooling]
 text = "Dust and metal cooling"
 [heavy.cooling_note]
-text = "Permanently cools gas by 10% per level."
+text = "Permanently cools gas by 10% per level, and moves the Temperature padlock with it."
 [heavy.turbulence]
 text = "Seeded turbulence"
 [heavy.turbulence_note]

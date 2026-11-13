@@ -159,4 +159,35 @@ check("spin rate is monotone in orbital frequency", [1e-4, 1e-3, 1e-2, 1e-1].map
   check("control levels come from the run", V.setupItems(setup, "accrete").find((i) => i.id === "braking").value === 1);
 }
 
+// The survey's Temperature track: absolute zero to 400 K, compressed.
+check("the track starts at absolute zero", V.trackPosition(0) === 0);
+check("the track ends at its maximum", close(V.trackPosition(V.TRACK_MAX_K), 1, 1e-12));
+check("25 K and 100 K sit at about 12% and 42%", close(V.trackPosition(25), 0.12, 0.05) && close(V.trackPosition(100), 0.42, 0.02));
+check("pristine gas has about the right-hand 31% of the track", close(1 - V.trackPosition(200), 0.31, 0.03));
+{
+  let rising = true, back = true;
+  for (let k = 0; k + 7 <= 400; k += 7) {
+    if (V.trackPosition(k + 7) <= V.trackPosition(k)) rising = false;
+    if (!close(V.trackTemperature(V.trackPosition(k + 7)), k + 7, 1e-9)) back = false;
+  }
+  check("track position rises with temperature", rising);
+  check("position and temperature round-trip", back);
+}
+{
+  // Pristine gas: centre 250 K, sigma 0.15, lock at the 200 K floor.
+  const s = V.temperatureSetting(250, 0.15, 200);
+  check("the lock is below the free point", s.zLock < 0 && close(s.temperatureFor(s.zLock), 200, 1e-9));
+  check("a setting below the lock is raised to it", s.clamp(-3) === s.zLock);
+  check("the free point is always allowed", s.clamp(0) === 0);
+  check("the hot end stops at +3 sigma", s.clamp(9) === 3);
+  // A small budget stops the thumb before the lock on the cold side.
+  const tight = V.temperatureSetting(250, 0.15, 200, 0.5);
+  check("the budget bounds both sides", tight.clamp(-3) === -0.5 && tight.clamp(3) === 0.5);
+  // A lock at the centre (no room below) still leaves z = 0.
+  const flat = V.temperatureSetting(200, 0.15, 200);
+  check("a lock at the centre allows only z >= 0", flat.zLock === 0 && flat.clamp(-1) === 0);
+  // More metals: a lower floor puts the lock further left on the track.
+  check("a colder lock sits further left", V.trackPosition(23) < V.trackPosition(200));
+}
+
 console.log(JSON.stringify(checks));

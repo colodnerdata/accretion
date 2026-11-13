@@ -22,9 +22,8 @@ a diary. Link to an issue when it owns the detail.
     - Choose the epoch boundaries for the prediction system (candidates
       in "Epochs" in `docs/planning/prediction-system.md`), and confirm the
       proposed reading of "predictions reset" there.
-    - Rulings still queued from the repository review: the clamped slider
-      cost, the ring-count migration story, and the one-implementation
-      proposal (protected decision — not for implementation without
+    - Rulings still queued from the repository review: the ring-count
+      migration story and the one-implementation proposal (protected decision — not for implementation without
       sign-off). The review itself is a local, uncommitted file,
       `docs/accretion-repository-review.md`.
 - **Next action:** the spot-check of the Layer 1 values in `physics.py`
@@ -33,9 +32,12 @@ a diary. Link to an issue when it owns the detail.
   the edge-on inset, or step 4, disk breakup. Done so far in steps 1 and 2:
   the run record (PR #25), the audit tool and report (PR #26, `uv run poe
   audit`), and the copy audit (`docs/audit/copy-audit.md`, DECISIONS
-  2026-11-13). Four copy-audit items wait for an owner ruling; the one with
+  2026-11-13). Two copy-audit items still wait for an owner ruling; the one with
   engine consequences is that the disk is cleared before ignition
-  (`ionizing_rate` is flat below 5 M☉). The clock-drift table in
+  (`ionizing_rate` is flat below 5 M☉). The other two were ruled: the
+  Temperature slider now has a padlock at the coldest allowed gas
+  (DECISIONS 2026-11-13), which also settles the queued "clamped slider
+  cost" item. The clock-drift table in
   `docs/audit/report.md` is the input for the epoch ruling.
   Step 0 is done (hints, PR #24; "Projected life", PR #22). Engineering items still open
   beside that: the 59/61 s offline cliff (credit short absences, keep the

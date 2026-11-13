@@ -239,7 +239,40 @@ const setupItems = (setup, phase) => {
   return items;
 };
 
+// The survey's Temperature track. It runs from absolute zero to
+// TRACK_MAX_K, compressed so cold values get room:
+//   position(T) = asinh(T / TRACK_KNEE_K) / asinh(TRACK_MAX_K / TRACK_KNEE_K)
+// which is close to linear below the knee and close to logarithmic above
+// it; 0, 25, 100 and 400 K sit at about 0, 0.12, 0.42 and 1. The knee is
+// set so both regimes get a usable stretch of the track: pristine gas
+// (200 to 392 K) has the right-hand 31%, and enriched gas at 2 Gyr (23 to
+// 86 K) has about 26% near the left. TRACK_MAX_K covers the hottest region
+// the search can reach (392 K at +3 sigma in pristine gas).
+const TRACK_MAX_K = 400, TRACK_KNEE_K = 100;
+const TRACK_SPAN = Math.asinh(TRACK_MAX_K / TRACK_KNEE_K);
+const trackPosition = (kelvin) => Math.min(1, Math.asinh(Math.max(0, kelvin) / TRACK_KNEE_K) / TRACK_SPAN);
+const trackTemperature = (position) => TRACK_KNEE_K * Math.sinh(Math.min(1, Math.max(0, position)) * TRACK_SPAN);
+
+// The stored setting is still the rarity z (in sigma). A region's start
+// temperature is centre * exp(sigma * z); `lock` is the coldest gas the
+// region allows, and never lies above `centre`, so the free point z = 0 is
+// never locked. `reach` is how far the probability budget lets |z| go.
+// The thumb may sit anywhere in [low, high]:
+//   low  = max(z at the lock, -reach)      high = min(3, reach)
+const TEMPERATURE_Z_MAX = 3;
+const temperatureSetting = (centre, sigma, lock, reach = TEMPERATURE_Z_MAX) => {
+  const zFor = (kelvin) => Math.log(kelvin / centre) / sigma;
+  const zLock = Math.min(0, zFor(lock));
+  const low = Math.max(zLock, -reach), high = Math.min(TEMPERATURE_Z_MAX, reach);
+  return {
+    centre, sigma, lock, zLock, low, high, zFor,
+    temperatureFor: (z) => centre * Math.exp(sigma * z),
+    clamp: (z) => Math.min(high, Math.max(low, z)),
+  };
+};
+
 const VISUALS = {
+  TRACK_MAX_K, TRACK_KNEE_K, trackPosition, trackTemperature, TEMPERATURE_Z_MAX, temperatureSetting,
   METAL_DISPLAY_CAP, HELIUM_SHARE, DENSITY_REFERENCE, SPEED_BASE_PX, SPEED_CAP_PX,
   HYDROGEN_MASS, HELIUM_MASS, METAL_MASS, SPECIES_COLORS,
   speedForTemperature, speedForMass, metalShare, metalDisplayShare, speciesMix, zoomScale,
