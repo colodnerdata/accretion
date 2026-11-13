@@ -32,6 +32,7 @@ test = "pytest"
 build-check = "python tools/build.py --check"
 check = ["lint", "format-check", "build-check", "test"]
 launch = "python tools/launch.py"
+audit = "python tools/audit.py --out docs/audit/report.md"
 hooks = "git config core.hooksPath .githooks"
 
 [tool.pytest.ini_options]
