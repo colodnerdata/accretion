@@ -187,7 +187,7 @@ The core tension is that a larger star pays more but leaves less time for planet
 
 Players should see fuel mixing as an anomaly before they understand it, then earn deliberate control through a planet that survives long enough.
 
-1. **Accident:** A fast-spinning massive star lives longer than its forecast because rotation mixes fresh hydrogen into the core.
+1. **Accident:** A fast-spinning massive star lives longer than projected because rotation mixes fresh hydrogen into the core.
 2. **Second clue:** A close binary transfers mass or merges, rejuvenating a star. Blue stragglers are the real-world example.
 3. **Natural control:** Players deliberately steer spin and binary interactions to extend massive stars.
 4. **Engineered control:** A civilization on a Goldilocks planet attempts mixing in a sun-like star, whose stable radiative zone resists it naturally.

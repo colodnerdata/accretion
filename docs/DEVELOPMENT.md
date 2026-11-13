@@ -52,7 +52,7 @@ as any web source edit; `build.py --check` fails when the page is stale).
 Keys are dotted and file-scoped — `ui.phases.accrete`, `hints.small.tier2`,
 `endings.supernova.title`. Build fails on duplicate keys. Wording that differs
 by situation gets its own entry with a full sentence
-(`hints.small.tier2_with_density`); code picks the branch and the branches
+(`ui.journal.plot_label_early`); code picks the branch and the branches
 never share a sentence.
 
 Entries are either a plain string or a table with `text` plus optional `kind`
