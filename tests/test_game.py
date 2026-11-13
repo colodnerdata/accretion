@@ -119,6 +119,21 @@ def test_run_without_a_start_snapshot_still_gets_a_full_record():
     assert entry["cosmic_age_gyr"] == game.cosmic_age_gyr(meta)
 
 
+def test_record_made_at_prestige_predates_the_runs_own_yield():
+    meta = game.Meta()
+    run = game.new_run(meta)
+    before, age = game.background_metal_log10(meta), game.cosmic_age_gyr(meta)
+    run.start = {}
+    run.phase, run.kind, run.star_mass = "ended", "supernova", 15.0
+    run.ms_duration = run.ms_elapsed = 100.0
+    run.forecast_myr = run.lifetime_myr = 12.0
+    game.prestige(run, meta)
+    entry = meta.journal[0]
+    assert game.background_metal_log10(meta) > before
+    assert entry["background_metal_log10"] == before
+    assert entry["cosmic_age_gyr"] == age
+
+
 def test_mass_budget_closes_through_a_run():
     meta = game.Meta()
     run = game.new_run(meta)

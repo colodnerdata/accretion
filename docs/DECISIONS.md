@@ -48,9 +48,13 @@ design change.
 - **Known limits:** `infall_rate` is computed at the end from the final
   temperature; it equals the rate at collapse only because cooling is bought
   while gathering and permanent upgrades are bought between runs. If either
-  rule changes, record it at collapse instead. The parity script buys no
-  cooling and no permanent upgrade, so those level fields are compared only
-  at zero; the explicit tests in both engines cover non-zero values.
+  rule changes, record it at collapse instead. The parity script compares
+  non-zero in-run cooling and `heavy_cooling`, but leaves `braking`,
+  `heavy_turbulence` and `black_hole_start` at zero or false, and never moves
+  a setting between a run's creation and its end; explicit tests in both
+  engines cover the snapshot. A run with no snapshot takes it when it ends
+  or, failing that, at the top of `prestige`, before its own yield and
+  lifetime move the metals and the clock.
 - **Revisit when:** The epoch boundaries are chosen (add a derived epoch, do
   not store one), the debrief needs a time series, or a rule lets temperature
   change after collapse.

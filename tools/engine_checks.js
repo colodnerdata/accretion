@@ -168,4 +168,18 @@ for (const [kind, counter, mass] of [["supernova", "supernovae", 30], ["black_ho
   check("a run without a snapshot falls back to the current settings", j.zMetal === 0.25 && Number.isFinite(j.cosmicAgeGyr) && Number.isFinite(j.backgroundMetalLog10));
 }
 
+// An empty snapshot counts as missing, and a run recorded only at prestige
+// keeps the metals and clock from before its own yield.
+{
+  const meta = E.newMeta(), run = E.newRun(meta);
+  const before = E.backgroundMetal(meta), age = E.cosmicAgeGyr(meta);
+  run.start = {};
+  run.phase = "ended"; run.kind = "supernova"; run.starMass = 15;
+  run.msDuration = 100.0; run.msElapsed = 100.0; run.forecastMyr = run.lifetimeMyr = 12.0;
+  E.prestige(run, meta);
+  const j = meta.journal[0];
+  check("prestige released metals", E.backgroundMetal(meta) > before);
+  check("the prestige-time record predates the run's own yield", j.backgroundMetalLog10 === before && j.cosmicAgeGyr === age, `${j.backgroundMetalLog10} ${before}`);
+}
+
 console.log(JSON.stringify(checks));

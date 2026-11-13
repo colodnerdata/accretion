@@ -864,9 +864,12 @@ const Engine = (() => {
   // gathering, so the temperature at the end is the temperature at collapse.
   // A run saved before the start snapshot existed falls back to the settings
   // at the time it ends.
+  // A missing or empty snapshot falls back to the settings as they stand,
+  // matching the Python engine's `run.start or start_record(meta)`.
+  const startOf = (run, meta) => (run.start && Object.keys(run.start).length ? run.start : startRecord(meta));
   function journalEntry(run, meta, skipped) {
     return {
-      ...(run.start || startRecord(meta)),
+      ...startOf(run, meta),
       startTemperature: run.baseTemperature, floorTemperature: run.floorTemperature, infallFactor: run.infallFactor,
       levels: { ...run.levels, heavyCooling: meta.heavyCooling, heavyTurbulence: meta.heavyTurbulence },
       collapseMass: run.collapseMass, infallRate: infallRate(temperature(run, meta)) * run.infallFactor,
@@ -903,6 +906,9 @@ const Engine = (() => {
       return next;
     }
     run.settled = true;
+    // A run with no snapshot (an old save, a direct call) takes it here,
+    // before this run's own yield and lifetime move the metals and the clock.
+    run.start = startOf(run, meta);
     const leftEarly = skipped || run.skipped;
     meta.regions *= Math.exp(runGain(run));
     const released = heavyYield(run.starMass, run.kind, run.metalLog10);

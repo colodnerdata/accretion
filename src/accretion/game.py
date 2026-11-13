@@ -745,6 +745,9 @@ def prestige(run: Run, meta: Meta, skipped: bool = False) -> Run:
         update_unlocks(next_run, meta)
         return next_run
     run.settled = True
+    # A run with no snapshot (an old save, a direct call) takes it here,
+    # before this run's own yield and lifetime move the metals and the clock.
+    run.start = run.start or start_record(meta)
     left_early = skipped or run.skipped
     meta.regions *= math.exp(run_gain(run))
     released = physics.heavy_yield(run.star_mass, run.kind, run.metal_log10)
