@@ -113,6 +113,8 @@ text = "Temperature"
 text = "Hotter gas needs more mass to collapse, but falls inward faster and feeds a bigger star. The padlock marks the coldest gas this region allows."
 [search.temperature_zero]
 text = "0 K"
+[search.temperature_max]
+text = "{value} K"
 [search.temperature_lock]
 text = "Locked below {value} K, the coldest this gas can be."
 [search.temperature_aria]
@@ -144,7 +146,7 @@ text = "Mass needed to collapse"
 [search.infall]
 text = "Gas falling inward"
 [search.floor_temperature]
-text = "Lowest temperature here"
+text = "Coldest allowed here"
 [search.universe_age]
 text = "Universe age"
 

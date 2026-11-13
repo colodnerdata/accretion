@@ -34,22 +34,30 @@ design change.
   Radiative cooling announcement states the control's direct effect.
 - **How:** The stored setting is still `zTemperature`, so neither engine,
   parity nor the save shape changes. The interface asks the engine for the
-  region at z = 0 and z = 1 to get the centre and spread, converts thumb
-  position → kelvin → z, and holds z between the padlock and the budget. The
-  track is compressed: position = asinh(T / 100 K) / asinh(4), so pristine
-  gas (200 to 392 K) has the right-hand 31% and enriched gas at 2 Gyr (23 to
-  86 K) about 26% near the left. A setting that the padlock has passed, or
-  one saved below it, is raised to it, which refunds the wasted probability.
-  Within 0.08σ of the free point the thumb lands on it.
+  region at z = 0 and z = 1 to get the centre and spread, and for the free
+  region's temperature after permanent cooling, so the thumb shows the gas
+  the run will really start with. It converts thumb position → kelvin → z
+  and holds z between the padlock and the budget. The track is compressed:
+  position = asinh(T / 100 K) / asinh(8), from 0 to 800 K, so pristine gas
+  (200 to 392 K) has about 23% of it and enriched gas at 2 Gyr (23 to 86 K)
+  about 20%. A setting that the padlock has passed, or one saved below it,
+  is raised to it, which refunds the wasted probability. A drag that comes
+  within 0.08σ of the free point lands on it; arrow keys do not snap.
+- **Permanent cooling:** it lowers the gas a setting gives (×0.9 per level)
+  as well as the padlock. With enough levels the free region already rests on
+  the padlock; the settings between the free point and the one that lifts the
+  gas off the padlock would buy nothing, so a thumb at the padlock is stored
+  as the free point.
 - **Why:** A lock that can be seen moving explains the metals lever without
   a forecast: it shows the current bound, not an outcome. A linear track was
   rejected because enriched gas would get a fifth of it; keeping the rarity
   scale was rejected because the lock would barely move.
 - **Known limits:** The clamp is in the interface only. A script that sets
   `z_temperature` below the floor still gets the engine's own clamp and pays
-  for it. The knee (100 K) differs from the 20 K first proposed, which left
-  pristine gas 19% of the track. The right end (400 K) carries no label.
-- **Revisit when:** A region can start above 400 K, or playtests show the
+  for it. The scale differs from the one first proposed (knee 20 K, top
+  400 K): that left pristine gas 19% of the track, and gas that has just
+  stopped being primordial can start as hot as about 743 K.
+- **Revisit when:** A region can start above 800 K, or playtests show the
   compressed scale is misread as linear.
 
 - **Date and title:** 2026-11-13 — Copy audit: player-facing claims are checked against the engine and recorded in `docs/audit/copy-audit.md`.

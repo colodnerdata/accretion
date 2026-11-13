@@ -243,31 +243,40 @@ const setupItems = (setup, phase) => {
 // TRACK_MAX_K, compressed so cold values get room:
 //   position(T) = asinh(T / TRACK_KNEE_K) / asinh(TRACK_MAX_K / TRACK_KNEE_K)
 // which is close to linear below the knee and close to logarithmic above
-// it; 0, 25, 100 and 400 K sit at about 0, 0.12, 0.42 and 1. The knee is
-// set so both regimes get a usable stretch of the track: pristine gas
-// (200 to 392 K) has the right-hand 31%, and enriched gas at 2 Gyr (23 to
-// 86 K) has about 26% near the left. TRACK_MAX_K covers the hottest region
-// the search can reach (392 K at +3 sigma in pristine gas).
-const TRACK_MAX_K = 400, TRACK_KNEE_K = 100;
+// it; 0, 25, 100, 400 and 800 K sit at about 0, 0.09, 0.32, 0.75 and 1.
+// TRACK_MAX_K covers the hottest region the search can reach: about 743 K,
+// at +3 sigma in gas that has just stopped being primordial (pristine gas
+// tops out at 392 K). The knee leaves pristine gas (200 to 392 K) about 23%
+// of the track and enriched gas at 2 Gyr (23 to 86 K) about 20%.
+const TRACK_MAX_K = 800, TRACK_KNEE_K = 100;
 const TRACK_SPAN = Math.asinh(TRACK_MAX_K / TRACK_KNEE_K);
 const trackPosition = (kelvin) => Math.min(1, Math.asinh(Math.max(0, kelvin) / TRACK_KNEE_K) / TRACK_SPAN);
 const trackTemperature = (position) => TRACK_KNEE_K * Math.sinh(Math.min(1, Math.max(0, position)) * TRACK_SPAN);
 
-// The stored setting is still the rarity z (in sigma). A region's start
-// temperature is centre * exp(sigma * z); `lock` is the coldest gas the
-// region allows, and never lies above `centre`, so the free point z = 0 is
-// never locked. `reach` is how far the probability budget lets |z| go.
-// The thumb may sit anywhere in [low, high]:
-//   low  = max(z at the lock, -reach)      high = min(3, reach)
+// The stored setting is still the rarity z (in sigma). The gas a region
+// starts with is max(lock, centre * exp(sigma * z)), where `centre` already
+// includes permanent cooling and `lock` is the coldest gas the region
+// allows. zLock = ln(lock / centre) / sigma is the setting whose gas just
+// reaches the lock; every colder setting gives the same gas and would only
+// cost probability, so none is allowed. zLock is at most 0 until permanent
+// cooling pulls the centre below the lock; then the free point z = 0 already
+// rests on the lock, and the settings between 0 and zLock are the wasted
+// ones. `rest` = min(0, zLock) is where a thumb at the lock is stored.
+// `reach` is how far the probability budget lets |z| go. So the thumb may
+// sit at `rest` (if the budget reaches it) or anywhere in
+// [max(zLock, -reach), min(3, reach)].
 const TEMPERATURE_Z_MAX = 3;
 const temperatureSetting = (centre, sigma, lock, reach = TEMPERATURE_Z_MAX) => {
   const zFor = (kelvin) => Math.log(kelvin / centre) / sigma;
-  const zLock = Math.min(0, zFor(lock));
-  const low = Math.max(zLock, -reach), high = Math.min(TEMPERATURE_Z_MAX, reach);
+  const zLock = zFor(lock), rest = Math.min(0, zLock);
+  const low = Math.max(rest, -reach), high = Math.min(TEMPERATURE_Z_MAX, reach);
   return {
-    centre, sigma, lock, zLock, low, high, zFor,
-    temperatureFor: (z) => centre * Math.exp(sigma * z),
-    clamp: (z) => Math.min(high, Math.max(low, z)),
+    centre, sigma, lock, zLock, rest, low, high, zFor,
+    temperatureFor: (z) => Math.max(lock, centre * Math.exp(sigma * z)),
+    clamp: (z) => {
+      const held = Math.min(high, Math.max(low, z));
+      return held < zLock ? Math.max(low, rest) : held;
+    },
   };
 };
 

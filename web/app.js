@@ -546,9 +546,13 @@ function fieldRow(id, label, key, text, [low, high]) {
 // centre and spread of the region's temperature come from the engine, by
 // asking it for the regions at z = 0 and z = 1; the lock is the region's
 // floor; the reach is what the probability left by the other settings buys.
+// Permanent cooling lowers the gas a setting gives as well as the lock, so
+// the centre is the engine's cooled temperature for the free region, read
+// with the floor taken away.
 function temperatureRange(m) {
-  const free = E.newRun({ ...m, zTemperature: 0 }), centre = free.baseTemperature;
-  const sigma = Math.log(E.newRun({ ...m, zTemperature: 1 }).baseTemperature / centre);
+  const free = E.newRun({ ...m, zTemperature: 0 });
+  const centre = E.temperatureAt({ ...free, floorTemperature: 0 }, m, m.heavyCooling);
+  const sigma = Math.log(E.newRun({ ...m, zTemperature: 1 }).baseTemperature / free.baseTemperature);
   const others = E.regionCost({ ...m, zTemperature: 0 });
   const reach = Math.sqrt(Math.max(0, 2 * (E.budget(m) - others))) - 1e-9;
   return VISUALS.temperatureSetting(centre, sigma, free.floorTemperature, Math.max(0, reach));
@@ -563,22 +567,27 @@ function temperatureRow() {
   const wrap = document.createElement("label");
   wrap.className = "field thermal";
   wrap.innerHTML = `<span>${esc(t("ui.search.temperature_label"))}</span><output id="temperature-out"></output><small>${esc(t("ui.search.temperature_note"))}</small>
-    <span class="thermal-track"><i class="locked" id="temperature-locked"></i><i class="rare" id="temperature-rare-cold"></i><i class="rare" id="temperature-rare-hot"></i><i class="tick" id="temperature-tick"></i><i class="padlock" id="temperature-padlock">${PADLOCK}</i><input id="temperature" type="range" min="0" max="1000" step="1"></span>
-    <span class="thermal-scale" aria-hidden="true"><span>${esc(t("ui.search.temperature_zero"))}</span><span id="temperature-free">${esc(t("ui.search.no_cost"))}</span></span>
+    <span class="thermal-track"><i class="locked" id="temperature-locked"></i><i class="rare" id="temperature-rare-cold"></i><i class="rare" id="temperature-rare-hot"></i><i class="tick" id="temperature-tick"></i><i class="padlock" id="temperature-padlock">${PADLOCK}</i><input id="temperature" type="range" min="0" max="1000" step="5"></span>
+    <span class="thermal-scale" aria-hidden="true"><span>${esc(t("ui.search.temperature_zero"))}</span><span id="temperature-free">${esc(t("ui.search.no_cost"))}</span><span class="end">${esc(t("ui.search.temperature_max", { value: VISUALS.TRACK_MAX_K }))}</span></span>
     <small class="thermal-lock" id="temperature-lock-note"></small>`;
   const input = wrap.querySelector("input");
+  // A drag lands on the free point when it comes close: a pixel of travel on
+  // a phone is several hundredths of a sigma. Arrow keys must not, or they
+  // could never leave it.
+  let dragging = false;
+  input.onpointerdown = () => { dragging = true; };
+  input.onkeydown = () => { dragging = false; };
   input.oninput = () => {
     const m = state.meta, old = m.zTemperature, range = temperatureRange(m);
     const kelvin = VISUALS.trackTemperature(Number(input.value) / 1000);
-    const wanted = kelvin > 0 ? range.zFor(kelvin) : -Infinity;
-    // Close to the free point, land on it exactly: one pixel of travel on
-    // a phone is about 0.05 sigma in pristine gas.
-    const z = range.clamp(Math.abs(wanted) < 0.08 ? 0 : wanted);
+    // At or below the lock every setting gives the same gas, so ask for the
+    // lock's own setting; above it, the setting that gives this temperature.
+    const wanted = kelvin > range.lock ? range.zFor(kelvin) : range.rest;
+    const z = range.clamp(dragging && Math.abs(wanted) < 0.08 ? 0 : wanted);
     m.zTemperature = z;
     // The budget stopped the thumb, as on the other sliders. The padlock
     // stopping it needs no notice: the lock is drawn where it stopped.
-    $("limit").hidden = !(wanted > range.high + 1e-6 || (wanted < range.low - 1e-6 && range.low > range.zLock + 1e-9));
-    wrap.classList.toggle("at-lock", wanted < range.zLock - 1e-6);
+    $("limit").hidden = !(wanted > range.high + 1e-6 || wanted < range.low - 1e-6);
     if (old !== z) refreshSearch(); else placeTemperature(range);
   };
   return wrap;
@@ -591,15 +600,21 @@ function placeTemperature(range) {
   const m = state.meta, P = VISUALS.trackPosition, T = range.temperatureFor;
   const at = (id, position) => $(id).style.setProperty("--p", position.toFixed(4));
   const span = (id, from, to) => { const e = $(id); e.style.setProperty("--p", from.toFixed(4)); e.style.setProperty("--w", Math.max(0, to - from).toFixed(4)); };
-  const lock = P(range.lock), low = P(T(range.low)), high = P(T(range.high));
+  // The cold dim stretch is gas the budget cannot reach above the lock.
+  const coldest = Math.max(range.low, range.zLock);
+  const lock = P(range.lock), low = P(T(coldest)), high = P(T(range.high)), free = P(T(0));
   input.value = Math.round(P(T(m.zTemperature)) * 1000);
+  input.closest(".field").classList.toggle("at-lock", T(m.zTemperature) <= range.lock);
   input.setAttribute("aria-valuetext", t("ui.search.temperature_aria", { value: T(m.zTemperature).toFixed(0), lock: range.lock.toFixed(0) }));
   span("temperature-locked", 0, lock);
   span("temperature-rare-cold", lock, low);
   span("temperature-rare-hot", high, 1);
   at("temperature-padlock", lock);
-  at("temperature-tick", P(range.centre));
-  at("temperature-free", P(range.centre));
+  at("temperature-tick", free);
+  at("temperature-free", free);
+  // Near the cold end the label cannot sit under its tick without covering
+  // "0 K", so it moves aside and points back at it.
+  $("temperature-free").classList.toggle("aside", free < 0.24);
   $("temperature-lock-note").textContent = t("ui.search.temperature_lock", { value: range.lock.toFixed(0) });
 }
 function refreshSearch() {
@@ -615,9 +630,8 @@ function refreshSearch() {
   // Composition changes re-judge the shop's cooling bound, so repaint it.
   document.querySelectorAll("#heavy-list button").forEach((b) => b.paint && b.paint());
   if ($("density-out")) $("density-out").textContent = `${sci(run.density)} /cm³`;
-  // The readout shows the effective starting temperature: the raw draw,
-  // when it sits above the composition floor, or the floor itself when
-  // gravity clamps it. The floor's own row is the "Lowest temperature".
+  // The readout shows the effective starting temperature, which is where
+  // the thumb sits. The floor's own row is "Coldest allowed here".
   if ($("temperature-out")) $("temperature-out").textContent = `${E.temperature(run, m).toFixed(0)} K`;
   if ($("metals-out")) $("metals-out").textContent = `10^${run.metalLog10.toFixed(1)} Z☉`;
   $("spent").textContent = t("ui.search.spent", { spent: E.regionCost(m).toFixed(2), budget: E.budget(m).toFixed(2) });
