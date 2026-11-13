@@ -132,4 +132,15 @@ for (const [kind, counter, mass] of [["supernova", "supernovae", 30], ["black_ho
   check(`a skipped ${kind} advances the clock by the time stayed`, approx(metas[true].cosmicMyr, 0.1 * 7.0));
 }
 
+// The skipped argument alone, on a run not flagged skipped, also counts nothing.
+{
+  const meta = E.newMeta(), run = E.newRun(meta);
+  run.phase = "main_sequence"; run.kind = "supernova"; run.starMass = 30;
+  run.msDuration = 100.0; run.msElapsed = 100.0; run.forecastMyr = run.lifetimeMyr = 7.0;
+  E.step(run, meta, 100.0);
+  check("the run is not flagged skipped", run.skipped === false);
+  E.prestige(run, meta, true);
+  check("prestige(skipped = true) counts no supernova but pays", meta.supernovae === 0 && meta.regions > 1.0);
+}
+
 console.log(JSON.stringify(checks));

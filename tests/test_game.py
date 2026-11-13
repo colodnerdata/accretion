@@ -361,3 +361,19 @@ def test_a_skipped_star_pays_but_does_not_count_as_seen(kind, counter):
     assert left.heavy == pytest.approx(watched.heavy)
     assert left.runs == 1
     assert left.cosmic_myr == pytest.approx(0.1 * 7.0)
+
+
+def test_the_skipped_argument_alone_also_counts_nothing():
+    """prestige(skipped=True) on a run not flagged skipped moves no counter."""
+    meta = game.Meta()
+    run = game.new_run(meta)
+    run.phase = "main_sequence"
+    run.kind = "supernova"
+    run.star_mass = 30.0
+    run.ms_duration, run.ms_elapsed = 100.0, 100.0
+    run.forecast_myr = run.lifetime_myr = 7.0
+    game.step(run, meta, 100.0)
+    assert not run.skipped
+    game.prestige(run, meta, skipped=True)
+    assert meta.supernovae == 0
+    assert meta.regions > 1.0

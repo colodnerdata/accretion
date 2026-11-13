@@ -23,7 +23,7 @@ design change.
 - **Date and title:** 2026-11-13 — A skipped star counts toward no unlock.
 - **Status:** accepted
 - **Context:** `prestige` incremented `supernovae`, set `blackHoleUnlocked` and
-  set `pairInstabilitySeen` from the star's kind whether or not the player left
+  set `pairInstabilitySeen` (which nothing reads yet) from the star's kind whether or not the player left
   early, so a skipped star could unlock the cooling and metals controls or the
   black-hole region option. That discovers a category the player never saw, which
   2026-11-12 ruled the game must not show. It was latent, since only white dwarfs

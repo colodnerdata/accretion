@@ -691,6 +691,10 @@ def prestige(run: Run, meta: Meta, skipped: bool = False) -> Run:
 
     A settled run — one prestige has already applied — pays again to
     nothing: a second call moves no counter and hands back a fresh region.
+
+    A run left early pays regions and heavy elements but moves no category
+    counter (``supernovae``, ``black_hole_unlocked``,
+    ``pair_instability_seen``): discovery needs the ending to be seen.
     """
     if getattr(run, "settled", False):
         next_run = new_run(meta)
