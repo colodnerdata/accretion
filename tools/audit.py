@@ -10,8 +10,12 @@ differs between contexts is context-dependent.
 Two purchase policies are compared. In ``held`` the in-run upgrades other
 than reach and tap stay at level 0 unless they are the swept input, so only
 that input differs between runs. In ``greedy`` the player buys turbulence and
-braking whenever energy allows (never gather cooling, as in ``bot.py``), so
-the timing of purchases moves with the input too.
+braking whenever energy allows (gather cooling only when it is the swept
+input, as in ``bot.py``), so the timing of purchases moves with the input too.
+
+Region settings and permanent levels are set directly in every context,
+whether or not that player could have reached them. Only the in-run caps
+respect unlocks and energy.
 
 The report is for checking relationship text and writing explanations. It
 never grades a player's untested prediction.
@@ -33,7 +37,6 @@ from accretion import game, physics
 ROOT = Path(__file__).parents[1]
 ENGINE_FILES = ("physics.py", "disk.py", "game.py")
 STEP_TOLERANCE = 1.0e-6
-THRESHOLD_SHARE = 0.8
 ALL_UNLOCKS = (
     "reach",
     "tap",
@@ -71,7 +74,7 @@ INPUTS = {
         "meta",
         "z_temperature",
         (-2.0, -1.0, 0.0, 1.0, 2.0),
-        "start_temperature",
+        "temperature",
         "K",
     ),
     "density setting": (
@@ -155,8 +158,12 @@ def make_meta(context: dict, **changes) -> game.Meta:
     return game.Meta(**fields)
 
 
+RUNS_PLAYED = [0]
+
+
 def play(context: dict, caps: dict, **changes) -> dict:
     """Play one run and return its run record."""
+    RUNS_PLAYED[0] += 1
     meta = make_meta(context, **changes)
     run, meta, _ = bot.play(0.5, True, meta=meta, caps=caps, fast_shine=True)
     if run.phase != "ended":
@@ -189,7 +196,8 @@ def sweep(context: dict, name: str, mode: str) -> dict:
             shortfalls.append((value, x))
             continue
         if xs and x == xs[-1]:
-            # A setting clamped by a bound (the temperature floor, say).
+            # A setting a bound clamped to the value already in the series
+            # (two temperature settings that both rest on the floor, say).
             shortfalls.append((value, x))
             continue
         xs.append(x)
@@ -202,26 +210,26 @@ def classify(ys: list) -> str:
 
     Steps smaller than ``STEP_TOLERANCE`` of the largest magnitude are
     ignored. With every remaining step of one sign the series is up or down,
-    or a threshold when one step carries at least ``THRESHOLD_SHARE`` of the
-    total change (four or more points). One change of sign is peaked or
-    dipped. More than one is irregular. A series of fewer than two points
+    or a threshold when it is flat at one end: the outcome does not respond
+    until, or stops responding after, some value of the input. That rule
+    does not depend on how the grid is spaced. One change of sign is peaked
+    or dipped. More than one is irregular. A series of fewer than two points
     (the player could not move the input) is untested.
     """
     if len(ys) < 2:
         return "untested"
     scale = max(abs(y) for y in ys)
-    steps = [b - a for a, b in zip(ys, ys[1:], strict=False)]
-    steps = [d for d in steps if abs(d) > STEP_TOLERANCE * scale]
+    raw = [b - a for a, b in zip(ys, ys[1:], strict=False)]
+    moved = [abs(d) > STEP_TOLERANCE * scale for d in raw]
+    steps = [d for d, real in zip(raw, moved, strict=True) if real]
     if not steps:
         return "no change"
     signs = [1 if d > 0 else -1 for d in steps]
     flips = sum(a != b for a, b in zip(signs, signs[1:], strict=False))
     if flips == 0:
         direction = "up" if signs[0] > 0 else "down"
-        total = sum(abs(d) for d in steps)
-        if len(ys) >= 4 and max(abs(d) for d in steps) >= THRESHOLD_SHARE * total:
-            return f"threshold ({direction})"
-        return direction
+        flat_end = not moved[0] or not moved[-1]
+        return f"threshold ({direction})" if flat_end else direction
     if flips == 1:
         return "peaked" if signs[0] > 0 else "dipped"
     return "irregular"
@@ -261,6 +269,10 @@ def audit(names=None) -> dict:
         for name in names:
             results[mode][name] = {}
             for label, context in CONTEXTS.items():
+                if INPUTS[name][1] in context:
+                    # The sweep would overwrite the one thing that makes
+                    # this context different, and repeat another context.
+                    continue
                 series = sweep(context, name, mode)
                 series["bins"] = {
                     key: classify([r[key] for r in series["records"]])
@@ -271,10 +283,12 @@ def audit(names=None) -> dict:
 
 
 def engine_fingerprint() -> str:
-    """Return a short hash of the Python engine sources."""
+    """Return a short hash of the engine sources, the player and this tool."""
     digest = hashlib.sha256()
     for name in ENGINE_FILES:
         digest.update((ROOT / "src" / "accretion" / name).read_bytes())
+    for name in ("bot.py", "audit.py"):
+        digest.update((ROOT / "tools" / name).read_bytes())
     return digest.hexdigest()[:12]
 
 
@@ -312,6 +326,24 @@ def agreed(bins_by_context: dict) -> str:
     return found.pop() if len(found) == 1 else "depends"
 
 
+def cell(bins_by_context: dict) -> str:
+    """Return a summary cell: the bin, and how many contexts it rests on."""
+    tested = sum(b != "untested" for b in bins_by_context.values())
+    label = agreed(bins_by_context)
+    if tested in (0, len(CONTEXTS)):
+        return label
+    return f"{label} ({tested}/{len(CONTEXTS)})"
+
+
+def start_source(run: game.Run) -> str:
+    """Return which rule in ``game.new_run`` set a region's start temperature."""
+    if run.metal_log10 < physics.PRIMORDIAL_METAL_LOG10:
+        above = game.BASE_TEMPERATURE >= run.floor_temperature
+        return "pristine base" if above else "floor"
+    above = game.ENRICHED_ENVIRONMENT >= run.floor_temperature
+    return "environment × margin" if above else "floor × margin"
+
+
 def clock_rows() -> list:
     """Return composition and temperature bounds along the universal clock."""
     rows = []
@@ -332,6 +364,7 @@ def clock_rows() -> list:
                 fmt(background),
                 "cosmic background" if background > composition else "composition",
                 fmt(run.base_temperature),
+                start_source(run),
                 fmt(record["mass"]),
                 record["ending"],
             ]
@@ -360,32 +393,33 @@ def enrichment_rows() -> list:
 def report(results: dict, quick: bool = False) -> str:
     """Return the Markdown report for a set of audit results."""
     names = list(results["held"])
-    runs = sum(
-        len(INPUTS[name][2])
-        for mode in results
-        for name in results[mode]
-        for _ in CONTEXTS
-    )
+    # Played before the header is written, so its run count includes them.
+    drift = None if quick else (clock_rows(), enrichment_rows())
     out = [
         "# Engine audit",
         "",
         f"> Generated by `tools/audit.py` on {datetime.date.today().isoformat()} from "
         "engine "
-        f"fingerprint `{engine_fingerprint()}` ({runs} runs"
+        f"fingerprint `{engine_fingerprint()}` ({RUNS_PLAYED[0]} runs"
         f"{', quick subset' if quick else ''}). Do not edit by hand: rerun the tool. "
-        "`tools/audit.py --check` says whether the engine has changed since.",
+        "`tools/audit.py --check` says whether the engine, the simulated player or "
+        "this tool has changed since.",
         "",
         "Each cell is the bin of one outcome against one input, moved alone across "
-        "its grid. Bins: no change, up, down, peaked, dipped, threshold (at least "
-        f"{THRESHOLD_SHARE:.0%} of the change in one step), irregular (more than one "
+        "its grid. Bins: no change, up, down, peaked, dipped, threshold (one "
+        "direction, but flat at one end of the grid), irregular (more than one "
         "change of direction). `depends` means the bin differs between contexts; the "
         "details follow each table. `untested` means the simulated player could not "
-        "move that input. The simulated player taps 0.5 times a second and "
-        "buys reach and tap whenever energy allows.",
+        "buy that level. A count such as `(2/4)` says how many of the four contexts "
+        "the bin rests on. The simulated player taps 0.5 times a second and buys "
+        "reach and tap whenever energy allows.",
         "",
         "Contexts: " + "; ".join(f"**{label}**" for label in CONTEXTS) + ". "
-        "A first run has only the controls a new player has, so cooling and braking "
-        "cannot be bought there and turbulence unlocks at ignition.",
+        "Region settings and permanent levels are set directly in every context, "
+        "whether or not that player could have reached them. Only in-run purchases "
+        "respect unlocks and energy: on a first run cooling and braking cannot be "
+        "bought and turbulence unlocks at ignition. A context is left out of a sweep "
+        "that would overwrite the setting that defines it.",
         "",
         "These bins are for checking text and writing explanations. They never grade "
         "a player's untested prediction.",
@@ -397,14 +431,16 @@ def report(results: dict, quick: bool = False) -> str:
         ),
         (
             "greedy",
-            "turbulence and braking are bought whenever energy allows, never cooling",
+            "turbulence and braking are bought whenever energy allows; cooling only "
+            "when "
+            "it is the swept input",
         ),
     ):
         out += ["", f"## Bins, {mode} purchases", "", f"Policy: {blurb}.", ""]
         rows = []
         for name in names:
             cells = [
-                agreed({c: s["bins"][key] for c, s in results[mode][name].items()})
+                cell({c: s["bins"][key] for c, s in results[mode][name].items()})
                 for key in OUTCOMES
             ]
             rows.append([name, *cells])
@@ -423,7 +459,7 @@ def report(results: dict, quick: bool = False) -> str:
     differs = []
     for name in names:
         for key, label in OUTCOMES.items():
-            for context in CONTEXTS:
+            for context in results["held"][name]:
                 held = results["held"][name][context]["bins"][key]
                 greedy = results["greedy"][name][context]["bins"][key]
                 if held != greedy:
@@ -472,7 +508,7 @@ def report(results: dict, quick: bool = False) -> str:
     ]
     rows = []
     for name in names:
-        if INPUTS[name][3] not in ("start_temperature", "density"):
+        if INPUTS[name][3] not in ("temperature", "density"):
             continue
         for context, series in results["held"][name].items():
             cells = []
@@ -480,7 +516,8 @@ def report(results: dict, quick: bool = False) -> str:
             around = {r["ending"] for r in series["records"][middle - 1 : middle + 2]}
             for key in OUTCOMES:
                 # A slope taken across a change of ending measures the jump.
-                if len(around) > 1 and key in PAID_BY_ENDING:
+                jumps = len(series["xs"]) >= 3 and len(around) > 1
+                if jumps and key in PAID_BY_ENDING:
                     cells.append("ending changes")
                     continue
                 value = elasticity(series["xs"], [r[key] for r in series["records"]])
@@ -519,9 +556,10 @@ def report(results: dict, quick: bool = False) -> str:
             "",
             "Composition and the temperature bounds along the universal clock, for a "
             "player who has released no metals, with final mass and ending under held "
-            "purchases. The candidate epoch boundaries are where `primordial` turns to "
-            "no, where the composition bound starts to fall, and where the cosmic "
-            "background stops setting the floor.",
+            "purchases. Candidate epoch boundaries are wherever a column changes "
+            "regime: `primordial` turning to no, the composition bound starting or "
+            "ceasing to fall, a change in what sets the floor, and a change in what "
+            "sets the start temperature.",
             "",
             *table(
                 [
@@ -533,10 +571,11 @@ def report(results: dict, quick: bool = False) -> str:
                     "cosmic background (K)",
                     "floor set by",
                     "start temperature (K)",
+                    "start set by",
                     "final mass (M☉)",
                     "ending",
                 ],
-                clock_rows(),
+                drift[0],
             ),
             "",
             "Composition against the player's own released metals, at the starting "
@@ -550,7 +589,7 @@ def report(results: dict, quick: bool = False) -> str:
                     "floor (K)",
                     "start temperature (K)",
                 ],
-                enrichment_rows(),
+                drift[1],
             ),
         ]
 

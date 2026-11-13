@@ -29,14 +29,19 @@ design change.
 - **Decision:** `tools/audit.py` holds a context fixed, moves one input across
   a grid, plays each run with the `tools/bot.py` player, and reads the run
   record. Each series gets a bin: no change, up, down, peaked, dipped,
-  threshold (at least 80% of the change in one step, four or more points) or
-  irregular; steps under 1e-6 of the scale are ignored. A pair whose bin
+  threshold (one direction, but flat at one end of the grid) or irregular;
+  steps under 1e-6 of the scale are ignored. A pair whose bin
   differs between contexts is `depends`; a context where the player cannot
-  move the input is `untested` and left out. Four contexts (first run, hot
-  pristine, cold pristine, enriched) and two purchase policies: held (other
-  in-run upgrades at level 0) and greedy (turbulence and braking whenever
-  energy allows, never gather cooling). The report is committed at
-  `docs/audit/report.md` with a fingerprint of the Python engine sources;
+  buy the level is `untested` and left out, and a summary cell says how many
+  contexts it rests on. Four contexts (first run, hot pristine, cold
+  pristine, enriched); a context is left out of a sweep that would overwrite
+  the setting that defines it. Region settings and permanent levels are set
+  directly in every context; only in-run purchases respect unlocks and
+  energy. Two purchase policies: held (other in-run upgrades at level 0) and
+  greedy (turbulence and braking whenever energy allows; gather cooling only
+  when it is the swept input). The report is committed at
+  `docs/audit/report.md` with a fingerprint of the Python engine sources,
+  `tools/bot.py` and the tool itself;
   `tools/audit.py --check` says whether it is stale. `uv run poe audit`
   regenerates it (about 80 seconds). It is not part of `poe check`.
 - **Why:** Held purchases isolate the input; greedy purchases show what a
@@ -44,6 +49,10 @@ design change.
   (density changes final mass only under greedy). Irregular is kept as its own
   bin, never smoothed into a trend: turbulence level 3 to 4 raises the mass.
   The bins never grade a player's untested prediction.
+- **Rejected:** a threshold rule based on the share of the change in one
+  step (first version: 80%). It depended on the grid: a smooth power law
+  steeper than about 1.1 on the density grid, or any trend on the unevenly
+  spaced clock grid, was labeled a threshold.
 - **Known limits:** Contexts are four points, not a sample of the region
   space, so `depends` means "differs among these four". Pairwise interaction
   grids are left for the hypercube (step 11). The slope across a change of

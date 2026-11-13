@@ -12,8 +12,12 @@ import pytest
         ([5.0, 4.0, 4.0, 2.0, 1.0], "down"),
         ([1.0, 3.0, 5.0, 4.0, 2.0], "peaked"),
         ([5.0, 3.0, 1.0, 2.0, 4.0], "dipped"),
-        ([1.0, 1.1, 9.0, 9.1, 9.2], "threshold (up)"),
-        ([9.0, 8.9, 1.0, 0.9, 0.8], "threshold (down)"),
+        ([1.0, 1.0, 1.0, 2.0, 3.0], "threshold (up)"),
+        ([9.0, 5.0, 1.0, 1.0, 1.0], "threshold (down)"),
+        ([26.0, 26.0, 26.0, 7.0, 1.5, 1.5], "threshold (down)"),
+        # A steep power law on a coarse grid is still a plain trend.
+        ([4.4817 ** (1.2 * i) for i in range(5)], "up"),
+        ([1.0, 1.1, 9.0, 9.1, 9.2], "up"),
         ([1.0, 3.0, 2.0, 4.0, 3.0], "irregular"),
         ([1.0, 2.0], "up"),
     ],
@@ -58,8 +62,37 @@ def test_density_sweep_changes_collapse_mass_but_not_final_mass():
     assert slope == pytest.approx(-0.5, abs=1e-6)
 
 
-def test_report_names_the_engine_it_was_generated_from():
-    results = audit.audit(("black hole start",))
+def test_cell_says_how_many_contexts_a_bin_rests_on():
+    full = dict.fromkeys(audit.CONTEXTS, "down")
+    assert audit.cell(full) == "down"
+    assert audit.cell({**full, "first run": "untested"}) == "down (3/4)"
+    assert audit.cell({"first run": "up", "enriched": "up"}) == "up (2/4)"
+
+
+def test_a_context_is_left_out_of_a_sweep_that_would_overwrite_it(monkeypatch):
+    record = {**dict.fromkeys(audit.OUTCOMES, 1.0), "ending": "supernova"}
+    record.update(temperature=250.0, levels={})
+    monkeypatch.setattr(audit, "play", lambda *a, **k: dict(record))
+    results = audit.audit(("temperature setting",))
+    assert set(results["held"]["temperature setting"]) == {"first run", "enriched"}
+
+
+def test_report_names_what_it_was_generated_from():
+    record = {**dict.fromkeys(audit.OUTCOMES, 1.0), "ending": "supernova"}
+    series = {
+        "xs": [False, True],
+        "records": [record, {**record, "mass": 2.0, "ending": "black_hole"}],
+        "shortfalls": [],
+    }
+    series["bins"] = {
+        key: audit.classify([r[key] for r in series["records"]])
+        for key in audit.OUTCOMES
+    }
+    results = {
+        mode: {"black hole start": {"first run": series}} for mode in audit.MODES
+    }
     text = audit.report(results, quick=True)
     assert f"`{audit.engine_fingerprint()}`" in text
     assert "| black hole start |" in text
+    assert "up (1/4)" in text
+    assert "supernova → black_hole" in text
