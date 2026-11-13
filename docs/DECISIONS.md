@@ -40,6 +40,26 @@ design change.
 - **Revisit when:** `test_density_changes_collapse_mass_but_not_final_mass` or
   `test_cooling_bought_while_gathering_makes_a_smaller_star` fails (the engine
   changed under the hints), or disk breakup (step 4) makes density matter.
+- **Date and title:** 2026-11-13 — A skipped star counts toward no unlock.
+- **Status:** accepted
+- **Context:** `prestige` incremented `supernovae`, set `blackHoleUnlocked` and
+  set `pairInstabilitySeen` (which nothing reads yet) from the star's kind whether or not the player left
+  early, so a skipped star could unlock the cooling and metals controls or the
+  black-hole region option. That discovers a category the player never saw, which
+  2026-11-12 ruled the game must not show. It was latent, since only white dwarfs
+  can be skipped with today's constants.
+- **Decision:** In both engines the three category counters move only when the
+  star was watched to its end. A skipped star still pays regions and heavy
+  elements, still advances the clock by the time stayed, and still counts as a
+  run. Tests in both engines and a parity row cover supernova, black hole and
+  pair instability, skipped and watched.
+- **Why:** Rewards are paid for the move to a new region (decided mechanic);
+  discovery is a separate thing and needs the ending to be seen. Rejected: a
+  flat reward for skipped runs, which would change the economy for no teaching
+  gain.
+- **Revisit when:** The skip gate changes so heavier stars can be skipped: a
+  skipped supernova would then pay heavy elements without unlocking the
+  controls that spend them, which playtesting should judge.
 
 - **Date and title:** 2026-11-12 — The only projection is a star's duration, and a skipped star shows no category or mass.
 - **Status:** accepted
@@ -66,10 +86,10 @@ design change.
   enough for that ends as a white dwarf), so the skip button's presence already
   tells the player the category; the live "Star" mass and the payout rows
   (a white dwarf pays 0.4 + 0.1 m) also reveal it. The ruling is kept as a
-  display rule for stars that could be skipped later. (2) `prestige` still
-  counts a skipped supernova in `supernovae` and a skipped black hole in
-  `blackHoleUnlocked`, because rewards are paid for a skip; that is latent
-  today and would need both engines and the parity test to change. The goal
+  display rule for stars that could be skipped later. (2) `prestige` counted a
+  skipped supernova in `supernovae` and a skipped black hole in
+  `blackHoleUnlocked`, because rewards are paid for a skip; latent today.
+  Fixed 2026-11-13 in both engines (entry above). The goal
   text, outcome bands, hints and "stuck" nudge read only runs the player saw
   end. (3) A white dwarf is now recorded for the goal and the outcome bands
   only when watched to its end, which is at least about 21 minutes of shine;
