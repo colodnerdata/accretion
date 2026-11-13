@@ -583,7 +583,9 @@ function temperatureRow() {
     // At or below the lock every setting gives the same gas, so ask for the
     // lock's own setting; above it, the setting that gives this temperature.
     const wanted = kelvin > range.lock ? range.zFor(kelvin) : range.rest;
-    const z = range.clamp(dragging && Math.abs(wanted) < 0.08 ? 0 : wanted);
+    // The snap applies only above the lock, so a drag to the padlock stops
+    // at the padlock even when the free point is a hair above it.
+    const z = range.clamp(dragging && kelvin > range.lock && Math.abs(wanted) < 0.08 ? 0 : wanted);
     m.zTemperature = z;
     // The budget stopped the thumb, as on the other sliders. The padlock
     // stopping it needs no notice: the lock is drawn where it stopped.

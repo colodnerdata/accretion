@@ -24,6 +24,9 @@ SURVEY = """
   s.view = "search";
   update();
   refreshSearch();
+  // The row is not rebuilt between tests, so reset what it remembers.
+  document.getElementById("temperature").dispatchEvent(new Event("keydown"));
+  document.getElementById("limit").hidden = true;
 }
 """
 READ = """
@@ -88,6 +91,8 @@ def test_the_padlock_sits_at_the_floor_and_the_thumb_cannot_pass_it(page):
     assert held["z"] == pytest.approx(-1.4876, abs=1e-3)
     assert held["cost"] == pytest.approx(held["z"] ** 2 / 2)
     assert held["aria"] == "200 K. Coldest allowed here: 200 K."
+    # The padlock stopped the thumb, not the budget, so no budget notice.
+    assert page.evaluate("() => document.getElementById('limit').hidden")
 
 
 def test_a_drag_lands_on_the_free_point_but_arrow_keys_can_leave_it(page):
