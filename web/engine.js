@@ -468,9 +468,14 @@ const Engine = (() => {
     if (recorded) {
       if (leftEarly) meta.journal[meta.journal.length - 1].skipped = true;
     } else meta.journal.push(journalEntry(run, meta, leftEarly));
-    if (run.kind === "supernova") meta.supernovae += 1;
-    if (run.kind === "black_hole") meta.blackHoleUnlocked = true;
-    if (run.kind === "pair_instability") meta.pairInstabilitySeen = true;
+    // A star the player left early was never seen to end, so its category
+    // counts toward no unlock: the reward above and the clock below are paid
+    // for the move to a new region, but discovery needs the ending.
+    if (!leftEarly) {
+      if (run.kind === "supernova") meta.supernovae += 1;
+      if (run.kind === "black_hole") meta.blackHoleUnlocked = true;
+      if (run.kind === "pair_instability") meta.pairInstabilitySeen = true;
+    }
     if (run.lifetimeMyr) meta.cosmicMyr += leftEarly ? run.msElapsed / run.msDuration * run.lifetimeMyr : run.lifetimeMyr;
     meta.runs += 1;
     const next = newRun(meta);

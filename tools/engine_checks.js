@@ -114,4 +114,33 @@ function approx(a, b, rel = 1e-9) { return Math.abs(a - b) <= Math.abs(b) * rel;
   check("the clock advanced only the elapsed share", approx(meta.cosmicMyr, share));
 }
 
+// A skipped star pays its reward but discovers nothing: the category counters
+// move only for a star the player watched to its end.
+for (const [kind, counter, mass] of [["supernova", "supernovae", 30], ["black_hole", "blackHoleUnlocked", 30], ["pair_instability", "pairInstabilitySeen", 150]]) {
+  const metas = {};
+  for (const skipped of [false, true]) {
+    const meta = E.newMeta(), run = E.newRun(meta);
+    run.phase = "main_sequence"; run.kind = kind; run.starMass = mass;
+    run.msDuration = 100.0; run.msElapsed = 100.0; run.forecastMyr = run.lifetimeMyr = 7.0;
+    if (skipped) { run.msElapsed = 10.0; E.skip(run, meta); } else E.step(run, meta, 100.0);
+    E.prestige(run, meta);
+    metas[skipped] = meta;
+  }
+  check(`a watched ${kind} counts`, Boolean(metas[false][counter]));
+  check(`a skipped ${kind} counts for nothing`, !metas[true][counter]);
+  check(`a skipped ${kind} still pays regions and heavy elements`, approx(metas[true].regions, metas[false].regions) && approx(metas[true].heavy, metas[false].heavy));
+  check(`a skipped ${kind} advances the clock by the time stayed`, approx(metas[true].cosmicMyr, 0.1 * 7.0));
+}
+
+// The skipped argument alone, on a run not flagged skipped, also counts nothing.
+{
+  const meta = E.newMeta(), run = E.newRun(meta);
+  run.phase = "main_sequence"; run.kind = "supernova"; run.starMass = 30;
+  run.msDuration = 100.0; run.msElapsed = 100.0; run.forecastMyr = run.lifetimeMyr = 7.0;
+  E.step(run, meta, 100.0);
+  check("the run is not flagged skipped", run.skipped === false);
+  E.prestige(run, meta, true);
+  check("prestige(skipped = true) counts no supernova but pays", meta.supernovae === 0 && meta.regions > 1.0);
+}
+
 console.log(JSON.stringify(checks));

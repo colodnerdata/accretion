@@ -173,6 +173,36 @@ def test_python_and_browser_engines_agree():
             game.alpha(fixed, fixed_meta),
         ]
     )
+    # A skipped star pays its reward but discovers nothing; a watched one counts.
+    for kind, mass in (
+        ("supernova", 30),
+        ("black_hole", 30),
+        ("pair_instability", 150),
+    ):
+        for skipped in (False, True):
+            seen_meta = game.Meta()
+            seen_run = game.new_run(seen_meta)
+            seen_run.phase = "main_sequence"
+            seen_run.kind = kind
+            seen_run.star_mass = mass
+            seen_run.ms_duration = 100.0
+            seen_run.ms_elapsed = 10.0 if skipped else 100.0
+            seen_run.forecast_myr = seen_run.lifetime_myr = 7.0
+            if skipped:
+                game.skip(seen_run, seen_meta)
+            else:
+                game.step(seen_run, seen_meta, 100.0)
+            game.prestige(seen_run, seen_meta)
+            rows.append(
+                [
+                    seen_meta.supernovae,
+                    int(seen_meta.black_hole_unlocked),
+                    int(seen_meta.pair_instability_seen),
+                    seen_meta.regions,
+                    seen_meta.heavy,
+                    seen_meta.cosmic_myr,
+                ]
+            )
     assert len(rows) == len(browser)
     for ours, theirs in zip(rows, browser, strict=True):
         if isinstance(ours[0], str):

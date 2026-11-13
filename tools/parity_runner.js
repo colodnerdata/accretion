@@ -71,4 +71,17 @@ rows.push([E.stromgrenRadius(E.ionizingRate(22), 1e4), E.hiiRadius(E.ionizingRat
   run.diskMasses[0] = 0.02; run.diskMasses[1] = 0.05;
   rows.push([E.innerAccretionRate(run, E.newMeta()), E.alpha(run, E.newMeta())]);
 }
+{
+  // A skipped star pays its reward but discovers nothing; a watched one counts.
+  for (const [kind, mass] of [["supernova", 30], ["black_hole", 30], ["pair_instability", 150]]) {
+    for (const skipped of [false, true]) {
+      const meta = E.newMeta(), run = E.newRun(meta);
+      run.phase = "main_sequence"; run.kind = kind; run.starMass = mass;
+      run.msDuration = 100.0; run.msElapsed = skipped ? 10.0 : 100.0; run.forecastMyr = run.lifetimeMyr = 7.0;
+      if (skipped) E.skip(run, meta); else E.step(run, meta, 100.0);
+      E.prestige(run, meta);
+      rows.push([meta.supernovae, Number(meta.blackHoleUnlocked), Number(meta.pairInstabilitySeen), meta.regions, meta.heavy, meta.cosmicMyr]);
+    }
+  }
+}
 console.log(JSON.stringify(rows));
