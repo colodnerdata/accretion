@@ -20,7 +20,7 @@ still open).
 
 | Key | Was | Problem | Now |
 | --- | --- | --- | --- |
-| `hints.accrete.tier2` | "Disk controls mainly change how quickly gas gets through. Final mass depends more on how fast gas falls in." | Not clearly true. Four turbulence levels change a first star's mass by 18% (26.16 → 21.54 M☉) and its ending; a one-step temperature change moves it by about as much (slope +1.04). | "Disk controls change how quickly gas moves through the disk. How fast gas falls in is set by the gas temperature." Both halves are direct effects. |
+| `hints.accrete.tier2` | "Disk controls mainly change how quickly gas gets through. Final mass depends more on how fast gas falls in." | Not clearly true. Four turbulence levels change a first star's mass by 18% (26.16 → 21.54 M☉) and its ending; a one-step temperature change moves it by about as much (slope +1.04). | "Disk controls change how quickly gas moves through the disk. How fast gas falls in is set by the region's gas temperature, which cannot change during this phase." Both halves are direct effects, and the hint no longer points at a control the player cannot use mid-run (ui-ux review). |
 | `hints.accrete.tier3` | "Faster infall feeds the star for longer before its ionizing light shuts the supply off." | False. Growth time falls as infall rises: 176,000 yr at 215 K, 140,000 yr at 338 K, while final mass rises from 22.4 to 35.6 M☉. | "Faster infall lets the star grow larger before its ionizing light shuts the supply off." |
 | `hints.small.tier3` | "…so the star gains mass before its light clears the gas." | Every star gains mass; the point is how much. | "…gains more mass…" |
 | `hints.big.tier2` | "Try a cooler region, or aim for a slightly different mass." | The second half names no control; the game has no direct mass control. | "Search for a cooler region." The gaps are explained in tier 3. |
@@ -34,6 +34,13 @@ still open).
 | `notes.controls.cooling` | "New control: Radiative cooling. Heavy elements from your supernova make cooler gas possible." | The unlock (three runs and one supernova) is a game rule. In the engine the control works the same with or without those elements: it cools toward the region's floor, which only falls once log Z/Z☉ passes −4. The sentence presents the unlock order as a cause. |
 | `notes.headlines.shine.body` | "Its final mass is set, and it will decide how this star ends." | True within one region. Across regions the metal content also decides: pristine stars from 9.2 to 25 M☉ always explode (game rule), enriched ones have gaps. `shine.running_low` already says "mostly". |
 | `ui.search.metals_note` | "More metals let gas cool further." | True only past log Z/Z☉ = −4. Below it the floor stays at 200 K whatever the slider says; the "Lowest temperature here" readout shows that. |
+
+The ui-ux review, judging from the player's side only, rated the cooling
+announcement and the metals note "should fix" (a player will take the heavy
+elements as what powers the control, and a slider with no visible effect reads
+as broken) and the other two minor. Its suggested wordings: "New control:
+Radiative cooling. Cools the gas, so less mass is needed for collapse." and
+"More metals let gas cool further, once there are enough of them."
 
 ## Checked and true
 
@@ -80,7 +87,7 @@ still open).
 | --- | --- | --- | --- | --- |
 | `start.*`, `reach.tier1` | The patch must grow until gravity beats pressure; taps release energy; gas can gather untapped | true | as above | physics / game rule |
 | `reach.tier3` | Reach compounds, so early levels save the most time | true | ×1.25 per level on the gather rate | game rule |
-| `gather.tier2` | Buy Gravitational reach as soon as energy allows | true | PR #24; reach changes only run time | game rule |
+| `gather.tier2` | Buy Gravitational reach as soon as energy allows; each level costs far more than the last, but energy rises quickly too | true | PR #24; reach changes only run time. Cost ratio per level is 10¹⁰ (`UPGRADES`); binding energy rises as reach⁵ | game rule |
 | `gather.tier3` | Binding energy climbs steeply as the patch grows | true | `binding_energy` ∝ reach⁵ at fixed density | physics |
 | `accrete.tier1` | Mass depends on a race between feeding and clearing | true | taper and disk loss | physics (Simplified) |
 | `shine.tier1`, `shine.tier3` | Nothing changes the star now; fuel lasts less as mass rises | true | no purchase in `main_sequence`; `physics.lifetime_myr` | physics |
