@@ -20,6 +20,33 @@ design change.
 
 ## Entries
 
+- **Date and title:** 2026-11-13 — Copy audit: player-facing claims are checked against the engine and recorded in `docs/audit/copy-audit.md`.
+- **Status:** accepted
+- **Context:** The audit report says what the engine does; the text had only
+  been checked for the hints (PR #24). A wrong sentence seeds a wrong
+  prediction.
+- **Decision:** Every sentence in `content/*.toml` that states a cause, a
+  direction, a number or a control's effect has a row in
+  `docs/audit/copy-audit.md` with a verdict, the evidence and a physics or
+  game-rule label. Five were changed: two accrete hints (one claimed disk
+  controls matter less than infall, one claimed faster infall feeds "for
+  longer", which is the opposite of the engine), a hint that advised aiming
+  for "a slightly different mass" with no control to do it, a hint missing
+  "more", and the brown-dwarf band's exact limit. A hint states only direct
+  effects and tested relationships; comparisons of how much two levers matter
+  stay out, since the answer depends on the region.
+- **Why:** The table makes the next text change checkable, and the labels
+  are the input if in-game physics or game-rule labels are taken up.
+- **Left for the owner (not changed):** (1) the engine clears the disk before
+  ignition, because `ionizing_rate` is held constant below 5 M☉, while the
+  ignition note says clearing starts then; (2) the cooling announcement gives
+  the supernova as the cause of a control whose unlock is a game rule;
+  (3) "its final mass … will decide how this star ends" is true only within
+  one region; (4) "More metals let gas cool further" is true only past
+  log Z/Z☉ = −4.
+- **Revisit when:** An engine change regenerates the audit report (recheck
+  the rows that cite it), or text is added.
+
 - **Date and title:** 2026-11-13 — The audit tool: one-input sweeps, seven bins, two purchase policies, a committed report.
 - **Status:** accepted
 - **Context:** Relationship text and debrief explanations need the engine's

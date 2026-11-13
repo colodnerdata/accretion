@@ -349,6 +349,15 @@ def test_hot_regions_make_bigger_stars_than_cool_regions():
     assert finish(hot).star_mass > finish(cold).star_mass
 
 
+def test_hotter_gas_makes_a_bigger_star_without_feeding_it_for_longer():
+    # hints.accrete.tier3 says faster infall lets the star grow larger, not
+    # that it feeds for longer: growth time falls while mass rises.
+    warm = finish(game.Meta(z_temperature=-1.0), 5.0)
+    hot = finish(game.Meta(z_temperature=2.0), 5.0)
+    assert hot.star_mass > warm.star_mass
+    assert hot.accrete_years < warm.accrete_years
+
+
 def test_density_changes_collapse_mass_but_not_final_mass():
     # With no upgrades bought, density does not change final mass, so the
     # hints in content/hints.toml name no density lever. (With upgrades bought

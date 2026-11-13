@@ -3,7 +3,8 @@
 # tier1's tier is hook, tier2's tooltip, tier3's panel.
 # Hints name only levers the engine has: density does not change final mass,
 # and Radiative cooling makes a smaller star, so neither is advised here
-# (tests/test_game.py pins both facts).
+# (tests/test_game.py pins both facts). Every claim here is checked against
+# the engine in docs/audit/copy-audit.md.
 # Keep the empty tier2 and tier3 under [none]: the code still asks for them.
 # Placeholders such as {brightness} are filled in by the game; see
 # docs/DEVELOPMENT.md under "Editing game text".
@@ -43,10 +44,10 @@ kind = "hook"
 text = "Your star's mass depends on a race between feeding and clearing."
 [accrete.tier2]
 kind = "tooltip"
-text = "Disk controls mainly change how quickly gas gets through. Final mass depends more on how fast gas falls in."
+text = "Disk controls change how quickly gas moves through the disk. How fast gas falls in is set by the gas temperature."
 [accrete.tier3]
 kind = "panel"
-text = "Faster infall feeds the star for longer before its ionizing light shuts the supply off."
+text = "Faster infall lets the star grow larger before its ionizing light shuts the supply off."
 
 [shine.tier1]
 kind = "hook"
@@ -66,14 +67,14 @@ kind = "tooltip"
 text = "Search for a hotter region."
 [small.tier3]
 kind = "panel"
-text = "Hotter gas falls inward faster, so the star gains mass before its light clears the gas."
+text = "Hotter gas falls inward faster, so the star gains more mass before its light clears the gas."
 
 [big.tier1]
 kind = "hook"
 text = "Your last star collapsed into a black hole, and most of its heavy elements went with it."
 [big.tier2]
 kind = "tooltip"
-text = "Try a cooler region, or aim for a slightly different mass."
+text = "Search for a cooler region."
 [big.tier3]
 kind = "panel"
 text = "Explosions depend on core structure, so some masses fail even between masses that explode."
