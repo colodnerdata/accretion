@@ -27,8 +27,8 @@ design change.
   The engine has no such lever: with nothing else changed, final mass is
   26.162 M☉ from 498 to 200,855 cm⁻³ while collapse mass falls twentyfold.
   The gather hint said "Buy upgrades as soon as energy allows", but Radiative
-  cooling, a gather upgrade, makes a smaller star (two levels take a first
-  region from 26.16 to 21.72 M☉, black hole to supernova).
+  cooling, a gather upgrade, makes a smaller star (two levels take the
+  default region from 26.16 to 21.72 M☉, black hole to supernova).
 - **Decision:** Remove `small.tier2_with_density` and `big.tier2_with_density`
   and the branch in `hintSet()` that chose them. The gather hint now says "Buy
   Gravitational reach as soon as energy allows." No new lever is named in

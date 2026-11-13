@@ -262,7 +262,9 @@ def test_hot_regions_make_bigger_stars_than_cool_regions():
 
 
 def test_density_changes_collapse_mass_but_not_final_mass():
-    # The hints in content/hints.toml name no density lever because of this.
+    # With no upgrades bought, density does not change final mass, so the
+    # hints in content/hints.toml name no density lever. (With upgrades bought
+    # freely it shifts when purchases land: docs/planning/prediction-system.md.)
     # If it fails, density has become a mass lever: revisit the hints.
     thin = finish(game.Meta(z_density=-2.0), 5.0)
     dense = finish(game.Meta(z_density=2.0), 5.0)
