@@ -71,7 +71,7 @@ text = "Gravity has beaten pressure. The patch passed the Jeans mass and is coll
 [observations.first_clump]
 text = "A ring grew too heavy to hold itself up and collapsed into a clump. A clump drifts inward and joins the star, or stays behind as a companion star."
 [observations.ignite]
-text = "Hydrogen fusion has begun. Starlight will now start clearing the disk."
+text = "Hydrogen fusion has begun."
 [observations.final_mass]
 text = "The gas is gone. Final mass: {mass} M☉."
 [observations.run_start]

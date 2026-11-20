@@ -102,7 +102,19 @@ Hints stay free on request.
 ## Prerequisites before v1
 
 - The run record (`implementation-order.md` step 1) and the audit tool (step 2).
-- Rerun the audit and correct relationship text against it. Two cases are already known, measured on 2026-11-11 with the Python engine at commit `dd0a7ec` and the `tools/bot.py` policy (0.5 taps per second, greedy purchases, no gather cooling), on a first run at 250 K:
-  - **Turbulence lowers final mass, and not slightly.** `Streak.dc.html` shows turbulence raising final mass four runs in a row. Capping the turbulence level at 0, 1, 2, 3 and 4 gives final masses of 26.16, 25.08, 21.36, 21.14 and 21.54 M☉. Four levels make the star 18% smaller and turn a black hole into a supernova. The trend is not strictly monotone: level 3 to level 4 raises the mass by 0.40 M☉. The bot can afford only four levels on a first run. A hotter region (290 K) agrees: 30.61, 26.93 and 27.11 M☉ at levels 0, 2 and 4.
-  - **Density has no direct effect on final mass.** With turbulence held at level 0, final mass is 26.162 M☉ at every density tried, from 498 to 200,855 cm⁻³ (the setting at −2σ to +2σ), while collapse mass falls from 10,993 to 547 M☉. With the bot buying turbulence freely, every run still ends at level 4, yet final mass varies from 21.10 to 23.29 M☉ (about 10%, and not monotone: 22.44, 23.03, 23.29, 21.54, 21.50, 21.33, 21.10 across the range). Since the level is the same, that spread comes from when the purchases land. "No change" is a fine result to teach, and the density hints that described density as a mass lever were removed from `content/hints.toml` on 2026-11-13.
-- The audit tool (`tools/audit.py`, 2026-11-13) reproduces both: `tests/test_audit.py` pins the turbulence masses and the density result, and `docs/audit/report.md` has every other input–outcome pair. Check relationship text against that report before it ships.
+- Check relationship text against the [engine audit](../audit/report.md).
+  The 2026-11-20 first-run sweeps used the bot at 0.5 taps per second.
+  - **Turbulence generally lowers final mass.** At caps 0 through 4,
+    the first-run star ends at 26.16, 25.07, 21.35, 21.13, and 21.52 M☉.
+    The ending changes from black hole to supernova at level 2, and mass
+    rises by 0.40 M☉ from level 3 to 4 before rounding. The bot can afford
+    four levels. In the hotter pristine context, the masses at levels 0,
+    2, and 4 are 33.14, 29.19, and 29.03 M☉.
+  - **Density has no direct effect on final mass in the first-run sweep.**
+    With turbulence held at level 0, the final mass stays at 26.16 M☉ across
+    densities of about 498 to 200,855 cm⁻³. Collapse mass falls from about
+    10,993 to 547 M☉. With greedy purchases, the final masses are 22.44,
+    23.03, 21.52, 21.32, and 21.10 M☉. Purchase timing can affect the result
+    even when the final turbulence level is the same.
+- `tests/test_audit.py` checks the documented first-run turbulence
+  masses and density result.

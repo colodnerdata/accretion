@@ -39,6 +39,14 @@ for (const z of [[0, 0, 0], [0.8, -0.5, 0], [-1, 1, -1]]) {
   rows.push([...meta.unlocks]);
 }
 rows.push([E.stromgrenRadius(E.ionizingRate(22), 1e4), E.hiiRadius(E.ionizingRate(60), 300, 250, 1e13), E.hiiRadius(E.ionizingRate(60), 300, 250, 1e15)]);
+for (const mass of [E.SEED_MASS, 1, 5]) {
+  const diskMeta = E.newMeta(), run = E.newRun(diskMeta);
+  run.phase = "accrete";
+  run.starMass = mass;
+  run.diskMasses[6] = 0.01;
+  E.step(run, diskMeta, 50 / E.ACCRETE_YEARS_PER_SECOND);
+  rows.push([run.ejected, E.diskGas(run), Number(run.ignited)]);
+}
 {
   const run = stress(E.newMeta()), records = run.companionRecords;
   rows.push([run.starMass, run.ejected + run.companions, run.energy, run.fragmentsFormed, records.length, ...records.map((c) => c.mass), ...records.map((c) => c.separation)]);

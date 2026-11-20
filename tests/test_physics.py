@@ -57,6 +57,19 @@ def test_hii_region_expands_like_spitzer_then_stalls():
     assert physics.hii_radius(1e49, 100, 250, 1e17) == pytest.approx(stall)
 
 
+@pytest.mark.parametrize("mass", [0.0, 0.01, 1.0, 4.999])
+def test_stellar_euv_loss_is_zero_below_the_photon_table(mass):
+    assert physics.ionizing_rate(mass) == 0.0
+    assert physics.disk_loss_rate(mass, 1000) == 0.0
+
+
+def test_stellar_euv_loss_starts_at_the_first_tabulated_mass():
+    assert physics.ionizing_rate(5) == pytest.approx(1.1e45)
+    assert physics.disk_loss_rate(5, 1000) == pytest.approx(
+        5 * 5.4e-5 * (1.1e-4) ** 0.5
+    )
+
+
 def test_photoevaporation_matches_tanaka_at_forty_solar_masses():
     rate = physics.disk_loss_rate(40, 1000)
     assert rate == pytest.approx(5 * 5.4e-5 * 1.9**0.5)

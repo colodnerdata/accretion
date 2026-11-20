@@ -20,6 +20,15 @@ design change.
 
 ## Entries
 
+- **Date and title:** 2026-11-20 — Stellar EUV feedback starts at the photon table's lower bound.
+- **Status:** implemented for the 2026-11-13 disk-clearing ruling.
+- **Decision:** Use zero modeled flux below 5 M☉ in both engines. Hydrogen
+  ignition remains its own milestone. The
+  [disk breakup plan](planning/disk-breakup-and-companions.md#before-stage-a)
+  records the source and the limitations of the cutoff.
+- **Revisit when:** A protostellar or low-mass disk model supplies a
+  radiation prescription below the current table.
+
 - **Date and title:** 2026-11-13 — Disk breakup: six owner rulings before step 4.
 - **Status:** accepted
 - **Context:** `docs/planning/disk-breakup-and-companions.md` sets out step 4

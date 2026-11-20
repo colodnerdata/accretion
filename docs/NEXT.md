@@ -26,12 +26,7 @@ a diary. Link to an issue when it owns the detail.
       migration story and the one-implementation proposal (protected decision — not for implementation without
       sign-off). The review itself is a local, uncommitted file,
       `docs/accretion-repository-review.md`.
-- **Next action:** stop the disk being cleared before ignition
-  (`ionizing_rate` is flat below 5 M☉, so disk loss runs from the first
-  seed). Owner ruling 2026-11-13: fix it before step 4. It is an engine
-  change in both engines, with `FIDELITY.md`, parity and the audit report
-  regenerated, and needs a short concept note first. Then step 4 stage (a),
-  following `docs/planning/disk-breakup-and-companions.md`, whose six owner
+- **Next action:** step 4 stage (a), following `docs/planning/disk-breakup-and-companions.md`, whose six owner
   rulings are recorded (DECISIONS 2026-11-13). Also open: the spot-check of
   the Layer 1 values in `physics.py` (last part of step 1; it covers the
   "outside the engine" rows in `docs/audit/copy-audit.md`), and step 3, the
@@ -50,10 +45,10 @@ a diary. Link to an issue when it owns the detail.
   and the angular-momentum ledger. The 16-vs-32-ring decision needs a
   written migration story first (a 16-entry saved disk under CELLS = 32 NaNs
   the star).
-- **Engine facts measured for the prediction docs (2026-11-11, bot
+- **Engine facts measured for the prediction docs (2026-11-20, bot
   policy):** turbulence levels 0 to 4 take a first-run star from 26.16 to
-  21.54 M☉ (black hole to supernova); density has no direct effect on final
-  mass (26.162 M☉ at every density with turbulence held at 0). Details in
+  21.52 M☉ (black hole to supernova); density has no direct effect on final
+  mass (26.16 M☉ at every density with turbulence held at 0). Details in
   `docs/planning/prediction-system.md`, "Prerequisites before v1".
 - **Review leftovers (minor, accepted or deferred):** brown-dwarf runs
   ending inside the accrete branch still omit at most one solver chunk
