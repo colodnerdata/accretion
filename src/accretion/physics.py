@@ -238,7 +238,12 @@ def rotation_bonus(mass: float, metal_log10: float) -> float:
 
 
 def ionizing_rate(mass: float) -> float:
-    """Return hydrogen-ionizing photons per second at zero age."""
+    """Return modeled zero-age ionizing photons per second from Schaerer (2002).
+
+    The EUV prescription starts at the lowest tabulated mass (5 M_sun).
+    """
+    if mass < ION_MASS[0]:
+        return 0.0
     logs = [math.log10(m) for m in ION_MASS]
     rates = [math.log10(q) for q in ION_RATE]
     return 10 ** interpolate(logs, rates, math.log10(mass))

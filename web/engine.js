@@ -68,7 +68,11 @@ const Engine = (() => {
   const luminosity = (m, z) => 10 ** logTable(LUM_MASS, LUM_LOG10, LUM_METAL, m, z);
   const lifetimeMyr = (m, z) => 10 ** logTable(LIFE_MASS, LIFE_LOG10, LIFE_METAL, m, z);
   const rotationBonus = (m, z) => Math.min(z >= -0.5 ? 0.25 : z >= -2 ? 0.18 : 0.10, interpolate([120, 200, 300], [0.25, 0.14, 0.10], m));
-  const ionizingRate = (m) => 10 ** interpolate(ION_MASS.map(Math.log10), ION_RATE.map(Math.log10), Math.log10(m));
+  function ionizingRate(mass) {
+    // The zero-age stellar EUV prescription starts at the first table entry.
+    if (mass < ION_MASS[0]) return 0;
+    return 10 ** interpolate(ION_MASS.map(Math.log10), ION_RATE.map(Math.log10), Math.log10(mass));
+  }
   const stromgrenRadius = (q, n) => (3 * q / (4 * Math.PI * n ** 2 * ALPHA_B)) ** (1 / 3);
   const hiiRadius = (q, n, temp, s) => {
     const r0 = stromgrenRadius(q, n);

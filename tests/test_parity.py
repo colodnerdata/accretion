@@ -132,6 +132,17 @@ def test_python_and_browser_engines_agree():
             physics.hii_radius(physics.ionizing_rate(60), 300, 250, 1e15),
         ]
     )
+    for mass, clears_disk in ((game.SEED_MASS, False), (1.0, False), (5.0, True)):
+        disk_meta = game.Meta()
+        run = game.new_run(disk_meta)
+        run.phase, run.star_mass = "accrete", mass
+        run.disk_masses[6] = 0.01
+        game.step(run, disk_meta, game.SIM_STEP_YEARS / game.ACCRETE_YEARS_PER_SECOND)
+        assert (run.ejected > 0) == clears_disk
+        assert run.star_mass + game.disk_gas(run) + run.ejected == pytest.approx(
+            mass + 0.01, abs=1e-8, rel=0
+        )
+        rows.append([run.ejected, game.disk_gas(run), int(run.ignited)])
     rows.append(stress_row(stress(game.Meta())))
     # Leave a run early: the entry records it as skipped, and the universal
     # clock advances only by the time that actually passed.

@@ -88,10 +88,11 @@ const SKY_TEXT = {
 };
 
 // Shine phase. The HII region is display only: Stromgren sphere, Spitzer expansion, then stall.
-const IONIZING_MIN_MASS = 5;
 function bubble(run, meta) {
-  if (run.phase !== "main_sequence" || run.starMass < IONIZING_MIN_MASS) return null;
-  const q = E.ionizingRate(run.starMass), n = run.density, T = E.temperature(run, meta);
+  if (run.phase !== "main_sequence") return null;
+  const q = E.ionizingRate(run.starMass);
+  if (q === 0) return null;
+  const n = run.density, T = E.temperature(run, meta);
   const lifeSeconds = run.lifetimeMyr * 1e6 * E.YR, age = run.msElapsed / run.msDuration * lifeSeconds;
   const start = E.stromgrenRadius(q, n), end = E.hiiRadius(q, n, T, Infinity), now = E.hiiRadius(q, n, T, age);
   const ratio = E.HII_SOUND_SPEED / E.soundSpeed(T);

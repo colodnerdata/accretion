@@ -206,13 +206,17 @@ faster than the disk shears it apart.
 
 ## Before stage (a)
 
-**Stop the disk being cleared before ignition** (owner ruling, 2026-11-13).
-`ionizing_rate` holds its table constant below 5 M☉, so `disk_loss_rate` runs
-at 2.8 × 10⁻⁶ M☉/yr (at 1,000 AU) from the first 0.01 M☉ seed. That changes
-how much disk a small star has, so it is fixed before stage (a) is
-calibrated: its own PR, in both engines, with the `FIDELITY.md` row, parity
-and the audit report regenerated. It needs a short concept note first on
-what a star below 5 M☉ should emit and from which source.
+**Early disk photoevaporation** (owner ruling, 2026-11-13).
+The previous model extended the 5 M☉ ionizing flux down to the first
+0.01 M☉ seed. Use 5 M☉ as the lower bound for the modeled stellar EUV
+channel because that is the first entry in the adopted
+[Schaerer (2002) zero-age photon table](https://www.aanda.org/articles/aa/pdf/2002/04/aa1629.pdf).
+Below it, use zero modeled ionizing flux. The cutoff approximates unresolved
+emission and introduces a step at the table boundary. Accretion-powered
+radiation, far-UV, and X-rays are outside this prescription. From 5 M☉,
+retain the table and the calibrated [Tanaka et al. (2013)](https://arxiv.org/abs/1306.6623)
+disk-loss law. Keep the ignition announcement tied to hydrogen fusion
+and describe EUV clearing separately in the model notes.
 
 ## What must stay true
 

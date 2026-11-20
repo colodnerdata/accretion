@@ -32,14 +32,14 @@ still open).
 | `ui.heavy.cooling_note` | "Permanently cools gas by 10% per level." | It also lowers the region floor by 10% per level, which is the padlock. | adds "…and moves the Temperature padlock with it." |
 | `ui.search.temperature_lock` (new) | — | — | "Locked below {value} K, the coldest this gas can be." The value is the region's floor (`region_floor`). |
 
-## Left as written, for the owner's ruling
+## Copy audit rulings
 
 | Key | Text | Why it is flagged |
 | --- | --- | --- |
-| `notes.observations.ignite` | "Hydrogen fusion has begun. Starlight will now start clearing the disk." | The engine starts clearing earlier. `physics.ionizing_rate` holds its table constant below 5 M☉, so `disk_loss_rate` is 2.8 × 10⁻⁶ M☉/yr (at 1,000 AU) from the first seed, before ignition, and the "Boiled off the disk" row shows it. The text is the physics; the engine is the departure. Fixing it is an engine change (both engines, `FIDELITY.md`), not a wording change. **Ruled 2026-11-13:** fix the engine before step 4 stage (a); the text stays until then. |
+| `notes.observations.ignite` | "Hydrogen fusion has begun." | The 2026-11-13 ruling is implemented in both engines. Modeled stellar EUV clearing starts at 5 M☉, the lower bound of the adopted photon table. The note reports the fusion milestone. |
 | `notes.headlines.shine.body` | "Its final mass is set, and it will decide how this star ends." | True within one region. Across regions the metal content also decides: pristine stars from 9.2 to 25 M☉ always explode (game rule), enriched ones have gaps. `shine.running_low` already says "mostly". |
 
-The ui-ux review rated both remaining items minor from the player's side.
+The ui-ux review rated these items minor from the player's side.
 The cooling announcement and the metals note, which it rated "should fix",
 were ruled on and changed (above).
 
