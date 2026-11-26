@@ -96,8 +96,9 @@ rather than silently changing it.
   time that actually passed in the run, never by the skipped remainder. Skipped time earns no
   time-based progress.
 - The universal clock persists across runs, so composition and starting conditions evolve.
-- Black holes unlock a region-search option to start near one. They give no currency or permanent
-  gravity bonus.
+- Black holes unlock a region-search option to start near one. They pay the ordinary run reward
+  (probability, plus their physical heavy-element yield) and no bonus currency or permanent gravity
+  bonus.
 - There are six prestige layers. The supermassive black hole at the galactic core leads to a new
   universe, which restarts the clock. A final currency skips the early grind; it is not designed yet.
 - Early runs are short (about 15 to 20 minutes) and grow toward an hour as controls unlock.

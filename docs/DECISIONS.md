@@ -20,6 +20,20 @@ design change.
 
 ## Entries
 
+- **Date and title:** 2026-11-26 — Black holes keep the ordinary run reward.
+- **Status:** accepted
+- **Context:** The decided mechanic said a black hole "adds no currency", but
+  the engine pays it 1.5 to ln(N) through `run_gain` and its physical
+  heavy-element yield through `heavy_yield`. A repository review flagged the
+  mismatch.
+- **Decision (owner ruling):** Keep the payout. The wording changes instead:
+  a black hole pays the ordinary run reward and no bonus currency or
+  permanent gravity bonus. Updated in the design spec doc, its repository
+  copy, `CLAUDE.md` and the code-reviewer agent.
+- **Why:** The owner chose to keep the payout the engine already makes, so
+  the documents now describe the shipped behavior.
+- **Revisit when:** Black-hole starts gain a reward of their own.
+
 - **Date and title:** 2026-11-13 — Disk breakup: six owner rulings before step 4.
 - **Status:** accepted
 - **Context:** `docs/planning/disk-breakup-and-companions.md` sets out step 4
