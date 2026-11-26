@@ -34,7 +34,7 @@ Thirty-four design choices are decided, and two proposals still need confirmatio
 - Any stellar death ends the run and triggers a prestige.
 - Supernovae pay heavy elements.
 - Novae in close binaries are mini-prestiges unlocked at Layer 3. They pay probability without ending the run.
-- Creating a black hole unlocks a region-search option to start near one. It adds no currency or permanent gravity bonus.
+- Creating a black hole unlocks a region-search option to start near one. It pays the ordinary run reward (probability, plus its physical heavy-element yield) and no bonus currency or permanent gravity bonus.
 - The probability budget is ln(N), where N is the lifetime count of regions surveyed.
 - Failed runs multiply N by a small percentage, rather than adding a flat amount.
 - Each nova adds to N, up to a limit set by the companion star's mass.

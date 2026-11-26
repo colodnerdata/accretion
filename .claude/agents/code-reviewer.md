@@ -128,9 +128,10 @@ report with praise or restate what the diff does.
 - Flag, do not judge, any change that contradicts a decided mechanic: any stellar death ends the run
   and prestiges; the `ln(N)` probability budget and refundable allocations; region search changes
   the start, never the physical constants; time skips advance the universal clock only by time that
-  passed; the clock persists across runs; black holes give no currency or gravity bonus; early runs
-  take about 15 to 20 minutes; pristine stars from about 9 to 25 M☉ always explode; explosion gaps
-  are deterministic by mass; offline progress uses the live engine. Quote the line from
+  passed; the clock persists across runs; black holes pay only the ordinary run reward, with no
+  bonus currency or gravity bonus; early runs take about 15 to 20 minutes; pristine stars from
+  about 9 to 25 M☉ always explode; explosion gaps are deterministic by mass; offline progress uses
+  the live engine. Quote the line from
   `CLAUDE.md` or the spec and say what the change does. The design spec is the Claude Docs artifact
   "Accretion Idle Game Design Spec"; if you cannot read it, say you checked only `CLAUDE.md`.
 - Design principles also bind code: no previews, forecasts, ghost markers, or model runs. Leave
