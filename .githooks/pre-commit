@@ -3,9 +3,21 @@
 # takes seconds. Tests run before work is reported done and in CI. This hook
 # only checks; it never rewrites files you have already reviewed.
 # Turned on by `poe setup`, and by the SessionStart hook for Claude Code.
+#
+# The checks read the working tree, not the index, so with partially staged
+# files (git add -p) they can pass or fail on changes you are not committing.
+# One case is checked against the index: a staged web/ source with a rebuilt
+# web/accretion.html left unstaged.
 set -e
 
 cd "$(git rev-parse --show-toplevel)"
+
+if git diff --cached --name-only -- web | grep -qv '^web/accretion\.html$' &&
+    ! git diff --quiet -- web/accretion.html; then
+    echo "pre-commit: web/accretion.html has unstaged changes; stage it with" >&2
+    echo "the web/ sources so the commit carries the matching build." >&2
+    exit 1
+fi
 
 uv run --locked ruff format --check .
 uv run --locked ruff check .

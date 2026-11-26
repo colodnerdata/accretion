@@ -4,10 +4,15 @@ Tests that use the ``browser`` fixture get the ``browser`` marker, so CI can
 run them as their own job (``pytest -m browser``). Without Chromium they skip,
 unless ``ACCRETION_REQUIRE_BROWSER=1`` is set, as it is in that job: then a
 missing browser fails the run instead of passing it by skipping.
+
+The parity and engine tests skip without ``node``. CI's Tests job sets
+``ACCRETION_REQUIRE_NODE=1``, which stops the session at its start when node
+is missing, so the parity check cannot pass there by skipping either.
 """
 
 import glob
 import os
+import shutil
 
 import pytest
 
@@ -18,6 +23,21 @@ except ImportError:  # the engine and parity tests do not need a browser
 
 FALLBACK_CHROMIUM = "/opt/pw-browsers/chromium-*/chrome-linux64/chrome"
 REQUIRE_BROWSER = "ACCRETION_REQUIRE_BROWSER"
+REQUIRE_NODE = "ACCRETION_REQUIRE_NODE"
+
+
+def missing_required_node(which=shutil.which):
+    """Return why the session must stop, or None when node is fine."""
+    if os.environ.get(REQUIRE_NODE) == "1" and which("node") is None:
+        return f"node is not on PATH, and {REQUIRE_NODE}=1 requires it"
+    return None
+
+
+def pytest_sessionstart(session):
+    """Stop a run that requires node when node is missing."""
+    reason = missing_required_node()
+    if reason:
+        pytest.exit(reason, returncode=1)
 
 
 def browser_unavailable(reason):

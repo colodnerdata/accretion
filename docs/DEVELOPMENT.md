@@ -39,7 +39,12 @@ missing browser fails the run. To run them locally, install Chromium once
 with `uv run playwright install chromium`.
 
 Property-based tests get the `property` pytest marker and their own CI job
-once the first ones exist. Until then there is no property job.
+once the first ones exist. Until then there is no property job, and
+`tests/test_ci_selection.py` fails if a `property` test appears without one.
+
+The Tests job sets `ACCRETION_REQUIRE_NODE=1` and installs node, so the
+parity and engine tests fail the run when node is missing instead of
+passing it by skipping. Locally they still skip without node.
 
 ## Where each check runs
 
@@ -55,7 +60,7 @@ commit or CI run never rewrites code that was already reviewed.
 | Claude runs `git commit` | Blocks `--no-verify`, `-n`, and `core.hooksPath` overrides | `.claude/hooks/block_no_verify.py` |
 | Before work is reported done | The four checks, `poe check` | `AGENTS.md` |
 | Every PR and push to main | The Lint, Format, Build, Tests and Browser jobs | `.github/workflows/ci.yml` |
-| Merge to main | The five jobs must pass | The `main` ruleset (below) |
+| Merge to main | The five jobs must pass, once the ruleset is set | The `main` ruleset (below) |
 
 Lint stays report-only at edit time because Claude often adds an import in one
 edit and uses it in the next; an autofix in between would delete it as unused.
@@ -65,12 +70,14 @@ per clone. A Claude Code `SessionStart` hook sets it for every Claude session,
 local or cloud, and `poe setup` sets it for the owner. CI is the backstop.
 
 The Claude Code hooks do not see edits made through shell commands. The
-ruleset on main is the backstop.
+ruleset on main is the backstop, once it is set as described below.
 
 ## GitHub settings
 
 These live in the repository settings, not in files, so they are recorded
-here.
+here. They are the target: the owner sets them right after the PR that
+added this section merges, and until then `main` still allows every merge
+method and needs no PR or checks.
 
 - **Merges:** squash only, with the PR title and description as the default
   commit message. Merged branches are deleted automatically.
@@ -159,7 +166,8 @@ interface and logs a console warning; it never throws.
 6. Merge the completed change and remove its branch.
 
 A PR is a useful checkpoint even when you are its only human reviewer.
-The `main` ruleset requires a PR for every change, prose fixes included.
+Once set, the `main` ruleset requires a PR for every change, prose fixes
+included.
 An issue is useful for a reproducible
 bug or a larger chunk of work; it need not precede every edit.
 

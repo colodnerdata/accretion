@@ -53,7 +53,8 @@ markers = [
 
 [tool.ruff]
 line-length = 88
-extend-exclude = [".claude"]
+# Skills are markdown for Claude, not project code; the hooks are linted.
+extend-exclude = [".claude/skills"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "D", "B", "UP"]
@@ -65,3 +66,5 @@ known-first-party = ["accretion", "text"]
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D"]
 "tools/*" = ["D"]
+# Copied unchanged from solo-project-template, which has no D rules.
+".claude/hooks/*" = ["D"]
