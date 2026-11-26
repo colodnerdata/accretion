@@ -1,19 +1,24 @@
+<!--
+A guide, not a form. Use the prompts that help with this change and delete the
+rest. A small prose or config fix may need only a sentence.
+-->
+
 ## Why
 
-What problem does this solve? Link an issue or decision if useful.
+What problem does this solve? Link the intent, spec, plan, issue, or decision
+it comes from, if any.
 
 ## What changes
 
-Describe the resulting behavior and any consequential tradeoff.
+The resulting behavior and any tradeoff worth remembering. If the work departed
+from `plan.md`, say how, and update the plan in this PR.
 
 ## Evidence
 
-- Checks run and results:
-- Real integration or artifact verification, if relevant:
-- Anything not checked and why:
+What ran and what it showed; paste the key output. Note anything not checked,
+and why.
 
-## Before merging
+## Review notes
 
-- [ ] I reviewed the diff and the assumptions behind it.
-- [ ] Changed behavior has appropriate tests, or I explained why none are needed.
-- [ ] Documentation, compatibility, and decision notes are updated where needed.
+Where a reviewer, human or AI, should look closely: assumptions, risky areas,
+or places that differ from the spec.

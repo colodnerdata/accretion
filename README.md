@@ -2,6 +2,7 @@
 
 Layer 1 of the Accretion idle game: gather, collapse, accrete, shine, die, and search a new region. Controls unlock one at a time, and a journal and bubble plot record each run.
 
+- `intent/`: what the game is for (`intent.md`) and its design (`spec.md`)
 - `src/accretion/`: reference physics and game rules in Python
 - `web/`: browser engine and interface
 - `tests/`: physics, game rule, and Python/JavaScript parity tests

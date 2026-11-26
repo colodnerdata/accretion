@@ -20,6 +20,33 @@ design change.
 
 ## Entries
 
+- **Date and title:** 2026-11-26 — Adopt the AI-native SDLC from solo-project-template.
+- **Status:** accepted
+- **Context:** The project started from an older copy of the template. Its
+  design lived in a Claude Doc, and the rules every agent needs (the two
+  engines, protected decisions, design principles) lived in `CLAUDE.md`,
+  where other tools do not look. CI ran one job, and the 21 browser tests
+  skipped on every run.
+- **Decision (owner rulings, on the migration plan's defaults):**
+  1. `intent/spec.md` is the design's source of truth, changed through PRs.
+     The Claude Doc "Accretion Idle Game Design Spec" is an older copy.
+     `intent/intent.md` was back-filled from the spec and waits for the
+     owner to accept it.
+  2. The commit hook runs the format check, lint and the build check, not
+     the tests. Tests run in CI and before work is reported done.
+  3. CI runs Lint, Format, Build, Tests and Browser as separate jobs; the
+     Browser job fails when Chromium is missing instead of skipping.
+  4. Review findings become GitHub issues (#31 to #35), fixed test first in
+     their own PRs.
+  `AGENTS.md` now holds the project rules for every agent; `CLAUDE.md` keeps
+  only Claude Code's shell conventions and subagent workflow.
+- **Why:** One place for each kind of instruction, in the repository, read by
+  every tool; and a check layer where each failure names what broke.
+  Keeping the Claude Doc as the source was the alternative; it would need
+  hand-syncing into the repository after every change.
+- **Revisit when:** The template gains a convention this project needs, such
+  as review agents or property tests; bring it over in a small PR.
+
 - **Date and title:** 2026-11-26 — Black holes keep the ordinary run reward.
 - **Status:** accepted
 - **Context:** The decided mechanic said a black hole "adds no currency", but
