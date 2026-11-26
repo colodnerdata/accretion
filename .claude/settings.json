@@ -25,7 +25,63 @@
       "Bash(python tools/build.py --check)",
       "Bash(uv run python tools/bot.py)",
       "Bash(uv run python tools/shoot.py)",
-      "Bash(node tools/parity_runner.js)"
+      "Bash(node tools/parity_runner.js)",
+      "Bash(uv run --locked poe setup)",
+      "Bash(uv run --locked ruff check .)",
+      "Bash(uv run --locked ruff format --check .)",
+      "Bash(uv run --locked python tools/build.py --check)",
+      "Bash(uv run --locked pytest -m \"not property\")",
+      "Bash(uv run --locked pytest -m \"not property and not browser\")",
+      "Bash(uv run --locked pytest -m browser)"
+    ],
+    "deny": [
+      "Edit(/uv.lock)"
+    ],
+    "ask": [
+      "Edit(/intent/**/intent.md)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git -C \"$CLAUDE_PROJECT_DIR\" config core.hooksPath .githooks"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/ask_before_test_edit.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/block_no_verify.py\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/format_on_edit.py\""
+          }
+        ]
+      }
     ]
   }
 }
