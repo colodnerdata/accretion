@@ -104,6 +104,20 @@ that warning.
 `uv run poe launch` builds `web/accretion.html` and, in WSL, opens it in
 Windows Chrome through PowerShell.
 
+## Project tools
+
+| Purpose | Command |
+| --- | --- |
+| Run one test | `uv run pytest tests/test_game.py::test_mass_budget_closes_through_a_run` |
+| Rebuild `web/accretion.html` | `uv run python tools/build.py` |
+| Rebuild and open it in Chrome | `uv run poe launch` |
+| Simulated first-run player: phase timings, final star | `uv run python tools/bot.py` |
+| Regenerate `docs/audit/report.md` (about 80 s) | `uv run poe audit` |
+
+The parity and engine tests need `node` on `PATH`; without it they skip.
+Commit the rebuilt `web/accretion.html` together with any web source change.
+`README.md` has the hand-testing steps, such as the test-speed buttons.
+
 ## Editing game text
 
 All player-facing wording lives in `content/*.toml`, not in code. The build
@@ -155,21 +169,49 @@ interface and logs a console warning; it never throws.
   leftover-English-literal warning for `web/app.js`
   (`tests/test_text.py::test_leftover_text_report`).
 
-## A small development loop
+## From intent to merge
 
-1. Write down the expected behavior and the smallest useful change.
-2. Use a short-lived branch for substantive work or AI-generated changes.
-3. Implement the change and a test that could detect a real mistake.
-4. Run the relevant focused test, then `check` before merging.
-5. Read the diff yourself. Check assumptions, boundary cases, error behavior,
+This project follows the stages of the AI-native SDLC playbook. Each stage ends
+by committing an artifact, and the next stage starts by reading it.
+
+| Stage | Artifact | Decision point |
+| --- | --- | --- |
+| Plan | `intent.md`: problem, outcome, scope, constraints, open questions | Owner sets `status: accepted` |
+| Design | `spec.md`: requirements and design, with flagged concerns | Owner accepts; open questions answered or carried forward |
+| Build | `plan.md`: files that change, order of work, risks, and how each step is proven | Owner approves before code is written |
+| Test | Tests, check output, and eval results where they exist | Output shown in the PR |
+| Release | The PR, with any review findings | Owner merges |
+
+Keep each change's `intent.md`, `spec.md`, and `plan.md` together, so the set
+records what was asked, what was decided, and how it was built. The project's
+founding set lives directly in `intent/`. Later changes get their own folder,
+such as `intent/YYYY-MM-short-name/`. Start each document from its skeleton in
+`docs/templates/`. Planning notes written before this
+workflow stay in `docs/planning/`; a change that grows out of one links to it
+from its own `intent.md`.
+
+- **`intent.md`** is the owner's own statement of what and why. Agents
+  propose changes to it rather than make them.
+- **`spec.md`** says what the software does and the decisions that shape it.
+  Keep it to a few pages, with exact contracts and acceptance criteria.
+- **`plan.md`** is written per PR, detailed enough for someone who never saw
+  the conversation to carry it out.
+
+During Build and Test, each change follows the same loop:
+
+1. Work on a short-lived branch.
+2. Implement the change with a test that could detect a real mistake. When
+   the work departs from `plan.md`, update the plan in the same commit.
+3. Run the relevant focused test, then the checks listed in `AGENTS.md`.
+4. Read the diff yourself. Check assumptions, boundary cases, error behavior,
    dependencies, and anything an AI reviewer missed.
-6. Merge the completed change and remove its branch.
+5. Open a PR; the owner merges it and GitHub deletes the merged branch. A PR
+   is a useful checkpoint even when you are its only human reviewer.
 
-A PR is a useful checkpoint even when you are its only human reviewer.
+Small fixes can skip the intent, spec, and plan and go straight to a PR.
 Once set, the `main` ruleset requires a PR for every change, prose fixes
-included.
-An issue is useful for a reproducible
-bug or a larger chunk of work; it need not precede every edit.
+included. An issue is useful for a reproducible bug or a larger chunk of
+work; it need not precede every edit.
 
 ## Tests that earn their maintenance cost
 

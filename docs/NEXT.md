@@ -3,6 +3,14 @@
 Keep this page short and current. Replace obsolete notes instead of appending
 a diary. Link to an issue when it owns the detail.
 
+- **Workflow:** the project follows the AI-native SDLC in
+  `docs/DEVELOPMENT.md` ("From intent to merge"). The founding set is in
+  `intent/`: `spec.md` (the design, accepted) and `intent.md` (back-filled
+  from the spec, `status: draft`). New work gets `intent/YYYY-MM-name/`.
+- **Open work:** PR #28 (early-disk photoevaporation fix, the next action
+  below). Issues #31 to #35 hold the Nov 25 review findings: #31 and #32 are
+  bugs, to fix test first; #33 and #34 wait on owner rulings; #35 widens the
+  parity test.
 - **Working state:** PR #18 (visible gas), PR #19 (recorded lifetime,
   capped-turbulence refusal, build check inside `poe check`, save validation
   with a backup key, prestige idempotence) and PR #20 (readable accrete disk:
@@ -19,12 +27,16 @@ a diary. Link to an issue when it owns the detail.
   The design spec's Decisions section carries the same three rulings
   (edited 2026-11-11).
 - **Owner actions:**
+    - Read `intent/intent.md`, fill its **Owner:** gaps, and set
+      `status: accepted`.
+    - Rule on #33 (label the star-only disk potential, or model the disk's
+      mass) and #34 (how the white-dwarf goal completes).
     - Choose the epoch boundaries for the prediction system (candidates
       in "Epochs" in `docs/planning/prediction-system.md`), and confirm the
       proposed reading of "predictions reset" there.
     - Rulings still queued from the repository review: the ring-count
       migration story and the one-implementation proposal (protected decision — not for implementation without
-      sign-off). The review itself is a local, uncommitted file,
+      sign-off). The review itself is
       `docs/accretion-repository-review.md`.
 - **Next action:** stop the disk being cleared before ignition
   (`ionizing_rate` is flat below 5 M☉, so disk loss runs from the first

@@ -39,8 +39,6 @@ setup = [
     { cmd = "uv sync --locked" },
     { cmd = "git config core.hooksPath .githooks" },
 ]
-# Older name for the hook step of `setup`; CLAUDE.md still names it.
-hooks = "git config core.hooksPath .githooks"
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "tools"]

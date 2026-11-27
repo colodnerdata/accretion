@@ -34,7 +34,8 @@ report with praise or restate what the diff does.
 - **Parity**: `tests/test_parity.py` plays three scripted regions plus a stress scenario in Python
   and through `tools/parity_runner.js` in Node, comparing to `rel=1e-9`. Both `play()` and
   `stress()` exist twice and must be edited together.
-- Docs of record: `CLAUDE.md` (rules, decided mechanics), `FIDELITY.md` (each modeled element
+- Docs of record: `AGENTS.md` (rules, protected decisions), `intent/spec.md` (the design),
+  `FIDELITY.md` (each modeled element
   labeled Established / Simplified / Debated / Game rule), `DATA_REPORT.md` (sources),
   `docs/NEXT.md` (current work and decisions).
 
@@ -78,7 +79,7 @@ report with praise or restate what the diff does.
   is in sync with the sources (it reads, it does not rebuild; never build
   inside the repository). Hand-edited or stale build output is a finding.
 - If the saved `meta` or `run` shape changed incompatibly, `SAVE_KEY` in `web/app.js` must be bumped
-  (and `CLAUDE.md` updated). If a new field is merely missing from older saves, the engine must
+  (and `AGENTS.md` updated). If a new field is merely missing from older saves, the engine must
   default it rather than produce `NaN`.
 
 ### Conservation
@@ -95,7 +96,7 @@ report with praise or restate what the diff does.
 ### Determinism and step-size independence
 - No unseeded randomness anywhere in either engine: `random`, `numpy.random`, `Math.random`,
   `Date.now()` or wall-clock reads inside engine logic, or iteration order that depends on hash
-  order. Any new randomness must be seeded and mirrored in both engines (CLAUDE.md).
+  order. Any new randomness must be seeded and mirrored in both engines (`AGENTS.md`).
 - `step(run, meta, seconds)` must give the same result for one long step and many short ones
   (`test_one_long_step_matches_many_short_steps`). Flag state that advances per call instead of per
   `SIM_STEP_YEARS`, or per-call rounding.
@@ -124,7 +125,7 @@ report with praise or restate what the diff does.
 - An `xfail`, `skip`, or loosened tolerance added to make the suite pass is a finding unless the
   reason is stated and tracked in `docs/NEXT.md`.
 
-### Decided mechanics (CLAUDE.md)
+### Decided mechanics (`AGENTS.md`, "Protected decisions")
 - Flag, do not judge, any change that contradicts a decided mechanic: any stellar death ends the run
   and prestiges; the `ln(N)` probability budget and refundable allocations; region search changes
   the start, never the physical constants; time skips advance the universal clock only by time that
@@ -132,8 +133,7 @@ report with praise or restate what the diff does.
   bonus currency or gravity bonus; early runs take about 15 to 20 minutes; pristine stars from
   about 9 to 25 M☉ always explode; explosion gaps are deterministic by mass; offline progress uses
   the live engine. Quote the line from
-  `CLAUDE.md` or the spec and say what the change does. The design spec is the Claude Docs artifact
-  "Accretion Idle Game Design Spec"; if you cannot read it, say you checked only `CLAUDE.md`.
+  `AGENTS.md` or the Decisions section of `intent/spec.md` and say what the change does.
 - Design principles also bind code: no previews, forecasts, ghost markers, or model runs. Leave
   player-experience judgment to the ui-ux agent.
 

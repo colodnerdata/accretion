@@ -34,7 +34,7 @@ Report from the player's point of view. The audience for your report is the make
   review them as design, but flag it if they are easy to hit by accident.
 - The `window.claude?.hot` calls support live reload in the artifact viewer and are fine.
 
-## Design principles to judge against (CLAUDE.md)
+## Design principles to judge against (`AGENTS.md`)
 
 1. **Controls are never mysterious; phenomena can be.** Each control states its direct effect
    plainly. The underlying science is explained only after the player has seen the effect.

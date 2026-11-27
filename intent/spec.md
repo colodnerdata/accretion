@@ -1,6 +1,18 @@
+---
+title: Accretion idle game design
+status: accepted
+intent: intent.md
+created: 2026-11-04
+---
+
 # Accretion Idle Game Design Spec
 
 Nov 4, 2026 · @Stephen Colodner
+
+This file is the design's source of truth. It began as the Claude Doc
+"Accretion Idle Game Design Spec", which is now an older copy; change the
+design here, through a PR. Its Decisions section is the record of decided
+choices; agents flag a change that contradicts one instead of making it.
 
 ## Concept
 
