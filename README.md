@@ -51,22 +51,24 @@ Disk fragmentation and companion stars are part of the current simulation. A
 run's journal records surviving companions, and the play screen's "Companion
 stars" row reflects the current companion mass in that run.
 
-## Pre-commit hook
+## Commit hook
 
-A tracked git hook in `.githooks/pre-commit` runs before every commit. It runs
-`uv run poe check`, whose four gates are lint (ruff), the format check, the
-build check (`web/accretion.html` must match the web sources), and the tests.
-Turn it on once per clone:
+A tracked git hook in `.githooks/pre-commit` runs before every commit. It
+runs the format check, lint (ruff) and the build check (`web/accretion.html`
+must match the web sources), so a commit takes seconds. The tests run in CI
+and before work is reported done. Set up a new clone once:
 
 ```bash
-uv run poe hooks
+uv run --locked poe setup
 ```
 
-If it blocks a commit for a stale build, run `uv run python tools/build.py` and stage
-`web/accretion.html`. For lint or format failures, fix them or run `uv run poe format`.
-`git commit --no-verify` skips the hook; CI runs the same checks (lint, format,
-the build check, and tests), so an unhooked commit that ships a stale build
-fails there.
+`setup` installs the locked environment and turns the hook on. Claude Code
+sessions turn it on themselves when they start.
+
+If the hook blocks a commit for a stale build, run `uv run python tools/build.py`
+and stage `web/accretion.html`. For lint or format failures, fix them or run
+`uv run poe format`. CI runs the same checks plus the tests, as separate Lint,
+Format, Build, Tests and Browser jobs; see [Development](docs/DEVELOPMENT.md).
 
 ## License
 

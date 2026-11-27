@@ -14,10 +14,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # One job per check, so a failure names what broke and the ruleset can
+  # require each check by name. The commands match docs/DEVELOPMENT.md
+  # exactly, so a local pass means the same as a CI pass.
   check:
-    name: Checks
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Lint
+            run: uv run --locked ruff check .
+          - name: Format
+            run: uv run --locked ruff format --check .
+          - name: Build
+            run: uv run --locked python tools/build.py --check
+          - name: Tests
+            node: true
+            run: uv run --locked pytest -m "not property and not browser"
+          - name: Browser
+            browser: true
+            run: uv run --locked pytest -m browser
+    env:
+      # In the Browser job a missing Chromium fails the run instead of
+      # passing it by skipping (tests/conftest.py).
+      ACCRETION_REQUIRE_BROWSER: ${{ matrix.browser && '1' || '' }}
+      # In the Tests job a missing node fails the run, so the parity test
+      # cannot pass by skipping.
+      ACCRETION_REQUIRE_NODE: ${{ matrix.node && '1' || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -31,5 +57,13 @@ jobs:
         run: uv python install
       - name: Install locked dependencies
         run: uv sync --locked
-      - name: Run the same checks as local development
-        run: uv run --locked poe check
+      - name: Install node for the parity and engine tests
+        if: matrix.node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+      - name: Install Chromium for Playwright
+        if: matrix.browser
+        run: uv run --locked playwright install --with-deps chromium
+      - name: ${{ matrix.name }}
+        run: ${{ matrix.run }}

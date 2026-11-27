@@ -2,26 +2,97 @@
 
 ## Commands
 
-The project uses uv for its environment and lockfile, Poe for commands, Ruff
-for lint and formatting, and pytest for tests. `pyproject.toml` is the command
-source of truth. The development Python version is in `.python-version`.
+The project uses uv for its environment and lockfile, Ruff for lint and
+formatting, and pytest for tests. The development Python version is in
+`.python-version`.
 
-| Purpose | Command |
-| --- | --- |
-| Reproduce the environment | `uv sync --locked` |
-| Run the CI checks locally | `uv run --locked poe check` |
-| Run tests | `uv run --locked poe test` |
-| Lint | `uv run --locked poe lint` |
-| Apply formatting | `uv run --locked poe format` |
-| Check formatting | `uv run --locked poe format-check` |
-| Add a runtime dependency | `uv add PACKAGE` |
-| Add a development dependency | `uv add --dev PACKAGE` |
-| Deliberately refresh dependencies | `uv lock --upgrade` |
-| Capture screenshots of a full run | `uv run python tools/shoot.py` (see also `--phase`, `--out`) |
+Each check is one uv command. CI and the git hook call these commands
+directly, written the same way everywhere, so a local pass means the same as
+a CI pass. Poe tasks in `pyproject.toml` are shortcuts for the owner;
+nothing automated calls them.
 
-Commit dependency metadata and `uv.lock` together, and rerun `check` after
-updates. `--locked` detects stale dependency metadata instead of silently
-refreshing it. Review the dependency diff before merging it.
+| Purpose | Command | Poe shortcut |
+| --- | --- | --- |
+| Set up a new clone | `uv sync --locked`, then `git config core.hooksPath .githooks` | `poe setup` |
+| Lint | `uv run --locked ruff check .` | `poe lint` |
+| Check formatting | `uv run --locked ruff format --check .` | `poe format-check` |
+| Apply formatting | `uv run --locked ruff format .` | `poe format` |
+| Build check (`web/accretion.html` matches its sources) | `uv run --locked python tools/build.py --check` | `poe build-check` |
+| Tests without a browser | `uv run --locked pytest -m "not property and not browser"` | |
+| Browser tests | `uv run --locked pytest -m browser` | |
+| All tests (browser tests skip without Chromium) | `uv run --locked pytest -m "not property"` | `poe test` |
+| All four checks | | `poe check` |
+| Add a runtime dependency | `uv add PACKAGE` | |
+| Add a development dependency | `uv add --dev PACKAGE` | |
+| Deliberately refresh dependencies | `uv lock --upgrade` | |
+| Capture screenshots of a full run | `uv run python tools/shoot.py` (see also `--phase`, `--out`) | |
+
+Run Poe as `uv run --locked poe TASK`. Commit dependency metadata and
+`uv.lock` together, and rerun the checks after updates. `--locked` makes a
+stale `uv.lock` fail the run instead of silently re-resolving it. Review the
+dependency diff before merging it.
+
+Tests that use the `browser` fixture get the `browser` marker from
+`tests/conftest.py`. Without Chromium they skip, unless
+`ACCRETION_REQUIRE_BROWSER=1` is set, as it is in CI's Browser job; then a
+missing browser fails the run. To run them locally, install Chromium once
+with `uv run playwright install chromium`.
+
+Property-based tests get the `property` pytest marker and their own CI job
+once the first ones exist. Until then there is no property job, and
+`tests/test_ci_selection.py` fails if a `property` test appears without one.
+
+The Tests job sets `ACCRETION_REQUIRE_NODE=1` and installs node, so the
+parity and engine tests fail the run when node is missing instead of
+passing it by skipping. Locally they still skip without node.
+
+## Where each check runs
+
+Only the edit-time hook changes files. Every later layer only checks, so a
+commit or CI run never rewrites code that was already reviewed.
+
+| When | What runs | Where it is defined |
+| --- | --- | --- |
+| Claude edits a `.py` file | `ruff format` on that file, then `ruff check` on it, reported without `--fix` | `.claude/hooks/format_on_edit.py` |
+| Claude edits a committed test | Asks the owner first; new tests stay free to edit | `.claude/hooks/ask_before_test_edit.py` |
+| Claude edits `uv.lock` or an `intent.md` | Denied, or asks the owner first | `permissions` in `.claude/settings.json` |
+| Any commit | Format check, lint and build check, in seconds | `.githooks/pre-commit` |
+| Claude runs `git commit` | Blocks `--no-verify`, `-n`, and `core.hooksPath` overrides | `.claude/hooks/block_no_verify.py` |
+| Before work is reported done | The four checks, `poe check` | `AGENTS.md` |
+| Every PR and push to main | The Lint, Format, Build, Tests and Browser jobs | `.github/workflows/ci.yml` |
+| Merge to main | The five jobs must pass, once the ruleset is set | The `main` ruleset (below) |
+
+Lint stays report-only at edit time because Claude often adds an import in one
+edit and uses it in the next; an autofix in between would delete it as unused.
+
+Git does not enable hooks from a clone by itself, so `core.hooksPath` is set
+per clone. A Claude Code `SessionStart` hook sets it for every Claude session,
+local or cloud, and `poe setup` sets it for the owner. CI is the backstop.
+
+The Claude Code hooks do not see edits made through shell commands. The
+ruleset on main is the backstop, once it is set as described below.
+
+## GitHub settings
+
+These live in the repository settings, not in files, so they are recorded
+here. They are the target: the owner sets them right after the PR that
+added this section merges, and until then `main` still allows every merge
+method and needs no PR or checks.
+
+- **Merges:** squash only, with the PR title and description as the default
+  commit message. Merged branches are deleted automatically.
+- **Ruleset `ProtectMain`:** targets the default branch. It requires a pull
+  request with zero approvals, requires the Lint, Format, Build, Tests and
+  Browser checks, blocks force pushes and deletion, and requires linear
+  history. The bypass list is empty. It also keeps the CodeQL, code quality
+  and Copilot review rules.
+
+Zero approvals is deliberate: GitHub does not let an author approve their own
+PR, so the owner's merge is the approval. The empty bypass list matters
+because agent sessions act with the owner's GitHub permissions; a bypass for
+the owner would be one for every agent too. When CI gains a job, merge the
+workflow change before adding the job to the ruleset, or every PR waits on a
+check that never reports.
 
 ### WSL launch note
 
@@ -137,10 +208,10 @@ During Build and Test, each change follows the same loop:
 5. Open a PR; the owner merges it and GitHub deletes the merged branch. A PR
    is a useful checkpoint even when you are its only human reviewer.
 
-Small fixes can skip the intent, spec, and plan and go straight to a PR. The
-`main` ruleset requires a PR for every change, prose fixes included. An issue
-is useful for a reproducible bug or a larger chunk of work; it need not
-precede every edit.
+Small fixes can skip the intent, spec, and plan and go straight to a PR.
+Once set, the `main` ruleset requires a PR for every change, prose fixes
+included. An issue is useful for a reproducible bug or a larger chunk of
+work; it need not precede every edit.
 
 ## Tests that earn their maintenance cost
 
@@ -154,13 +225,13 @@ precede every edit.
   Python/OS CI jobs when they address a specific risk. A coverage percentage
   is a diagnostic, not proof of correctness.
 
-The initial CI job uses Python 3.12 on Linux. `pyproject.toml` requires
+The CI jobs use Python 3.12 on Linux. `pyproject.toml` requires
 Python 3.11 or later; CI does not claim to have tested every permitted
 version. Add a supported-version matrix when this becomes a library used by
 other people. If Windows or another platform is part of the product contract,
 test it too. The parity and engine tests also need `node` on `PATH`, and the
-browser screenshot tools need Playwright's Chromium (`uv sync` once, then
-`uv run playwright install chromium`, if the browser tests skip).
+browser tests and screenshot tools need Playwright's Chromium (`uv sync` once,
+then `uv run playwright install chromium`, if the browser tests skip).
 
 ## Deliverables and integrations
 
@@ -169,8 +240,8 @@ verification command and document its environment requirement here. Keep it
 separate from headless checks. A missing required environment is a reported
 limitation, not a passing integration check. This repository's product is the
 single-page browser build: the only integration beyond Python and `node` is
-Chromium, driven by Playwright from `tools/shoot.py`, which is a development
-aid and not part of CI.
+Chromium, driven by Playwright. The browser tests run it in CI's Browser job;
+`tools/shoot.py` uses it too, as a development aid outside CI.
 
 For generated files, use the order: build, verify that output, then publish.
 If a check cannot run in CI, retain concise evidence tied to the commit,
